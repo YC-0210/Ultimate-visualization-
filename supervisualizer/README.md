@@ -1,4 +1,4 @@
-# tool/ — the live version
+# supervisualizer
 
 The real tool: runs on your own machine, watches your **live** backend, shows what each request actually did as it happens.
 
@@ -12,7 +12,7 @@ Hand-built. Not generated. This folder is currently empty except for planning do
 
 They solve the same problem under opposite constraints.
 
-|  | `../prototype/` | `tool/` (here) |
+|  | `../prototype/` | `supervisualizer/` (here) |
 |---|---|---|
 | Runs where | a cloud machine, then a published page | your laptop |
 | Server data | recorded ahead of time, replayed | captured live, as it happens |

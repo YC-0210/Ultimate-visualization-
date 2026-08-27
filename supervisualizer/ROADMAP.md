@@ -1,4 +1,4 @@
-# Roadmap — the live tool
+# Roadmap — supervisualizer
 
 > This folder is the **real tool**, built by hand, that runs on the developer's own machine and watches a live backend.
 > `../prototype/` is the throwaway that proved the idea. Do not import from it — port ideas, not files.
@@ -8,9 +8,9 @@
 ## Status
 
 ```
-Current phase:  Phase 0 — not started
-Next action:    P0.1
-Last updated:   (never)
+Current phase:  Phase 0 — deciding
+Next action:    P0.2  (panel delivery)
+Last updated:   2026-08-27
 ```
 
 <!-- AGENT: keep the three lines above accurate. Update them at the end of every
@@ -52,25 +52,25 @@ You said this needs an LLM. Half right — and the half that is wrong matters mo
 ## Target architecture
 
 ```
-  YOUR BROWSER                          YOUR DJANGO APP
-┌────────────────────┐                ┌──────────────────────────┐
-│  your app page     │                │  your views/serializers  │
-│  ┌──────────────┐  │   request +    │  ┌────────────────────┐  │
-│  │ injected     │──┼── trace-id ───►│  │ capture middleware │  │
-│  │ probe script │  │                │  │  + serializer probe│  │
-│  └──────────────┘  │                │  │  + SQL probe       │  │
-│   captures DOM,    │                │  └─────────┬──────────┘  │
-│   payload, timing  │                │            │             │
-└────────────────────┘                │       Trace (JSON)       │
-                                      │            │             │
-┌────────────────────┐                │            ▼             │
-│  /__pipeline__/    │◄── SSE stream ─┼──── trace buffer         │
-│  the panel         │                └──────────────────────────┘
-│  (renderer ported  │
-│   from prototype)  │                ┌──────────────────────────┐
-│         │          │                │  explain service         │
-│         └──────────┼── on demand ──►│  (LLM, cached, optional) │
-└────────────────────┘                └──────────────────────────┘
+  YOUR BROWSER                            YOUR DJANGO APP
+┌──────────────────────────┐            ┌──────────────────────────┐
+│  your app page           │            │  your views/serializers  │
+│  ┌────────────────────┐  │ request +  │  ┌────────────────────┐  │
+│  │ injected probe     │──┼─ trace-id ►│  │ capture middleware │  │
+│  │ script             │  │            │  │  + serializer probe│  │
+│  └────────────────────┘  │            │  │  + SQL probe       │  │
+│   captures DOM,          │            │  └─────────┬──────────┘  │
+│   payload, timing        │            │            │             │
+└──────────────────────────┘            │       Trace (JSON)       │
+                                        │            │             │
+┌──────────────────────────┐            │            ▼             │
+│  the panel               │◄─ SSE ─────┼──── trace buffer         │
+│  /__supervisualizer__/   │            └──────────────────────────┘
+│  (renderer ported        │
+│   from prototype)        │            ┌──────────────────────────┐
+│         │                │            │  explain service         │
+│         └────────────────┼─ on demand►│  (LLM, cached, optional) │
+└──────────────────────────┘            └──────────────────────────┘
 ```
 
 Both halves of the story get stitched by a **trace id** the browser generates and sends as a header. That correlation is what makes `DOM → JavaScript → … → Database` one continuous story instead of two disconnected views.
@@ -83,8 +83,8 @@ Both halves of the story get stitched by a **trace id** the browser generates an
 
 Nothing is built yet. Close the questions that change everything downstream.
 
-- [ ] **P0.1** ❓ Name the tool. Rename this folder to match. (Everything else references it; do it first or never.)
-- [ ] **P0.2** ❓ **Panel delivery.** Recommended: a page your Django app serves at `/__pipeline__/`, exactly like Django Debug Toolbar. A browser extension is more powerful (works on any app, any origin) but adds Manifest V3 to your learning load. Start served, extension later if ever.
+- [x] **P0.1** ❓ ~~Name the tool.~~ → **supervisualizer**. Folder renamed. Python package will be `supervisualizer`, Django app label `supervisualizer`, panel served at `/__supervisualizer__/`.
+- [ ] **P0.2** ❓ **Panel delivery.** Recommended: a page your Django app serves at `/__supervisualizer__/`, exactly like Django Debug Toolbar. A browser extension is more powerful (works on any app, any origin) but adds Manifest V3 to your learning load. Start served, extension later if ever.
 - [ ] **P0.3** ❓ **Transport.** Recommended: **SSE** (`text/event-stream`) — one-directional, server→panel, trivial in plain Django, no extra dependency. WebSockets need Channels/ASGI and buy you nothing until the panel talks back.
 - [ ] **P0.4** ❓ **Trace schema, v0.** The framework-neutral JSON every adapter emits. Sketch it before writing capture code. Read the "Schema starting point" section below, and read up on OpenTelemetry's trace/span model first — it solved this exact problem and being loosely compatible may be worth more than being clever.
 - [ ] **P0.5** Scaffold an installable Python package (`pyproject.toml`, `pip install -e .`).
@@ -118,14 +118,14 @@ Pure Python. No UI yet. Output is a JSON file you read in a terminal.
 
 First visual payoff. Static — you refresh manually.
 
-- [ ] **P2.1** Serve the panel at `/__pipeline__/` (dev-only; guard on `DEBUG`).
+- [ ] **P2.1** Serve the panel at `/__supervisualizer__/` (dev-only; guard on `DEBUG`).
 - [ ] **P2.2** Port `stages_for()` — derive stages from Trace facts, never hardcode them.
 - [ ] **P2.3** Port the renderers: `kvRow`, `jsonHtml`, `sqlHtml`, the wire view. These carry over almost unchanged.
 - [ ] **P2.4** Port the three-column layout and the type-badge treatment.
 - [ ] **P2.5** Load and render the most recent trace.
 - [ ] **P2.6** Port stage stepping + the packet animation.
 
-**Done when:** you hit an endpoint in your app, refresh `/__pipeline__/`, and see its pipeline with real data at each stage.
+**Done when:** you hit an endpoint in your app, refresh `/__supervisualizer__/`, and see its pipeline with real data at each stage.
 
 ---
 
