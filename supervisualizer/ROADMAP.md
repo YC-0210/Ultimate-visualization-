@@ -9,7 +9,7 @@
 
 ```
 Current phase:  Phase 0 — deciding
-Next action:    P0.2  (panel delivery)
+Next action:    P0.3  (transport)
 Last updated:   2026-08-27
 ```
 
@@ -84,7 +84,8 @@ Both halves of the story get stitched by a **trace id** the browser generates an
 Nothing is built yet. Close the questions that change everything downstream.
 
 - [x] **P0.1** ❓ ~~Name the tool.~~ → **supervisualizer**. Folder renamed. Python package will be `supervisualizer`, Django app label `supervisualizer`, panel served at `/__supervisualizer__/`.
-- [ ] **P0.2** ❓ **Panel delivery.** Recommended: a page your Django app serves at `/__supervisualizer__/`, exactly like Django Debug Toolbar. A browser extension is more powerful (works on any app, any origin) but adds Manifest V3 to your learning load. Start served, extension later if ever.
+- [x] **P0.2** ❓ ~~Panel delivery.~~ → **A Django app the user installs**, serving the panel at `/__supervisualizer__/`. Not a project, not an extension: `pip install supervisualizer`, add to `INSTALLED_APPS` + `MIDDLEWARE`, done. The panel is just a view. No CORS, no second server, no store review. A browser extension would additionally work on apps you cannot modify, but it cannot see the server side at all — so the Django app would still be needed underneath. Revisit only if watching an unmodifiable app becomes a real requirement.
+  - Consequence: panel HTML/CSS/JS must ship *inside* the package — `MANIFEST.in` and the app-template/static-file conventions are load-bearing, not boilerplate.
 - [ ] **P0.3** ❓ **Transport.** Recommended: **SSE** (`text/event-stream`) — one-directional, server→panel, trivial in plain Django, no extra dependency. WebSockets need Channels/ASGI and buy you nothing until the panel talks back.
 - [ ] **P0.4** ❓ **Trace schema, v0.** The framework-neutral JSON every adapter emits. Sketch it before writing capture code. Read the "Schema starting point" section below, and read up on OpenTelemetry's trace/span model first — it solved this exact problem and being loosely compatible may be worth more than being clever.
 - [ ] **P0.5** Scaffold an installable Python package (`pyproject.toml`, `pip install -e .`).
