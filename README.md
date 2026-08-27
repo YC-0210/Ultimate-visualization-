@@ -4,7 +4,14 @@ A tool for **seeing** how backend code collaborates — how one interaction's da
 
 Built because reading Django source tells you what each file contains, but not how a request actually moves through them, and not what happens to your data's *type* at each hop.
 
-> **Status: prototype.** It works, and everything it shows about the server is real. But it is wired to one specific codebase ([`YC-0210/restautant-order-system`](https://github.com/YC-0210/restautant-order-system)). Generalizing it is the next piece of work — see [What a general version would change](prototype/HOW-IT-WORKS.md#6-what-a-general-version-would-change).
+## Two folders
+
+| | |
+|---|---|
+| **[`prototype/`](prototype/)** | ✅ Done. Proves the idea against one codebase ([`restautant-order-system`](https://github.com/YC-0210/restautant-order-system)) by recording real Django runs and replaying them in a published page. Throwaway, but everything it shows is real. |
+| **[`tool/`](tool/)** | 🚧 To build. The real thing: runs on your own machine, watches your **live** backend, never goes stale. Django first, other frameworks after. Start at [`tool/ROADMAP.md`](tool/ROADMAP.md). |
+
+The prototype recorded ahead of time because a cloud machine cannot reach a laptop. The tool has no such constraint, so it captures live instead — the recorder does not carry over, but the renderer does.
 
 ---
 
