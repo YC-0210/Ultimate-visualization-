@@ -222,6 +222,18 @@
   .box{background:var(--surface-2);border:1px solid var(--hairline);border-radius:8px;padding:9px 11px;
     font-family:var(--mono);font-size:11px;line-height:1.7;overflow-x:auto}
   .box.raw{white-space:pre-wrap;word-break:break-all;color:var(--ink-muted)}
+  .box.pre{white-space:pre;overflow-x:auto;line-height:1.65}
+  .j-key{color:var(--ink)}
+  .j-str{color:#7fc99a}
+  .j-num{color:#d9b070}
+  .j-bool{color:#7ea8f0}
+  .j-null{color:var(--ink-tertiary)}
+  .j-punct{color:var(--ink-tertiary)}
+  .wire-head{color:var(--ink-subtle);white-space:pre-wrap;word-break:break-all}
+  .wire-head b{color:var(--ink);font-weight:600}
+  .wire-sep{height:1px;background:var(--hairline);margin:8px 0}
+  .sql-kw{color:#7ea8f0}
+  .charcount{color:var(--ink-tertiary);font-size:9.5px;font-family:var(--mono)}
   .box.code{white-space:pre;color:var(--ink-subtle);font-size:10.5px;line-height:1.6;max-height:330px;overflow:auto}
   .kv{display:flex;gap:6px;align-items:baseline;flex-wrap:wrap}
   .kv .k{color:var(--ink-subtle)}
@@ -331,6 +343,38 @@ const NOTE_PH = DATA.note_placeholder;
 const $ = id => document.getElementById(id);
 const el = (tag, cls, txt) => { const n = document.createElement(tag); if (cls) n.className = cls; if (txt != null) n.textContent = txt; return n; };
 const esc = s => String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+
+/* ---------- structured renderers ----------
+   Data is never dumped as a flat string: JSON is indented and syntax-lit,
+   HTTP messages are split into a head and a rendered body, SQL is broken
+   onto keyword lines. */
+function jsonHtml(v, ind) {
+  ind = ind || 0;
+  const pad = "  ".repeat(ind), pad2 = "  ".repeat(ind + 1);
+  if (v === null || v === undefined) return '<span class="j-null">null</span>';
+  if (typeof v === "string") return '<span class="j-str">' + esc(JSON.stringify(v)) + "</span>";
+  if (typeof v === "number") return '<span class="j-num">' + v + "</span>";
+  if (typeof v === "boolean") return '<span class="j-bool">' + v + "</span>";
+  if (Array.isArray(v)) {
+    if (!v.length) return '<span class="j-punct">[]</span>';
+    return '<span class="j-punct">[</span>\n' +
+      v.map(x => pad2 + jsonHtml(x, ind + 1)).join('<span class="j-punct">,</span>\n') +
+      "\n" + pad + '<span class="j-punct">]</span>';
+  }
+  const keys = Object.keys(v);
+  if (!keys.length) return '<span class="j-punct">{}</span>';
+  return '<span class="j-punct">{</span>\n' +
+    keys.map(k => pad2 + '<span class="j-key">"' + esc(k) + '"</span><span class="j-punct">: </span>' +
+      jsonHtml(v[k], ind + 1)).join('<span class="j-punct">,</span>\n') +
+    "\n" + pad + '<span class="j-punct">}</span>';
+}
+
+const SQL_KW = /\b(SELECT|FROM|WHERE|INNER JOIN|LEFT JOIN|JOIN|ON|ORDER BY|GROUP BY|LIMIT|INSERT INTO|VALUES|UPDATE|SET|DELETE FROM|AND|OR|IN|AS)\b/g;
+function sqlHtml(text) {
+  return esc(text)
+    .replace(/\s+(FROM|WHERE|INNER JOIN|LEFT JOIN|ORDER BY|GROUP BY|LIMIT|VALUES|SET)\b/g, "\n$1")
+    .replace(SQL_KW, '<span class="sql-kw">$1</span>');
+}
 
 function unwrap(n) {
   if (n && typeof n === "object" && "type" in n && "value" in n) {
@@ -687,7 +731,7 @@ function payloadFor(stage, ep, run, live) {
   const S_in = run.serializer_in ? subNote(run.serializer_in, note) : null;
   const S_out = run.response_body ? subNote(run.response_body, note) : null;
   const reqBody = run.request_body ? subNote(run.request_body, note) : null;
-  const out = { rows: null, raw: null, rawLabel: null, note: null, srcKey: null, hot: [] };
+  const out = { rows: null, raw: null, rawLabel: null, json: undefined, jsonLabel: null, jsonMeta: null, wire: null, wireLabel: null, sql: null, sqlLabel: null, note: null, srcKey: null, hot: [] };
 
   switch (id) {
     case "navigation":
@@ -724,8 +768,10 @@ function payloadFor(stage, ep, run, live) {
         : { "Cookie": "sessionid=…; csrftoken=…", "Accept": "text/html" };
       for (const k in h) out.rows[k] = { type: "string", value: String(h[k]) };
       if (raw) {
-        out.raw = raw; out.rawLabel = "JSON.stringify(payload)";
-        out.note = `The whole object collapsed into <b>one string</b>, ${raw.length} characters long. Numbers and booleans lost their quotes, but it is all text now.`;
+        out.json = JSON.parse(raw);
+        out.jsonLabel = "JSON.stringify(payload)";
+        out.jsonMeta = `one string · ${raw.length} chars`;
+        out.note = `Shown indented so you can read it, but on the wire it is <b>one unbroken string</b> of ${raw.length} characters. Numbers and booleans lost their quotes; only strings kept them.`;
       } else {
         out.rows["body"] = { type: "NoneType", value: "no body" };
         out.note = `A <code>${ep.method}</code> carries <b>no body</b> — nothing is serialized here. The only thing travelling is the URL and the headers, and the <b>cookie</b> is what will make the server think it knows who you are.`;
@@ -735,11 +781,17 @@ function payloadFor(stage, ep, run, live) {
     }
     case "http_request": {
       const raw = (live && live.rawBody) || (reqBody ? JSON.stringify(unwrap(reqBody)) : "");
-      out.raw = `${ep.method} ${(live && live.url) || ep.path} HTTP/1.1\nHost: 127.0.0.1:8000\n` +
-        (raw ? `Content-Type: application/json\nContent-Length: ${raw.length}\n` : "") +
-        `Cookie: sessionid=…; csrftoken=…\n\n` + raw;
-      out.rawLabel = "bytes on the wire";
-      out.note = `Nothing structured survives the trip. The server receives <b>text and headers</b> and rebuilds meaning from it.`;
+      out.wire = {
+        start: `${ep.method} ${(live && live.url) || ep.path} HTTP/1.1`,
+        headers: Object.assign(
+          { "Host": "127.0.0.1:8000" },
+          raw ? { "Content-Type": "application/json", "Content-Length": String(raw.length) } : {},
+          { "Cookie": "sessionid=…; csrftoken=…" }
+        ),
+        body: raw ? JSON.parse(raw) : null,
+      };
+      out.wireLabel = "bytes on the wire";
+      out.note = `Nothing structured survives the trip. The server receives a <b>start line, headers and a text body</b>, and has to rebuild meaning from them.`;
       break;
     }
     case "url_router":
@@ -781,9 +833,11 @@ function payloadFor(stage, ep, run, live) {
       out.srcKey = "serializer_in";
       break;
     case "database": {
-      out.rows = run.row ? run.row.value : { "queries run": { type: "int", value: run.query_count } };
-      out.raw = sqlText([...(run.sql_reads || []).slice(0, 3), ...(run.sql_writes || [])]);
-      out.rawLabel = `SQL actually emitted (${run.query_count} queries)`;
+      const rowNode = run.row ? subNote(run.row, note) : null;
+      out.rows = rowNode ? rowNode.value : { "queries run": { type: "int", value: run.query_count } };
+      out.sql = [...(run.sql_reads || []).slice(0, 3), ...(run.sql_writes || [])]
+        .map(i => note === undefined ? SQL[i] : SQL[i].split(NOTE_PH).join(note));
+      out.sqlLabel = `SQL actually emitted (${run.query_count} queries)`;
       out.hot = ["price", "status", "id"];
       out.note = run.sql_writes && run.sql_writes.length
         ? `Model objects became <b>column values</b>. Any field you never sent — like <code>status</code> — appeared from its <b>model default</b>.`
@@ -810,11 +864,17 @@ function payloadFor(stage, ep, run, live) {
       out.note = `<b>No JSON anywhere.</b> The queryset went straight into a template context and came out as ${run.content_length} bytes of HTML.`;
       break;
     case "http_response": {
-      const body = S_out ? JSON.stringify(unwrap(S_out)) : `(${run.content_length} bytes)`;
-      out.raw = `HTTP/1.1 ${run.status_code}\n` +
-        (S_out ? "Content-Type: application/json\n" : "Content-Type: text/html\n") +
-        `Content-Length: ${run.content_length}\n\n` + body;
-      out.rawLabel = "bytes on the wire";
+      const hasOut = !!(S_out && S_out.value && Object.keys(S_out.value).length);
+      out.wire = {
+        start: `HTTP/1.1 ${run.status_code}`,
+        headers: {
+          "Content-Type": hasOut ? "application/json" : "text/html; charset=utf-8",
+          "Content-Length": String(run.content_length),
+        },
+        body: hasOut ? unwrap(S_out) : null,
+        bodyNote: hasOut ? null : `${run.content_length} bytes of ${run.templates && run.templates.length ? "HTML" : "no body"}`,
+      };
+      out.wireLabel = "bytes on the wire";
       out.note = `Status <b>${run.status_code}</b>. Text again — the browser must parse it before it means anything.`;
       break;
     }
@@ -902,6 +962,46 @@ function renderData() {
     const box = el("div", "box");
     for (const k in p.rows) box.appendChild(kvRow(k, p.rows[k], p.hot.includes(k)));
     s.appendChild(box);
+  }
+  if (p.json !== undefined) {
+    const s = el("div", "sect");
+    const lab = el("div", "sect-label");
+    lab.appendChild(el("span", null, p.jsonLabel || "JSON"));
+    if (p.jsonMeta) lab.appendChild(el("span", "charcount", p.jsonMeta));
+    s.appendChild(lab);
+    const box = el("div", "box pre");
+    box.innerHTML = jsonHtml(p.json);
+    s.appendChild(box);
+    wrap.appendChild(s);
+  }
+  if (p.wire) {
+    const s = el("div", "sect");
+    const lab = el("div", "sect-label");
+    lab.appendChild(el("span", null, p.wireLabel || "wire"));
+    s.appendChild(lab);
+    const box = el("div", "box pre");
+    const head = el("div", "wire-head");
+    head.innerHTML = "<b>" + esc(p.wire.start) + "</b>\n" +
+      Object.entries(p.wire.headers).map(([k, v]) => esc(k) + ": " + esc(v)).join("\n");
+    box.appendChild(head);
+    box.appendChild(el("div", "wire-sep"));
+    if (p.wire.body !== null && p.wire.body !== undefined) {
+      const b = el("div"); b.innerHTML = jsonHtml(p.wire.body); box.appendChild(b);
+    } else {
+      box.appendChild(el("div", "j-null", p.wire.bodyNote || "(no body)"));
+    }
+    s.appendChild(box);
+    wrap.appendChild(s);
+  }
+  if (p.sql && p.sql.length) {
+    const s = el("div", "sect");
+    const lab = el("div", "sect-label");
+    lab.appendChild(el("span", null, p.sqlLabel || "SQL"));
+    s.appendChild(lab);
+    const box = el("div", "box pre");
+    box.innerHTML = p.sql.map(q => sqlHtml(q)).join('\n<span class="j-punct">─────</span>\n');
+    s.appendChild(box);
+    wrap.appendChild(s);
   }
   if (p.raw) {
     const s = el("div", "sect");
