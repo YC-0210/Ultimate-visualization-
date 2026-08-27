@@ -1,0 +1,670 @@
+{
+  "target_project": "YC-0210/restautant-order-system",
+  "structure": {
+    "models": [
+      {
+        "name": "menuitem",
+        "table": "restaurantAPI_menuitem",
+        "fields": [
+          {
+            "name": "cartitem",
+            "kind": "ManyToOneRel",
+            "related_model": "cartitem",
+            "many": true
+          },
+          {
+            "name": "id",
+            "kind": "BigAutoField"
+          },
+          {
+            "name": "slug",
+            "kind": "SlugField"
+          },
+          {
+            "name": "product",
+            "kind": "CharField"
+          },
+          {
+            "name": "price",
+            "kind": "DecimalField"
+          },
+          {
+            "name": "image",
+            "kind": "ImageField"
+          }
+        ]
+      },
+      {
+        "name": "meattype",
+        "table": "restaurantAPI_meattype",
+        "fields": [
+          {
+            "name": "cartitem",
+            "kind": "ManyToOneRel",
+            "related_model": "cartitem",
+            "many": true
+          },
+          {
+            "name": "id",
+            "kind": "BigAutoField"
+          },
+          {
+            "name": "slug",
+            "kind": "SlugField"
+          },
+          {
+            "name": "name",
+            "kind": "CharField"
+          },
+          {
+            "name": "addon_price",
+            "kind": "DecimalField"
+          }
+        ]
+      },
+      {
+        "name": "hotpotingredients",
+        "table": "restaurantAPI_hotpotingredients",
+        "fields": [
+          {
+            "name": "cartitem",
+            "kind": "ManyToManyRel",
+            "related_model": "cartitem",
+            "many": true
+          },
+          {
+            "name": "id",
+            "kind": "BigAutoField"
+          },
+          {
+            "name": "slug",
+            "kind": "SlugField"
+          },
+          {
+            "name": "name",
+            "kind": "CharField"
+          },
+          {
+            "name": "addon_price",
+            "kind": "DecimalField"
+          }
+        ]
+      },
+      {
+        "name": "cart",
+        "table": "restaurantAPI_cart",
+        "fields": [
+          {
+            "name": "cartitem",
+            "kind": "ManyToOneRel",
+            "related_model": "cartitem",
+            "many": true
+          },
+          {
+            "name": "id",
+            "kind": "BigAutoField"
+          },
+          {
+            "name": "user",
+            "kind": "OneToOneField",
+            "related_model": "User",
+            "many": false
+          },
+          {
+            "name": "table_number",
+            "kind": "IntegerField"
+          },
+          {
+            "name": "total_price",
+            "kind": "DecimalField"
+          }
+        ]
+      },
+      {
+        "name": "cartitem",
+        "table": "restaurantAPI_cartitem",
+        "fields": [
+          {
+            "name": "id",
+            "kind": "BigAutoField"
+          },
+          {
+            "name": "cart",
+            "kind": "ForeignKey",
+            "related_model": "cart",
+            "many": false
+          },
+          {
+            "name": "product",
+            "kind": "ForeignKey",
+            "related_model": "menuitem",
+            "many": false
+          },
+          {
+            "name": "quantity",
+            "kind": "IntegerField"
+          },
+          {
+            "name": "price",
+            "kind": "DecimalField"
+          },
+          {
+            "name": "meattype",
+            "kind": "ForeignKey",
+            "related_model": "meattype",
+            "many": false
+          },
+          {
+            "name": "doublemeat",
+            "kind": "BooleanField"
+          },
+          {
+            "name": "notes",
+            "kind": "CharField"
+          },
+          {
+            "name": "status",
+            "kind": "CharField"
+          },
+          {
+            "name": "hotpotingredients",
+            "kind": "ManyToManyField",
+            "related_model": "hotpotingredients",
+            "many": true
+          }
+        ]
+      }
+    ],
+    "serializers": [
+      {
+        "name": "menuitemSerializer",
+        "model": "menuitem",
+        "fields": [
+          {
+            "name": "id",
+            "kind": "BigIntegerField",
+            "read_only": true,
+            "required": false
+          },
+          {
+            "name": "slug",
+            "kind": "SlugField",
+            "read_only": false,
+            "required": true
+          },
+          {
+            "name": "product",
+            "kind": "CharField",
+            "read_only": false,
+            "required": true
+          },
+          {
+            "name": "price",
+            "kind": "DecimalField",
+            "read_only": false,
+            "required": true
+          },
+          {
+            "name": "image",
+            "kind": "ImageField",
+            "read_only": false,
+            "required": false
+          }
+        ]
+      },
+      {
+        "name": "cartSerializer",
+        "model": "cart",
+        "fields": [
+          {
+            "name": "id",
+            "kind": "BigIntegerField",
+            "read_only": true,
+            "required": false
+          },
+          {
+            "name": "table_number",
+            "kind": "IntegerField",
+            "read_only": true,
+            "required": false
+          },
+          {
+            "name": "total_price",
+            "kind": "DecimalField",
+            "read_only": true,
+            "required": false
+          },
+          {
+            "name": "user",
+            "kind": "PrimaryKeyRelatedField",
+            "read_only": true,
+            "required": false
+          }
+        ]
+      },
+      {
+        "name": "cartitemSerializer",
+        "model": "cartitem",
+        "fields": [
+          {
+            "name": "id",
+            "kind": "BigIntegerField",
+            "read_only": true,
+            "required": false
+          },
+          {
+            "name": "product",
+            "kind": "SlugRelatedField",
+            "read_only": false,
+            "required": true
+          },
+          {
+            "name": "meattype",
+            "kind": "SlugRelatedField",
+            "read_only": false,
+            "required": true
+          },
+          {
+            "name": "hotpotingredients",
+            "kind": "ManyRelatedField",
+            "read_only": false,
+            "required": false
+          },
+          {
+            "name": "quantity",
+            "kind": "IntegerField",
+            "read_only": false,
+            "required": true
+          },
+          {
+            "name": "price",
+            "kind": "DecimalField",
+            "read_only": true,
+            "required": false
+          },
+          {
+            "name": "doublemeat",
+            "kind": "BooleanField",
+            "read_only": false,
+            "required": true
+          },
+          {
+            "name": "notes",
+            "kind": "CharField",
+            "read_only": false,
+            "required": true
+          },
+          {
+            "name": "status",
+            "kind": "ChoiceField",
+            "read_only": true,
+            "required": false
+          },
+          {
+            "name": "cart",
+            "kind": "PrimaryKeyRelatedField",
+            "read_only": true,
+            "required": false
+          }
+        ]
+      }
+    ],
+    "endpoints": [
+      {
+        "path": "/api/menuitem/",
+        "methods": [
+          "GET",
+          "POST"
+        ],
+        "view": "menuList",
+        "kind": "api",
+        "serializer": "menuitemSerializer",
+        "model": "menuitem",
+        "permission_classes": [
+          "AllowAny"
+        ]
+      },
+      {
+        "path": "/api/menuitem/<slug>/",
+        "methods": [
+          "GET"
+        ],
+        "view": "menuitemDetail",
+        "kind": "api",
+        "serializer": "menuitemSerializer",
+        "model": "menuitem",
+        "permission_classes": [
+          "AllowAny"
+        ]
+      },
+      {
+        "path": "/api/cart/",
+        "methods": [
+          "GET",
+          "POST"
+        ],
+        "view": "cartList",
+        "kind": "api",
+        "serializer": "cartSerializer",
+        "model": "cart",
+        "permission_classes": [
+          "AllowAny"
+        ]
+      },
+      {
+        "path": "/api/cart/<id>/",
+        "methods": [
+          "GET",
+          "PUT",
+          "PATCH",
+          "DELETE"
+        ],
+        "view": "cartDetail",
+        "kind": "api",
+        "serializer": "cartSerializer",
+        "model": "cart",
+        "permission_classes": [
+          "IsAuthenticated"
+        ]
+      },
+      {
+        "path": "/api/cart/item/",
+        "methods": [
+          "GET",
+          "POST"
+        ],
+        "view": "cartitemList",
+        "kind": "api",
+        "serializer": "cartitemSerializer",
+        "model": "cartitem",
+        "permission_classes": [
+          "AllowAny"
+        ]
+      },
+      {
+        "path": "/api/cart/item/<id>/",
+        "methods": [
+          "GET",
+          "PUT",
+          "PATCH",
+          "DELETE"
+        ],
+        "view": "cartitemDetail",
+        "kind": "api",
+        "serializer": "cartitemSerializer",
+        "model": "cartitem",
+        "permission_classes": [
+          "IsAuthenticated"
+        ]
+      },
+      {
+        "path": "/cart_list/",
+        "methods": [
+          "GET"
+        ],
+        "view": "cart_list",
+        "kind": "html",
+        "template": "cart_list.html"
+      }
+    ]
+  },
+  "focus_endpoints": [
+    {
+      "id": "menuitem_detail",
+      "title": "GET /api/menuitem/kimchi-hotpot/",
+      "endpoint_path": "/api/menuitem/<slug>/",
+      "steps": [
+        {
+          "label": "Database row",
+          "description": "The real row fetched from the menuitem table.",
+          "type": "menuitem instance",
+          "value": "<menuitem pk=1> kimchi-hotpot"
+        },
+        {
+          "label": "Serializer output",
+          "description": "menuitemSerializer turns the model instance into a plain dict of JSON-safe values.",
+          "type": "dict",
+          "value": {
+            "id": {
+              "type": "int",
+              "value": 1
+            },
+            "slug": {
+              "type": "str",
+              "value": "kimchi-hotpot"
+            },
+            "product": {
+              "type": "str",
+              "value": "Kimchi Hotpot"
+            },
+            "price": {
+              "type": "str",
+              "value": "180.00"
+            },
+            "image": {
+              "type": "NoneType",
+              "value": null
+            }
+          }
+        },
+        {
+          "label": "HTTP response",
+          "description": "GET /api/menuitem/kimchi-hotpot/ -> 200",
+          "type": "dict",
+          "value": {
+            "id": {
+              "type": "int",
+              "value": 1
+            },
+            "slug": {
+              "type": "str",
+              "value": "kimchi-hotpot"
+            },
+            "product": {
+              "type": "str",
+              "value": "Kimchi Hotpot"
+            },
+            "price": {
+              "type": "str",
+              "value": "180.00"
+            },
+            "image": {
+              "type": "NoneType",
+              "value": null
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "cart_item_create",
+      "title": "POST /api/cart/item/",
+      "endpoint_path": "/api/cart/item/",
+      "steps": [
+        {
+          "label": "Client request body",
+          "description": "Raw JSON sent by the client. product/meattype/hotpotingredients are plain strings.",
+          "type": "dict",
+          "value": {
+            "product": {
+              "type": "str",
+              "value": "kimchi-hotpot"
+            },
+            "meattype": {
+              "type": "str",
+              "value": "beef"
+            },
+            "hotpotingredients": {
+              "type": "list",
+              "value": [
+                {
+                  "type": "str",
+                  "value": "mushroom"
+                }
+              ]
+            },
+            "doublemeat": {
+              "type": "bool",
+              "value": true
+            },
+            "quantity": {
+              "type": "int",
+              "value": 2
+            },
+            "notes": {
+              "type": "str",
+              "value": "no onion"
+            }
+          }
+        },
+        {
+          "label": "Validated data",
+          "description": "After validation, SlugRelatedField resolved each slug string into the real model instance it names.",
+          "type": "dict",
+          "value": {
+            "product": {
+              "type": "menuitem instance",
+              "value": "<menuitem pk=1> kimchi-hotpot"
+            },
+            "meattype": {
+              "type": "meattype instance",
+              "value": "<meattype pk=1> beef"
+            },
+            "hotpotingredients": {
+              "type": "list",
+              "value": [
+                {
+                  "type": "hotpotingredients instance",
+                  "value": "<hotpotingredients pk=1> mushroom"
+                }
+              ]
+            },
+            "quantity": {
+              "type": "int",
+              "value": 2
+            },
+            "doublemeat": {
+              "type": "bool",
+              "value": true
+            },
+            "notes": {
+              "type": "str",
+              "value": "no onion"
+            }
+          }
+        },
+        {
+          "label": "cartitemSerializer.create() computed a new value",
+          "description": "price never came from the client. It was computed inside create(): product.price (180.00) + meattype.addon_price (40.00) + 80 (doublemeat surcharge) + sum(hotpot ingredient addon prices).",
+          "type": "dict",
+          "value": {
+            "item.price": {
+              "type": "Decimal",
+              "value": "315.00"
+            },
+            "cart.total_price": {
+              "type": "Decimal",
+              "value": "630.00"
+            }
+          }
+        },
+        {
+          "label": "HTTP response",
+          "description": "The saved row, serialized back out. Slugs render as strings again; price is now present.",
+          "type": "dict",
+          "value": {
+            "id": {
+              "type": "int",
+              "value": 1
+            },
+            "product": {
+              "type": "str",
+              "value": "kimchi-hotpot"
+            },
+            "meattype": {
+              "type": "str",
+              "value": "beef"
+            },
+            "hotpotingredients": {
+              "type": "list",
+              "value": [
+                {
+                  "type": "str",
+                  "value": "mushroom"
+                }
+              ]
+            },
+            "quantity": {
+              "type": "int",
+              "value": 2
+            },
+            "price": {
+              "type": "str",
+              "value": "315.00"
+            },
+            "doublemeat": {
+              "type": "bool",
+              "value": true
+            },
+            "notes": {
+              "type": "str",
+              "value": "no onion"
+            },
+            "status": {
+              "type": "str",
+              "value": "pending"
+            },
+            "cart": {
+              "type": "int",
+              "value": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "cart_list",
+      "title": "GET /cart_list/",
+      "endpoint_path": "/cart_list/",
+      "steps": [
+        {
+          "label": "is_manager(request.user) branches the queryset",
+          "description": "Same view, same URL - the code path taken depends on who is asking.",
+          "type": "comparison",
+          "value": {
+            "manager": {
+              "status_code": 200,
+              "query_count": 7,
+              "carts_seen": [
+                "cart#1 (guest, no owner)",
+                "cart#2 (owner user#1)",
+                "cart#3 (owner user#2)"
+              ],
+              "html_bytes": 8469
+            },
+            "customer": {
+              "status_code": 200,
+              "query_count": 8,
+              "carts_seen": [
+                "cart#3 (owner user#2)"
+              ],
+              "html_bytes": 3834
+            }
+          }
+        },
+        {
+          "label": "select_related + prefetch_related",
+          "description": "cart -> cartitem_set (reverse FK) -> product/meattype (forward FK) and hotpotingredients (M2M) are all joined in a small, fixed number of queries instead of one query per related row.",
+          "type": "note",
+          "value": null
+        },
+        {
+          "label": "Rendered into cart_list.html",
+          "description": "No serializer here - the queryset goes straight into a Django template context and comes out as HTML, not JSON.",
+          "type": "note",
+          "value": null
+        }
+      ]
+    }
+  ]
+}
