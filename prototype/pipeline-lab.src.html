@@ -1,0 +1,1242 @@
+<title>Request Pipeline Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+  /* Linear design tokens - the target project's own stylesheet already uses
+     these exact values, so the replica and the instrument share one system. */
+  :root {
+    --canvas: #010102;
+    --surface-1: #0f1011;
+    --surface-2: #141516;
+    --surface-3: #18191a;
+    --surface-4: #191a1b;
+
+    --ink: #f7f8f8;
+    --ink-muted: #d0d6e0;
+    --ink-subtle: #8a8f98;
+    --ink-tertiary: #62666d;
+
+    --primary: #5e6ad2;
+    --primary-hover: #828fff;
+    --primary-focus: #5e69d1;
+    --on-primary: #ffffff;
+    --success: #27a644;
+
+    --hairline: #23252a;
+    --hairline-strong: #34343a;
+    --hairline-tertiary: #3e3e44;
+
+    --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --dur: 420ms;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    height: 100vh;
+    overflow: hidden;
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.5;
+    letter-spacing: -0.05px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button, input, select, textarea { font: inherit; color: inherit; }
+  a { color: inherit; text-decoration: none; }
+
+  .eyebrow {
+    color: var(--ink-subtle);
+    font-size: 13px; font-weight: 500; line-height: 1.3;
+    letter-spacing: 0.4px; text-transform: uppercase;
+  }
+
+  /* ================= shell ================= */
+  .lab {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    height: 100vh;
+  }
+  .pane { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+  .pane-app { border-right: 1px solid var(--hairline); }
+  .pane-head {
+    flex: none;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    height: 52px; padding: 0 20px;
+    border-bottom: 1px solid var(--hairline);
+    background: var(--canvas);
+  }
+  .pane-head .title { display: flex; align-items: center; gap: 10px; }
+  .pane-body { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; }
+
+  .logo-symbol {
+    display: grid; place-items: center;
+    width: 24px; height: 24px;
+    color: var(--on-primary); background: var(--primary);
+    border-radius: 6px; font-size: 12px; font-weight: 600;
+  }
+  .pane-head h2 { font-size: 14px; font-weight: 500; letter-spacing: -0.2px; }
+  .pane-head .sub { color: var(--ink-tertiary); font-size: 11px; font-family: var(--mono); }
+
+  /* ================= replica app (left) ================= */
+  .detail-shell { padding: 24px 28px 48px; }
+  .detail-back {
+    display: inline-flex; align-items: center; gap: 8px;
+    margin-bottom: 14px; color: var(--ink-subtle); font-size: 13px;
+  }
+  .detail-card {
+    overflow: hidden;
+    background: var(--surface-1);
+    border: 1px solid var(--hairline);
+    border-radius: 16px;
+  }
+  .detail-media {
+    height: 132px; margin: 10px; overflow: hidden;
+    background: var(--surface-2);
+    border: 1px solid var(--hairline); border-radius: 10px;
+    display: grid; place-content: center; text-align: center;
+    background-image:
+      linear-gradient(var(--hairline) 1px, transparent 1px),
+      linear-gradient(90deg, var(--hairline) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+  .detail-media span { font-size: 22px; font-weight: 600; color: var(--ink-muted); }
+  .detail-media small { color: var(--ink-subtle); font-size: 11px; }
+
+  .detail-content { padding: 20px 24px 24px; }
+  .detail-heading { padding-bottom: 18px; margin-bottom: 18px; border-bottom: 1px solid var(--hairline); }
+  .detail-title-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; margin-top: 8px; }
+  .detail-title-row h1 { font-size: 32px; line-height: 1.1; letter-spacing: -1.0px; font-weight: 600; }
+  .detail-price { flex-shrink: 0; text-align: right; font-family: var(--mono); font-size: 20px; }
+  .detail-price .label { display: block; margin-bottom: 2px; color: var(--ink-subtle); font-family: var(--sans); font-size: 11px; }
+  #total-price { transition: color var(--dur) var(--ease); }
+  #total-price.bump { color: var(--primary-hover); }
+  .detail-intro { margin-top: 12px; color: var(--ink-subtle); font-size: 13px; }
+
+  .customize-form { display: flex; flex-direction: column; gap: 14px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: end; }
+  .table-number { color: var(--ink-muted); font-size: 14px; }
+  .field { display: grid; gap: 6px; }
+  .field label { color: var(--ink-muted); font-size: 13px; font-weight: 500; }
+  .optional { margin-left: 4px; color: var(--ink-tertiary); font-size: 11px; font-weight: 400; }
+  .field input, .field select, .field textarea {
+    width: 100%; min-height: 40px; padding: 8px 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--hairline-strong); border-radius: 8px;
+    outline: none; font-size: 14px;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+  }
+  .field textarea { min-height: 68px; resize: vertical; font-family: var(--sans); }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    border-color: var(--primary-focus);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-focus) 20%, transparent);
+  }
+  .field textarea::placeholder { color: var(--ink-tertiary); }
+
+  .ingredient-fieldset { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; border: 0; }
+  .ingredient-fieldset legend { grid-column: 1 / -1; margin-bottom: 2px; color: var(--ink-muted); font-size: 13px; font-weight: 500; }
+  .check-field {
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+    background: var(--surface-2); border: 1px solid var(--hairline);
+    border-radius: 8px; cursor: pointer;
+    transition: background 160ms ease, border-color 160ms ease;
+  }
+  .check-field input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  .check-control {
+    position: relative; display: block; flex: none;
+    width: 18px; height: 18px;
+    background: var(--surface-1);
+    border: 1px solid var(--hairline-strong); border-radius: 5px;
+    transition: background 160ms ease, border-color 160ms ease;
+  }
+  .check-field input:checked + .check-control { background: var(--primary); border-color: var(--primary); }
+  .check-field input:checked + .check-control::after {
+    position: absolute; top: 2px; left: 5px; width: 4px; height: 8px; content: "";
+    border: solid var(--on-primary); border-width: 0 2px 2px 0; transform: rotate(45deg);
+  }
+  .check-copy { display: flex; flex: 1; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; }
+  .check-copy strong { font-size: 13px; font-weight: 500; }
+  .check-copy small { color: var(--ink-subtle); font-size: 12px; }
+  .ingredient-fieldset .check-field:has(input:checked) {
+    background: color-mix(in srgb, var(--primary) 14%, var(--surface-2));
+    border-color: var(--primary);
+  }
+  .ingredient-fieldset .check-copy { flex-direction: column; align-items: flex-start; gap: 1px; }
+
+  .add-to-cart {
+    display: inline-flex; align-items: center; justify-content: center; gap: 14px;
+    width: 100%; min-height: 44px; margin-top: 2px; padding: 10px 16px;
+    color: var(--on-primary); background: var(--primary);
+    border: 1px solid var(--primary); border-radius: 8px;
+    font-size: 14px; font-weight: 500; cursor: pointer;
+    transition: background 160ms ease, transform 160ms ease;
+  }
+  .add-to-cart:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+  .add-to-cart:active { transform: translateY(1px); }
+  .add-to-cart:disabled { opacity: 0.65; cursor: wait; }
+  .form-feedback { min-height: 18px; color: var(--ink-subtle); font-size: 12px; text-align: center; }
+  .form-feedback.is-success { color: var(--success); }
+  .form-feedback.is-error { color: var(--primary-hover); }
+
+  .seed-note {
+    margin-top: 14px; padding: 10px 12px;
+    color: var(--ink-tertiary); font-size: 11px; line-height: 1.5;
+    background: var(--surface-1); border: 1px solid var(--hairline); border-radius: 8px;
+  }
+  .seed-note code { font-family: var(--mono); color: var(--ink-subtle); }
+
+  /* ================= pipeline (right) ================= */
+  .pipe-status {
+    flex: none; display: flex; align-items: center; gap: 8px;
+    padding: 10px 20px; min-height: 44px;
+    border-bottom: 1px solid var(--hairline);
+    background: var(--surface-1);
+    font-size: 12px; color: var(--ink-subtle);
+  }
+  .pipe-status .dot {
+    width: 7px; height: 7px; border-radius: 50%; flex: none;
+    background: var(--hairline-tertiary);
+    transition: background var(--dur) var(--ease);
+  }
+  .pipe-status.live .dot { background: var(--primary); }
+  .pipe-status.client .dot { background: var(--ink-subtle); }
+  .pipe-status strong { color: var(--ink-muted); font-weight: 500; }
+
+  .stages { padding: 14px 16px 24px; position: relative; }
+
+  .boundary {
+    display: flex; align-items: center; gap: 10px;
+    margin: 10px 0 10px 30px;
+    color: var(--ink-tertiary); font-size: 10px;
+    letter-spacing: 0.6px; text-transform: uppercase;
+  }
+  .boundary::before, .boundary::after {
+    content: ""; height: 1px; background: var(--hairline-strong);
+  }
+  .boundary::before { width: 14px; flex: none; }
+  .boundary::after { flex: 1; }
+
+  .stage {
+    position: relative;
+    margin-left: 30px;
+    border-left: 1px solid var(--hairline);
+    padding-left: 18px;
+    padding-bottom: 6px;
+  }
+  .stage.done { border-left-color: var(--primary-focus); }
+  .stage:last-of-type { border-left-color: transparent; }
+
+  /* the data packet travelling down the rail */
+  #packet {
+    position: absolute; left: 26px;
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--primary-hover);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 26%, transparent);
+    opacity: 0; pointer-events: none; z-index: 3;
+    transition: top 480ms var(--ease), opacity 220ms ease;
+  }
+  #packet.on { opacity: 1; }
+
+  .stage-node {
+    position: absolute; left: -8px; top: 12px;
+    width: 15px; height: 15px; border-radius: 50%;
+    background: var(--surface-2);
+    border: 1px solid var(--hairline-strong);
+    display: grid; place-items: center;
+    font-family: var(--mono); font-size: 8px; color: var(--ink-tertiary);
+    transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease),
+                color var(--dur) var(--ease), transform var(--dur) var(--ease);
+  }
+  .stage.done .stage-node { border-color: var(--primary-focus); color: var(--ink-subtle); }
+  .stage.active .stage-node {
+    background: var(--primary); border-color: var(--primary);
+    color: var(--on-primary); transform: scale(1.35);
+  }
+
+  .stage-head {
+    display: flex; align-items: center; gap: 10px;
+    width: 100%; padding: 8px 10px;
+    background: transparent; border: 1px solid transparent; border-radius: 8px;
+    cursor: pointer; text-align: left;
+    transition: background 160ms ease, border-color 160ms ease, opacity var(--dur) var(--ease);
+  }
+  .stage-head:hover { background: var(--surface-2); }
+  .stage.active > .stage-head {
+    background: color-mix(in srgb, var(--primary) 12%, var(--surface-1));
+    border-color: var(--primary-focus);
+  }
+  .stage.dimmed > .stage-head { opacity: 0.32; }
+
+  .stage-name { font-size: 13.5px; font-weight: 500; letter-spacing: -0.1px; }
+  .stage-sub { color: var(--ink-tertiary); font-size: 11.5px; margin-top: 1px; }
+  .stage-text { flex: 1; min-width: 0; }
+  .type-chip {
+    flex: none; padding: 2px 7px; border-radius: 4px;
+    background: var(--surface-3); border: 1px solid var(--hairline-strong);
+    font-family: var(--mono); font-size: 10px; color: var(--ink-subtle);
+    white-space: nowrap;
+    transition: background var(--dur) var(--ease), color var(--dur) var(--ease),
+                border-color var(--dur) var(--ease);
+  }
+  .stage.active .type-chip {
+    background: color-mix(in srgb, var(--primary) 22%, var(--surface-3));
+    border-color: var(--primary); color: var(--ink);
+  }
+  .chev {
+    flex: none; width: 14px; color: var(--ink-tertiary); font-size: 10px;
+    transition: transform 200ms var(--ease);
+  }
+  .stage.open .chev { transform: rotate(90deg); }
+
+  .stage-detail { display: none; padding: 4px 0 12px 10px; }
+  .stage.open .stage-detail { display: block; }
+
+  .detail-block { margin-top: 10px; }
+  .detail-label {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+    margin-bottom: 6px;
+    color: var(--ink-tertiary); font-size: 10px;
+    letter-spacing: 0.5px; text-transform: uppercase;
+  }
+  .detail-label .src { font-family: var(--mono); text-transform: none; letter-spacing: 0; }
+
+  .data-box, .code-box {
+    background: var(--surface-2); border: 1px solid var(--hairline);
+    border-radius: 8px; padding: 10px 12px;
+    font-family: var(--mono); font-size: 11.5px; line-height: 1.7;
+    overflow-x: auto;
+  }
+  .code-box { color: var(--ink-subtle); white-space: pre; font-size: 11px; line-height: 1.65; }
+  .code-box .hl { color: var(--ink-muted); }
+
+  .kv { display: flex; gap: 7px; align-items: baseline; flex-wrap: wrap; }
+  .kv .k { color: var(--ink-subtle); }
+  .kv .v { color: var(--ink); word-break: break-all; }
+  .kv .t {
+    padding: 0 5px; border-radius: 3px;
+    border: 1px solid var(--hairline-tertiary);
+    color: var(--ink-tertiary); font-size: 10px;
+  }
+  .kv.changed .t { border-color: var(--primary); color: var(--primary-hover); }
+  .kv.changed { background: color-mix(in srgb, var(--primary) 10%, transparent); border-radius: 4px; }
+  .kv-nest { padding-left: 14px; border-left: 1px solid var(--hairline); margin-left: 3px; }
+  .note-line { color: var(--ink-tertiary); font-size: 11px; font-family: var(--sans); margin-top: 8px; line-height: 1.5; }
+  .raw { color: var(--ink-muted); white-space: pre-wrap; word-break: break-all; }
+  .raw .str { color: var(--primary-hover); }
+
+  .teach {
+    margin-top: 10px; padding: 9px 11px;
+    background: color-mix(in srgb, var(--primary) 9%, var(--surface-1));
+    border: 1px solid color-mix(in srgb, var(--primary) 34%, transparent);
+    border-radius: 8px;
+    color: var(--ink-muted); font-size: 12px; line-height: 1.55;
+  }
+  .teach b { color: var(--ink); font-weight: 600; }
+  .teach code { font-family: var(--mono); font-size: 11px; color: var(--primary-hover); }
+
+  /* ================= scrubber ================= */
+  .scrub {
+    flex: none; padding: 12px 20px 14px;
+    border-top: 1px solid var(--hairline);
+    background: var(--surface-1);
+  }
+  .scrub-row { display: flex; align-items: center; gap: 10px; }
+  .ctrl {
+    display: grid; place-items: center;
+    width: 30px; height: 30px; flex: none;
+    background: var(--surface-2); border: 1px solid var(--hairline-strong);
+    border-radius: 7px; cursor: pointer; font-size: 11px; color: var(--ink-muted);
+    transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+  }
+  .ctrl:hover:not(:disabled) { background: var(--surface-3); border-color: var(--hairline-tertiary); color: var(--ink); }
+  .ctrl:disabled { opacity: 0.35; cursor: default; }
+  .ctrl.primary { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+  .ctrl.primary:hover:not(:disabled) { background: var(--primary-hover); border-color: var(--primary-hover); }
+
+  .track { flex: 1; display: flex; align-items: center; gap: 3px; min-width: 0; }
+  .tick {
+    flex: 1; height: 4px; border-radius: 2px;
+    background: var(--hairline); border: 0; padding: 0; cursor: pointer;
+    transition: background var(--dur) var(--ease), transform 160ms ease;
+  }
+  .tick:hover { transform: scaleY(2); }
+  .tick.done { background: var(--primary-focus); }
+  .tick.active { background: var(--primary-hover); transform: scaleY(2.4); }
+  .tick.resp { opacity: 0.85; }
+
+  .scrub-label {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+    margin-top: 8px; font-size: 11px; color: var(--ink-tertiary);
+  }
+  .scrub-label .now { color: var(--ink-muted); font-family: var(--mono); }
+
+  .empty {
+    padding: 40px 28px; color: var(--ink-tertiary);
+    font-size: 13px; line-height: 1.65; text-align: center;
+  }
+  .empty strong { display: block; color: var(--ink-muted); font-size: 14px; margin-bottom: 6px; font-weight: 500; }
+  .empty .kbd {
+    display: inline-block; margin: 0 2px; padding: 1px 6px;
+    background: var(--surface-2); border: 1px solid var(--hairline-strong);
+    border-radius: 4px; font-family: var(--mono); font-size: 11px; color: var(--ink-subtle);
+  }
+
+  @media (max-width: 900px) {
+    body { overflow: auto; height: auto; }
+    .lab { grid-template-columns: 1fr; height: auto; }
+    .pane-app { border-right: 0; border-bottom: 1px solid var(--hairline); }
+    .pane-body { overflow: visible; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: 1ms !important; animation-duration: 1ms !important; }
+  }
+</style>
+
+<div class="lab">
+  <!-- ============ LEFT: the replica of the real page ============ -->
+  <section class="pane pane-app">
+    <div class="pane-head">
+      <div class="title">
+        <span class="logo-symbol">赤</span>
+        <h2>Chi Lu Hotpot</h2>
+      </div>
+      <span class="sub" id="url-bar">/menuitem/經典原味鍋/</span>
+    </div>
+    <div class="pane-body">
+      <div class="detail-shell">
+        <a class="detail-back" href="#" onclick="return false"><span aria-hidden="true">←</span> 返回菜單</a>
+        <article class="detail-card">
+          <div class="detail-media"><span>赤炉</span><small>Chi Lu Hotpot</small></div>
+          <div class="detail-content">
+            <header class="detail-heading">
+              <p class="eyebrow">客製您的鍋物</p>
+              <div class="detail-title-row">
+                <h1 id="product-name"></h1>
+                <p class="detail-price"><span class="label">總金額 :</span><span id="total-price">0</span></p>
+              </div>
+              <p class="detail-intro">選擇肉品、份量與桌號，我們將為您現點現做。</p>
+            </header>
+
+            <form id="customize-form" class="customize-form">
+              <div class="form-grid">
+                <p class="table-number">桌號：7</p>
+                <div class="field">
+                  <label for="quantity">數量</label>
+                  <input type="number" id="quantity" name="quantity" min="1" max="5" value="1" required>
+                </div>
+              </div>
+
+              <div class="field">
+                <label for="meattype">肉類選擇</label>
+                <select id="meattype" name="meattype" required></select>
+              </div>
+
+              <fieldset class="ingredient-fieldset" id="toppings">
+                <legend>配料選擇 <span class="optional">選填</span></legend>
+              </fieldset>
+
+              <label class="check-field" for="doublemeat">
+                <span>
+                  <input type="checkbox" id="doublemeat" name="doublemeat" data-doublemeat-addon-price="80">
+                  <span class="check-control" aria-hidden="true"></span>
+                </span>
+                <span class="check-copy">
+                  <strong>雙倍肉量</strong>
+                  <small>再加一份肉 +$80</small>
+                </span>
+              </label>
+
+              <div class="field">
+                <label for="notes">備註 <span class="optional">選填</span></label>
+                <textarea id="notes" name="notes" maxlength="200" rows="3" placeholder="例如：少辣、不要蔥"></textarea>
+              </div>
+
+              <button type="submit" class="add-to-cart">加入訂單 <span aria-hidden="true">→</span></button>
+              <p id="form-feedback" class="form-feedback" role="status" aria-live="polite"></p>
+            </form>
+
+            <p class="seed-note" id="seed-note"></p>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ RIGHT: the pipeline instrument ============ -->
+  <section class="pane pane-inspect">
+    <div class="pane-head">
+      <div class="title"><h2>Request Pipeline</h2></div>
+      <span class="sub" id="combo-key">idle</span>
+    </div>
+
+    <div class="pipe-status" id="pipe-status">
+      <span class="dot"></span>
+      <span id="pipe-status-text">Waiting for an interaction on the left.</span>
+    </div>
+
+    <div class="pane-body">
+      <div class="stages" id="stages"></div>
+      <div class="empty" id="empty-hint">
+        <strong>Nothing has happened yet.</strong>
+        Tick a topping to see an interaction that <em>never leaves the browser</em>,
+        or press <span class="kbd">加入訂單</span> to send a real request down all 8 stages.
+      </div>
+    </div>
+
+    <div class="scrub" id="scrub" hidden>
+      <div class="scrub-row">
+        <button class="ctrl" id="btn-prev" title="Previous stage">◀</button>
+        <button class="ctrl primary" id="btn-play" title="Replay">▶</button>
+        <button class="ctrl" id="btn-next" title="Next stage">▶</button>
+        <div class="track" id="track"></div>
+      </div>
+      <div class="scrub-label">
+        <span class="now" id="scrub-now"></span>
+        <span id="scrub-phase"></span>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+const PIPELINE = __PIPELINE_JSON__;
+
+/* ============================================================
+   Stage definitions. 8 stages carry the request down; 5 carry
+   the response back up. Every stage names the real file its
+   code comes from, so the excerpt shown is the project's own.
+   ============================================================ */
+const STAGES = [
+  { id: "dom",        name: "DOM",             sub: "Form controls hold the user's input",       phase: "request", side: "client", code: "dom" },
+  { id: "javascript", name: "JavaScript",      sub: "Submit handler builds a JS object",         phase: "request", side: "client", code: "javascript" },
+  { id: "network",    name: "Browser Network", sub: "fetch() adds headers and the CSRF cookie",  phase: "request", side: "client", code: "network" },
+  { id: "http",       name: "HTTP Request",    sub: "Everything is now text on the wire",        phase: "request", side: "wire",   code: "http" },
+  { id: "router",     name: "URL Router",      sub: "Django matches the path to a view",         phase: "request", side: "server", code: "router" },
+  { id: "view",       name: "View",            sub: "cartitemList receives the parsed request",  phase: "request", side: "server", code: "view" },
+  { id: "serializer", name: "Serializer",      sub: "Strings become real model objects",         phase: "request", side: "server", code: "serializer" },
+  { id: "database",   name: "Database",        sub: "SQL INSERT writes the row",                 phase: "request", side: "server", code: "database" },
+
+  { id: "r_serializer", name: "Serializer (out)", sub: "Model instance becomes a plain dict",    phase: "response", side: "server", code: "serializer" },
+  { id: "r_http",       name: "HTTP Response",    sub: "201 Created, JSON text on the wire",     phase: "response", side: "wire",   code: "http" },
+  { id: "r_javascript", name: "JavaScript (.then)", sub: "res.json() parses text back to an object", phase: "response", side: "client", code: "javascript" },
+  { id: "r_dom",        name: "DOM (update)",     sub: "The page shows the result",              phase: "response", side: "client", code: "dom" },
+];
+
+const BOUNDARY_BEFORE = { router: "network boundary — leaves your browser", r_javascript: "network boundary — back in your browser" };
+
+/* ============================================================
+   Replica page: built from the same snapshot the server runs
+   were recorded against, so the choices always map to a real run.
+   ============================================================ */
+const form = document.getElementById("customize-form");
+const submitButton = form.querySelector('button[type="submit"]');
+const feedback = document.getElementById("form-feedback");
+
+document.getElementById("product-name").textContent = PIPELINE.product.name;
+document.getElementById("url-bar").textContent = "/menuitem/" + PIPELINE.product.name + "/";
+form.dataset.slug = PIPELINE.product.slug;
+form.dataset.price = PIPELINE.product.price;
+
+const meatSelect = document.getElementById("meattype");
+meatSelect.innerHTML = '<option value="" disabled selected>請選擇肉類</option>';
+PIPELINE.meats.forEach(m => {
+  const opt = document.createElement("option");
+  opt.value = m.slug;
+  opt.dataset.addonPrice = m.addon_price;
+  opt.textContent = `${m.name} (+$${Number(m.addon_price).toFixed(0)})`;
+  meatSelect.appendChild(opt);
+});
+
+const toppingsBox = document.getElementById("toppings");
+PIPELINE.toppings.forEach(t => {
+  const label = document.createElement("label");
+  label.className = "check-field";
+  label.htmlFor = "ingredient-" + t.slug;
+  label.innerHTML =
+    `<span><input type="checkbox" id="ingredient-${t.slug}" name="hotpotingredients"
+       value="${t.slug}" data-addon-price="${t.addon_price}">
+     <span class="check-control" aria-hidden="true"></span></span>
+     <span class="check-copy"><strong>${t.name}</strong><small>+$${Number(t.addon_price).toFixed(2)}</small></span>`;
+  toppingsBox.appendChild(label);
+});
+
+document.getElementById("seed-note").innerHTML =
+  `This page runs the project's own <code>menudetail.js</code> logic, verbatim. ` +
+  `The menu rows are seeded &mdash; the real database ships empty &mdash; with the prices from your screenshots. ` +
+  `Meat types are invented. Quantity is capped at 5 because a real Django run was recorded for every combination.`;
+
+/* ---- the project's real pricing logic, copied from menudetail.js ---- */
+function totalPrice() {
+  const basePrice = Number(form.dataset.price);
+  const quantity = Number(document.getElementById("quantity").value);
+  const meattype = document.getElementById("meattype");
+  const SelectMeat = meattype.selectedOptions[0];
+  const meattypeAddonPrice = SelectMeat ? Number(SelectMeat.dataset.addonPrice) || 0 : 0;
+  const doublemeatbox = document.getElementById("doublemeat");
+  const doublemeatAddonPrice = doublemeatbox.checked ? Number(doublemeatbox.dataset.doublemeatAddonPrice) : 0;
+
+  let ingredientsAddonPrice = 0;
+  const checkedIngredients = form.querySelectorAll('input[name="hotpotingredients"]:checked');
+  for (let i = 0; i < checkedIngredients.length; i++) {
+    ingredientsAddonPrice += Number(checkedIngredients[i].dataset.addonPrice);
+  }
+  return (basePrice + meattypeAddonPrice + doublemeatAddonPrice + ingredientsAddonPrice) * quantity;
+}
+
+function updateTotalPrice() {
+  const el = document.getElementById("total-price");
+  el.textContent = totalPrice();
+  el.classList.add("bump");
+  setTimeout(() => el.classList.remove("bump"), 420);
+}
+
+function getSelectedIngredients() {
+  return Array.from(
+    form.querySelectorAll('input[name="hotpotingredients"]:checked'),
+    (input) => input.value
+  );
+}
+
+function getCsrfToken() {
+  // The real helper reads document.cookie; this page has no Django session,
+  // so it falls through to a stand-in token.
+  const cookie = document.cookie.split("; ").find((row) => row.startsWith("csrftoken="));
+  if (cookie) return decodeURIComponent(cookie.split("=").slice(1).join("="));
+  return "prototype-csrf-token-not-from-django";
+}
+
+/* ============================================================
+   fetch shim. The real Django server is not reachable from a
+   published page, so this resolves the request against the
+   recorded run whose inputs match exactly.
+   ============================================================ */
+function comboKey(body) {
+  const toppings = [...body.hotpotingredients].sort().join(",") || "-";
+  return [body.meattype, toppings, body.doublemeat ? "1" : "0", String(body.quantity)].join("|");
+}
+
+function deepSubstituteNote(node, note) {
+  if (node === null || typeof node !== "object") return node;
+  if (Array.isArray(node)) return node.map(v => deepSubstituteNote(v, note));
+  const out = {};
+  for (const k in node) {
+    const v = node[k];
+    out[k] = (v === PIPELINE.note_placeholder) ? note : deepSubstituteNote(v, note);
+  }
+  return out;
+}
+
+let LAST_TRACE = null;
+
+function recordedFetch(url, options) {
+  const rawBody = options.body;
+  const payload = JSON.parse(rawBody);
+  const key = comboKey(payload);
+  const run = PIPELINE.runs[key];
+
+  if (!run || run.errors) {
+    return Promise.resolve({
+      ok: false,
+      json: () => Promise.resolve(run ? run.errors : { detail: ["No recorded run for this combination."] }),
+    });
+  }
+
+  const note = payload.notes;
+  const trace = {
+    key,
+    url,
+    method: options.method,
+    headers: options.headers,
+    rawBody,
+    payload,
+    dom: readDomState(),
+    run: {
+      validated_data: deepSubstituteNote(run.validated_data, note),
+      computed: run.computed,
+      response_body: deepSubstituteNote(run.response_body, note),
+      row: deepSubstituteNote(run.row, note),
+      sql_reads: run.sql_reads,
+      sql_writes: run.sql_writes,
+      query_count: run.query_count,
+    },
+  };
+  LAST_TRACE = trace;
+  startPipeline(trace);
+
+  const responseBody = {};
+  for (const k in trace.run.response_body.value) {
+    responseBody[k] = unwrap(trace.run.response_body.value[k]);
+  }
+  return Promise.resolve({ ok: true, json: () => Promise.resolve(responseBody) });
+}
+
+function unwrap(node) {
+  if (node && typeof node === "object" && "type" in node && "value" in node) {
+    if (node.type === "list") return node.value.map(unwrap);
+    if (node.type === "dict") {
+      const o = {};
+      for (const k in node.value) o[k] = unwrap(node.value[k]);
+      return o;
+    }
+    return node.value;
+  }
+  return node;
+}
+
+function readDomState() {
+  const qty = document.getElementById("quantity");
+  const meat = document.getElementById("meattype");
+  const dbl = document.getElementById("doublemeat");
+  const notes = document.getElementById("notes");
+  const checked = Array.from(form.querySelectorAll('input[name="hotpotingredients"]:checked'));
+  return {
+    'document.getElementById("quantity").value': { type: "string", value: qty.value },
+    'document.getElementById("meattype").value': { type: "string", value: meat.value },
+    'document.getElementById("doublemeat").checked': { type: "boolean", value: dbl.checked },
+    'document.getElementById("notes").value': { type: "string", value: notes.value },
+    'querySelectorAll(...:checked)': { type: "NodeList(" + checked.length + ")", value: checked.map(c => c.value).join(", ") || "(empty)" },
+    'form.dataset.slug': { type: "string", value: form.dataset.slug },
+  };
+}
+
+/* ---- the project's real submit handler, verbatim apart from `fetch` ---- */
+(function () {
+  const fetch = recordedFetch;
+
+  form.addEventListener("input", updateTotalPrice);
+  form.addEventListener("change", updateTotalPrice);
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    submitButton.disabled = true;
+    submitButton.textContent = "正在加入…";
+    feedback.textContent = "";
+    feedback.className = "form-feedback";
+
+    fetch("/api/cart/item/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": getCsrfToken(),
+      },
+      credentials: "same-origin",
+      body: JSON.stringify({
+        product: form.dataset.slug,
+        meattype: document.getElementById("meattype").value,
+        doublemeat: document.getElementById("doublemeat").checked,
+        notes: document.getElementById("notes").value,
+        quantity: Number(document.getElementById("quantity").value),
+        hotpotingredients: getSelectedIngredients(),
+      }),
+    })
+      .then((res) => {
+        if (!res.ok) return res.json().then((err) => Promise.reject(err));
+        return res.json();
+      })
+      .then(() => {
+        feedback.textContent = "已加入訂單，我們會立即為您準備。";
+        feedback.classList.add("is-success");
+        submitButton.textContent = "已加入 ✓";
+      })
+      .catch((err) => {
+        const tableError = err && err.table_number;
+        feedback.textContent = Array.isArray(tableError)
+          ? tableError[0]
+          : (tableError || "目前無法加入訂單，請稍後再試。");
+        feedback.classList.add("is-error");
+        submitButton.textContent = "重新加入";
+      })
+      .finally(() => {
+        submitButton.disabled = false;
+        setTimeout(() => { submitButton.innerHTML = '加入訂單 <span aria-hidden="true">→</span>'; }, 2600);
+      });
+  });
+})();
+
+/* ============================================================
+   Rendering the stage list
+   ============================================================ */
+const stagesEl = document.getElementById("stages");
+const stageEls = {};
+
+function buildStages() {
+  STAGES.forEach((s, i) => {
+    if (BOUNDARY_BEFORE[s.id]) {
+      const b = document.createElement("div");
+      b.className = "boundary";
+      b.textContent = BOUNDARY_BEFORE[s.id];
+      stagesEl.appendChild(b);
+    }
+    const wrap = document.createElement("div");
+    wrap.className = "stage";
+    wrap.dataset.id = s.id;
+
+    const node = document.createElement("div");
+    node.className = "stage-node";
+    node.textContent = i + 1;
+    wrap.appendChild(node);
+
+    const head = document.createElement("button");
+    head.className = "stage-head";
+    head.type = "button";
+    head.innerHTML =
+      `<span class="stage-text">
+         <span class="stage-name">${s.name}</span>
+         <span class="stage-sub">${s.sub}</span>
+       </span>
+       <span class="type-chip" data-chip>—</span>
+       <span class="chev">▶</span>`;
+    head.addEventListener("click", () => {
+      wrap.classList.toggle("open");
+      if (wrap.classList.contains("open")) renderDetail(s, wrap);
+    });
+    wrap.appendChild(head);
+
+    const detail = document.createElement("div");
+    detail.className = "stage-detail";
+    wrap.appendChild(detail);
+
+    stagesEl.appendChild(wrap);
+    stageEls[s.id] = wrap;
+  });
+  const packet = document.createElement("div");
+  packet.id = "packet";
+  stagesEl.appendChild(packet);
+}
+buildStages();
+const packetEl = document.getElementById("packet");
+
+function movePacketTo(stageId) {
+  if (!stageId) { packetEl.classList.remove("on"); return; }
+  const node = stageEls[stageId].querySelector(".stage-node");
+  const top = node.offsetTop + stageEls[stageId].offsetTop + node.offsetHeight / 2 - 4.5;
+  packetEl.style.top = top + "px";
+  packetEl.classList.add("on");
+}
+
+/* ---- value rendering ---- */
+function kvRow(key, node, changed) {
+  const row = document.createElement("div");
+  row.className = "kv" + (changed ? " changed" : "");
+  const k = document.createElement("span");
+  k.className = "k"; k.textContent = key + ":";
+  row.appendChild(k);
+
+  if (node && node.type === "dict") {
+    const nest = document.createElement("div");
+    nest.className = "kv-nest";
+    for (const kk in node.value) nest.appendChild(kvRow(kk, node.value[kk], false));
+    row.appendChild(nest);
+    return row;
+  }
+  if (node && node.type === "list") {
+    const nest = document.createElement("div");
+    nest.className = "kv-nest";
+    if (!node.value.length) {
+      const e = document.createElement("span"); e.className = "v"; e.textContent = "[] (empty)";
+      nest.appendChild(e);
+    }
+    node.value.forEach((v, i) => nest.appendChild(kvRow("[" + i + "]", v, false)));
+    row.appendChild(nest);
+    return row;
+  }
+  const t = document.createElement("span");
+  t.className = "t"; t.textContent = node.type;
+  const v = document.createElement("span");
+  v.className = "v"; v.textContent = fmt(node.value);
+  row.appendChild(t); row.appendChild(v);
+  return row;
+}
+
+function fmt(v) {
+  if (v === null) return "None";
+  if (typeof v === "string") return JSON.stringify(v);
+  return String(v);
+}
+
+function dataBox(entries, changedKeys) {
+  const box = document.createElement("div");
+  box.className = "data-box";
+  for (const k in entries) box.appendChild(kvRow(k, entries[k], (changedKeys || []).includes(k)));
+  return box;
+}
+
+function block(label, src, contentEl) {
+  const wrap = document.createElement("div");
+  wrap.className = "detail-block";
+  const lab = document.createElement("div");
+  lab.className = "detail-label";
+  lab.innerHTML = `<span>${label}</span>` + (src ? `<span class="src">${src}</span>` : "");
+  wrap.appendChild(lab);
+  wrap.appendChild(contentEl);
+  return wrap;
+}
+
+function codeBox(codeKey) {
+  const c = PIPELINE.code[codeKey];
+  const pre = document.createElement("div");
+  pre.className = "code-box";
+  pre.textContent = c.code;
+  return block("Real source", `${c.file}:${c.start_line}`, pre);
+}
+
+function teachBox(html) {
+  const d = document.createElement("div");
+  d.className = "teach";
+  d.innerHTML = html;
+  return d;
+}
+
+function rawBox(text) {
+  const d = document.createElement("div");
+  d.className = "data-box raw";
+  d.textContent = text;
+  return d;
+}
+
+/* ---- what each stage shows ---- */
+function renderDetail(stage, wrap) {
+  const box = wrap.querySelector(".stage-detail");
+  box.innerHTML = "";
+  const t = LAST_TRACE;
+
+  if (!t) {
+    const p = document.createElement("div");
+    p.className = "note-line";
+    p.textContent = "No request captured yet — press 加入訂單 on the left.";
+    box.appendChild(p);
+    box.appendChild(codeBox(stage.code));
+    return;
+  }
+
+  const R = t.run;
+
+  switch (stage.id) {
+    case "dom": {
+      box.appendChild(block("Values read out of the form", "live from this page", dataBox(t.dom)));
+      box.appendChild(teachBox(
+        `Every <code>.value</code> is a <b>string</b> — even <code>&lt;input type="number"&gt;</code>. ` +
+        `Only <code>.checked</code> is a real boolean. This is why the next stage has to call <code>Number(...)</code>.`));
+      box.appendChild(codeBox("dom"));
+      break;
+    }
+    case "javascript": {
+      const entries = {};
+      for (const k in t.payload) entries[k] = jsType(t.payload[k]);
+      box.appendChild(block("The object the handler built", "live from this page", dataBox(entries, ["quantity"])));
+      box.appendChild(teachBox(
+        `<code>Number(...)</code> turned the string <code>"${t.dom['document.getElementById("quantity").value'].value}"</code> ` +
+        `into the number <code>${t.payload.quantity}</code>. The relations are still just <b>slug strings</b> here — ` +
+        `nothing knows what a <code>meattype</code> row is yet.`));
+      box.appendChild(codeBox("javascript"));
+      break;
+    }
+    case "network": {
+      box.appendChild(block("JSON.stringify(payload)", "live from this page", rawBox(t.rawBody)));
+      const h = {};
+      for (const k in t.headers) h[k] = { type: "string", value: t.headers[k] };
+      h["credentials"] = { type: "string", value: "same-origin" };
+      box.appendChild(block("Request headers", "", dataBox(h)));
+      box.appendChild(teachBox(
+        `The whole object collapsed into <b>one string</b>, ${t.rawBody.length} characters long. ` +
+        `Notice <code>true</code> and <code>${t.payload.quantity}</code> lost their quotes, but they are still just text now.`));
+      box.appendChild(codeBox("network"));
+      break;
+    }
+    case "http": {
+      const wire =
+        `POST ${t.url} HTTP/1.1\n` +
+        `Host: 127.0.0.1:8000\n` +
+        `Content-Type: ${t.headers["Content-Type"]}\n` +
+        `X-CSRFToken: ${t.headers["X-CSRFToken"]}\n` +
+        `Cookie: sessionid=…; csrftoken=…\n` +
+        `Content-Length: ${new Blob([t.rawBody]).size}\n\n` +
+        t.rawBody;
+      box.appendChild(block("Bytes on the wire", "", rawBox(wire)));
+      box.appendChild(teachBox(
+        `Nothing structured survives the trip. The server receives <b>text and headers</b>, ` +
+        `and has to rebuild meaning from it.`));
+      box.appendChild(codeBox("http"));
+      break;
+    }
+    case "router": {
+      const r = PIPELINE.route;
+      box.appendChild(block("django.urls.resolve()", "recorded from the real urlconf", dataBox({
+        "path": { type: "str", value: r.path },
+        "matched pattern": { type: "str", value: r.matched_pattern },
+        "url_name": { type: "str", value: r.url_name },
+        "view class": { type: "class", value: r.view_class },
+        "kwargs": { type: "dict", value: {} },
+      }, ["view class"])));
+      box.appendChild(teachBox(
+        `The URL <b>string</b> became a <b>Python class</b>: <code>${r.view_class}</code>. ` +
+        `That is the whole job of the router — it does not touch your data.`));
+      box.appendChild(codeBox("router"));
+      break;
+    }
+    case "view": {
+      const d = {};
+      for (const k in t.payload) d[k] = pyType(t.payload[k]);
+      box.appendChild(block("request.data (parsed by DRF)", "", dataBox(d, ["doublemeat"])));
+      box.appendChild(block("View configuration", "restaurantAPI/views.py", dataBox({
+        "class": { type: "class", value: "cartitemList" },
+        "permission_classes": { type: "list", value: [{ type: "class", value: "AllowAny" }] },
+        "authentication_classes": { type: "list", value: [] },
+        "serializer_class": { type: "class", value: "cartitemSerializer" },
+      })));
+      box.appendChild(teachBox(
+        `The JSON text is now a <b>Python dict</b>. JavaScript's <code>true</code> became Python's <code>True</code>. ` +
+        `The slugs are <b>still strings</b> — the view hands them straight to the serializer.`));
+      box.appendChild(codeBox("view"));
+      break;
+    }
+    case "serializer": {
+      box.appendChild(block("validated_data (after is_valid())", "recorded from a real run",
+        dataBox(R.validated_data.value, ["product", "meattype", "hotpotingredients"])));
+      box.appendChild(teachBox(
+        `<b>This is the transformation you could not see.</b> <code>SlugRelatedField</code> ran a ` +
+        `<code>SELECT</code> for each slug and replaced the string with the actual ` +
+        `<b>Django model object</b> — <code>"${t.payload.meattype}"</code> is now a row you can call ` +
+        `<code>.addon_price</code> on.`));
+      box.appendChild(block("create() computed a value the client never sent", "", dataBox({
+        "unit price": { type: "Decimal", value: R.computed.unit_price },
+        "cart.total_price": { type: "Decimal", value: R.computed.cart_total },
+      }, ["unit price", "cart.total_price"])));
+      const f = document.createElement("div");
+      f.className = "note-line";
+      f.textContent = R.computed.formula;
+      box.appendChild(f);
+      box.appendChild(codeBox("serializer"));
+      break;
+    }
+    case "database": {
+      box.appendChild(block("Row written", "recorded from a real run", dataBox(R.row.value, ["price", "status", "id"])));
+      box.appendChild(block(`SQL actually emitted (${R.query_count} queries)`, "", rawBox(
+        R.sql_reads.slice(0, 3).join("\n\n") + (R.sql_writes.length ? "\n\n" + R.sql_writes.join("\n\n") : ""))));
+      box.appendChild(teachBox(
+        `The model objects became <b>column values</b>. <code>price</code> is stored as a ` +
+        `<code>DECIMAL</code>, and <code>status</code> appeared with its model default ` +
+        `<code>"pending"</code> — nobody sent that either.`));
+      box.appendChild(codeBox("database"));
+      break;
+    }
+    case "r_serializer": {
+      box.appendChild(block("serializer.data (going back out)", "recorded from a real run",
+        dataBox(R.response_body.value, ["price", "product", "meattype", "cart"])));
+      box.appendChild(teachBox(
+        `The trip reverses: model objects collapse back to <b>slug strings</b>. ` +
+        `And look at <code>price</code> — the <code>Decimal</code> became the <b>string</b> ` +
+        `<code>"${R.computed.unit_price}"</code>, not a number. That is DRF's <code>DecimalField</code> default.`));
+      box.appendChild(codeBox("serializer"));
+      break;
+    }
+    case "r_http": {
+      const body = {};
+      for (const k in R.response_body.value) body[k] = unwrap(R.response_body.value[k]);
+      const wire =
+        `HTTP/1.1 201 Created\nContent-Type: application/json\n\n` + JSON.stringify(body);
+      box.appendChild(block("Bytes on the wire", "", rawBox(wire)));
+      box.appendChild(teachBox(`Text again — the browser has to parse it before it means anything.`));
+      box.appendChild(codeBox("http"));
+      break;
+    }
+    case "r_javascript": {
+      const body = {};
+      for (const k in R.response_body.value) body[k] = jsType(unwrap(R.response_body.value[k]));
+      box.appendChild(block("await res.json()", "live from this page", dataBox(body, ["price"])));
+      box.appendChild(teachBox(
+        `Back to a JavaScript object. <code>price</code> is still a <b>string</b> here — ` +
+        `if you did <code>price + 10</code> you would get <code>"${R.computed.unit_price}10"</code>, not a sum.`));
+      box.appendChild(codeBox("javascript"));
+      break;
+    }
+    case "r_dom": {
+      box.appendChild(block("What the page shows", "live from this page", dataBox({
+        "#form-feedback.textContent": { type: "string", value: "已加入訂單，我們會立即為您準備。" },
+        "button.textContent": { type: "string", value: "已加入 ✓" },
+      }, ["#form-feedback.textContent"])));
+      box.appendChild(teachBox(
+        `The round trip is closed. Note the left panel's 總金額 was computed by ` +
+        `<b>your JavaScript</b>, while <code>${R.computed.unit_price}</code> was computed ` +
+        `<b>independently by Django</b>. Two separate implementations of the same formula.`));
+      box.appendChild(codeBox("dom"));
+      break;
+    }
+  }
+}
+
+function jsType(v) {
+  if (Array.isArray(v)) return { type: "Array", value: v.map(jsType) };
+  if (v === null) return { type: "null", value: null };
+  return { type: typeof v, value: v };
+}
+function pyType(v) {
+  if (Array.isArray(v)) return { type: "list", value: v.map(pyType) };
+  if (typeof v === "boolean") return { type: "bool", value: v ? "True" : "False" };
+  if (typeof v === "number") return { type: Number.isInteger(v) ? "int" : "float", value: v };
+  if (v === null) return { type: "NoneType", value: null };
+  return { type: "str", value: v };
+}
+
+/* ---- the short type label on each collapsed stage row ---- */
+function chipFor(stageId, t) {
+  if (!t) return "—";
+  const R = t.run;
+  switch (stageId) {
+    case "dom": return "strings";
+    case "javascript": return "JS object";
+    case "network": return "JSON string";
+    case "http": return "text + headers";
+    case "router": return "class";
+    case "view": return "python dict";
+    case "serializer": return "model objects";
+    case "database": return "SQL row";
+    case "r_serializer": return "python dict";
+    case "r_http": return "JSON string";
+    case "r_javascript": return "JS object";
+    case "r_dom": return "rendered text";
+  }
+  return "—";
+}
+
+/* ============================================================
+   Timeline: play / pause / step / scrub
+   ============================================================ */
+const scrubEl = document.getElementById("scrub");
+const trackEl = document.getElementById("track");
+const btnPlay = document.getElementById("btn-play");
+const btnPrev = document.getElementById("btn-prev");
+const btnNext = document.getElementById("btn-next");
+const scrubNow = document.getElementById("scrub-now");
+const scrubPhase = document.getElementById("scrub-phase");
+const statusEl = document.getElementById("pipe-status");
+const statusText = document.getElementById("pipe-status-text");
+const comboEl = document.getElementById("combo-key");
+const emptyHint = document.getElementById("empty-hint");
+
+let cursor = -1;
+let timer = null;
+const STEP_MS = 520;
+
+function buildTrack() {
+  trackEl.innerHTML = "";
+  STAGES.forEach((s, i) => {
+    const b = document.createElement("button");
+    b.className = "tick" + (s.phase === "response" ? " resp" : "");
+    b.title = s.name;
+    b.addEventListener("click", () => { pause(); setCursor(i); });
+    trackEl.appendChild(b);
+  });
+}
+buildTrack();
+
+function setCursor(i) {
+  cursor = i;
+  STAGES.forEach((s, idx) => {
+    const el = stageEls[s.id];
+    el.classList.toggle("active", idx === cursor);
+    el.classList.toggle("done", idx < cursor);
+    el.classList.remove("dimmed");
+    el.querySelector("[data-chip]").textContent = idx <= cursor ? chipFor(s.id, LAST_TRACE) : "—";
+    trackEl.children[idx].classList.toggle("active", idx === cursor);
+    trackEl.children[idx].classList.toggle("done", idx < cursor);
+    if (el.classList.contains("open")) renderDetail(s, el);
+  });
+  const s = STAGES[cursor];
+  movePacketTo(s ? s.id : null);
+  if (s) {
+    scrubNow.textContent = `${cursor + 1}/${STAGES.length}  ${s.name}`;
+    scrubPhase.textContent = s.phase === "request" ? "request →" : "← response";
+    statusEl.className = "pipe-status live";
+    statusText.innerHTML = `<strong>${s.name}</strong> — ${s.sub}`;
+    stageEls[s.id].scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+  btnPrev.disabled = cursor <= 0;
+  btnNext.disabled = cursor >= STAGES.length - 1;
+}
+
+function play() {
+  if (cursor >= STAGES.length - 1) cursor = -1;
+  btnPlay.textContent = "❚❚";
+  timer = setInterval(() => {
+    if (cursor >= STAGES.length - 1) { pause(); return; }
+    setCursor(cursor + 1);
+  }, STEP_MS);
+  setCursor(cursor + 1);
+}
+function pause() {
+  if (timer) clearInterval(timer);
+  timer = null;
+  btnPlay.textContent = "▶";
+}
+btnPlay.addEventListener("click", () => (timer ? pause() : play()));
+btnPrev.addEventListener("click", () => { pause(); if (cursor > 0) setCursor(cursor - 1); });
+btnNext.addEventListener("click", () => { pause(); if (cursor < STAGES.length - 1) setCursor(cursor + 1); });
+
+function startPipeline(trace) {
+  emptyHint.hidden = true;
+  scrubEl.hidden = false;
+  comboEl.textContent = trace.key;
+  pause();
+  cursor = -1;
+  STAGES.forEach(s => { stageEls[s.id].classList.remove("active", "done", "dimmed"); });
+  play();
+}
+
+/* ---- client-only interactions: nothing leaves the browser ---- */
+let clientPulseTimer = null;
+function pulseClientOnly(what) {
+  if (timer) return;                      // a request replay is running; don't fight it
+  emptyHint.hidden = true;
+  clearTimeout(clientPulseTimer);
+
+  STAGES.forEach((s, idx) => {
+    const el = stageEls[s.id];
+    const isLocal = idx <= 1;             // DOM + JavaScript only
+    el.classList.toggle("active", isLocal);
+    el.classList.toggle("dimmed", !isLocal);
+    el.classList.remove("done");
+    el.querySelector("[data-chip]").textContent = isLocal ? (idx === 0 ? "strings" : "recalculated") : "—";
+    trackEl.children[idx].classList.remove("active", "done");
+  });
+  movePacketTo("javascript");
+
+  statusEl.className = "pipe-status client";
+  statusText.innerHTML =
+    `<strong>${what}</strong> — handled entirely in the browser. ` +
+    `The server was never told. Total recomputed by <code>totalPrice()</code> in menudetail.js.`;
+  scrubNow.textContent = "client-only";
+  scrubPhase.textContent = "no request sent";
+
+  clientPulseTimer = setTimeout(() => {
+    if (timer) return;
+    STAGES.forEach(s => stageEls[s.id].classList.remove("active", "dimmed"));
+    movePacketTo(null);
+    statusEl.className = "pipe-status";
+    statusText.textContent = LAST_TRACE
+      ? "Idle — scrub the timeline, or press 加入訂單 again."
+      : "Waiting for an interaction on the left.";
+  }, 2600);
+}
+
+const TOPPING_NAME = Object.fromEntries(PIPELINE.toppings.map(t => [t.slug, t.name]));
+
+form.addEventListener("change", (e) => {
+  const el = e.target;
+  if (el.id === "doublemeat") pulseClientOnly("雙倍肉量 " + (el.checked ? "added" : "removed"));
+  else if (el.name === "hotpotingredients")
+    pulseClientOnly(TOPPING_NAME[el.value] + " " + (el.checked ? "added" : "removed"));
+  else if (el.id === "meattype")
+    pulseClientOnly((meatSelect.selectedOptions[0]?.textContent || "Meat").trim() + " selected");
+  else if (el.id === "quantity") pulseClientOnly("數量 changed to " + el.value);
+});
+
+updateTotalPrice();
+</script>
