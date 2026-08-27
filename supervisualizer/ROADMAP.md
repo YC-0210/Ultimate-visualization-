@@ -9,7 +9,7 @@
 
 ```
 Current phase:  Phase 0 — deciding
-Next action:    P0.3  (transport)
+Next action:    P0.4  (Trace schema v0)
 Last updated:   2026-08-27
 ```
 
@@ -86,7 +86,8 @@ Nothing is built yet. Close the questions that change everything downstream.
 - [x] **P0.1** ❓ ~~Name the tool.~~ → **supervisualizer**. Folder renamed. Python package will be `supervisualizer`, Django app label `supervisualizer`, panel served at `/__supervisualizer__/`.
 - [x] **P0.2** ❓ ~~Panel delivery.~~ → **A Django app the user installs**, serving the panel at `/__supervisualizer__/`. Not a project, not an extension: `pip install supervisualizer`, add to `INSTALLED_APPS` + `MIDDLEWARE`, done. The panel is just a view. No CORS, no second server, no store review. A browser extension would additionally work on apps you cannot modify, but it cannot see the server side at all — so the Django app would still be needed underneath. Revisit only if watching an unmodifiable app becomes a real requirement.
   - Consequence: panel HTML/CSS/JS must ship *inside* the package — `MANIFEST.in` and the app-template/static-file conventions are load-bearing, not boilerplate.
-- [ ] **P0.3** ❓ **Transport.** Recommended: **SSE** (`text/event-stream`) — one-directional, server→panel, trivial in plain Django, no extra dependency. WebSockets need Channels/ASGI and buy you nothing until the panel talks back.
+- [x] **P0.3** ❓ ~~Transport.~~ → **SSE** (`text/event-stream`). The panel only ever receives; WebSockets' second direction would sit unused while costing Channels + ASGI. Plain `StreamingHttpResponse` on the Django side, built-in `EventSource` with free reconnect on the browser side. One-off panel→server calls (e.g. "explain this stage") are ordinary POSTs.
+  - Known cost: an open SSE connection holds a worker thread. Irrelevant for a dev tool on `runserver`; would matter under load.
 - [ ] **P0.4** ❓ **Trace schema, v0.** The framework-neutral JSON every adapter emits. Sketch it before writing capture code. Read the "Schema starting point" section below, and read up on OpenTelemetry's trace/span model first — it solved this exact problem and being loosely compatible may be worth more than being clever.
 - [ ] **P0.5** Scaffold an installable Python package (`pyproject.toml`, `pip install -e .`).
 - [ ] **P0.6** Add the middleware to `restautant-order-system`'s settings and have it print one line per request.
