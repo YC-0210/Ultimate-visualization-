@@ -9,7 +9,7 @@
 
 ```
 Current phase:  Phase 0 — deciding
-Next action:    P0.4  (Trace schema v0)
+Next action:    P0.4a (OTel nested-value spike), then stage vocabulary
 Last updated:   2026-08-27
 ```
 
@@ -88,7 +88,12 @@ Nothing is built yet. Close the questions that change everything downstream.
   - Consequence: panel HTML/CSS/JS must ship *inside* the package — `MANIFEST.in` and the app-template/static-file conventions are load-bearing, not boilerplate.
 - [x] **P0.3** ❓ ~~Transport.~~ → **SSE** (`text/event-stream`). The panel only ever receives; WebSockets' second direction would sit unused while costing Channels + ASGI. Plain `StreamingHttpResponse` on the Django side, built-in `EventSource` with free reconnect on the browser side. One-off panel→server calls (e.g. "explain this stage") are ordinary POSTs.
   - Known cost: an open SSE connection holds a worker thread. Irrelevant for a dev tool on `runserver`; would matter under load.
-- [ ] **P0.4** ❓ **Trace schema, v0.** The framework-neutral JSON every adapter emits. Sketch it before writing capture code. Read the "Schema starting point" section below, and read up on OpenTelemetry's trace/span model first — it solved this exact problem and being loosely compatible may be worth more than being clever.
+- [ ] **P0.4** ❓ **Trace schema, v0.** The framework-neutral JSON every adapter emits. Three sub-decisions, two already settled:
+  - [x] **Shape: a tree, not a flat list.** Each stage carries a `parent_id`. This matches OTel spans and is simply more truthful — the `SlugRelatedField` SQL happens *inside* serializer validation, not beside it. The panel renders depth as indentation, so nesting costs little visually.
+  - [x] **Build on OpenTelemetry first**, customise only where it does not stretch. `opentelemetry-instrumentation-django` supplies request and DB spans free; a custom `SpanProcessor` receives finished spans in-process; our own probes attach the values.
+  - [ ] 🔴 **P0.4a — the experiment that validates the OTel bet.** OTel attributes are flat scalars (string/number/bool/arrays of those) and **cannot hold a nested dict**. Our data is nested dicts. Spike it in an afternoon: capture one `validated_data` and try to carry it on a span — as a JSON-encoded string attribute, or as a span event. If it fights back, we keep OTel's *shape* and drop the dependency. Do this **before Phase 1**, not in Phase 6.
+  - [ ] **Stage vocabulary.** Still open. `kind` = the job (stable, closed, framework-neutral); `label` = what this framework calls it. The panel reads only `kind`; adapters write `label`. Draft list: `receive_input`, `route`, `attach_context`, `authorize`, `validate_input`, `query_data`, `mutate_data`, `render_output`, `send_response`.
+    - Prior art is **LSP's `SymbolKind`**, not OTel's `SpanKind` — OTel's classifies messaging role (server/client), not lifecycle job. Copy LSP's discipline: keep the enum small and closed, and make a framework whose concept does not fit **pick the nearest existing kind** rather than adding a new one. Go reports a struct as `Struct`; nobody extends the enum per language. That constraint is what keeps the panel simple.
 - [ ] **P0.5** Scaffold an installable Python package (`pyproject.toml`, `pip install -e .`).
 - [ ] **P0.6** Add the middleware to `restautant-order-system`'s settings and have it print one line per request.
 - [ ] **P0.7** Write `DECISIONS.md` in this folder recording the answers to P0.1–P0.4 *and why*. Future-you will not remember.
