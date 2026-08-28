@@ -79,6 +79,126 @@ Both halves of the story get stitched by a **trace id** the browser generates an
 
 ---
 
+## How the pieces actually talk
+
+The diagram above shows the boxes. This is the order things happen in, and why.
+
+### First: what a probe is
+
+A **probe** is a small piece of code slipped in beside real code to watch it run, without changing what it does. There are two kinds here:
+
+- **The browser probe** — JavaScript that wraps `fetch`.
+- **Server probes** — the monkeypatched `Serializer.is_valid` / `.save` proven in P0.4a.
+
+```python
+def probed_is_valid(self, *a, **kw):
+    result = _orig_is_valid(self, *a, **kw)   # run the real thing
+    record(self.validated_data)               # peek
+    return result                             # hand back untouched
+```
+
+**The rule that makes it a probe and not a modification: remove it and the app behaves identically.** If it changes an answer, it is a bug.
+
+### The browser probe is injected, never imported
+
+The developer does **not** edit their JavaScript. Middleware appends one line to outgoing HTML responses, exactly as Django Debug Toolbar does:
+
+```html
+    ...their page...
+    <script src="/static/supervisualizer/probe.js"></script>   ← added on the way out
+  </body>
+```
+
+Their `menudetail.js` is untouched and does not know the probe exists. This works because the probe replaces `window.fetch`, a global — their code calls `fetch(...)` and reaches the probe's version automatically, whichever file it lives in.
+
+Installing supervisualizer must stay **two lines in `settings.py` and nothing in the app's own code**. Anything more and nobody installs it.
+
+### The trace never travels from browser to server
+
+The trace is assembled **inside Django's memory**. The only extra thing the app's browser sends is a short ID string in a header.
+
+### One click, end to end
+
+Pressing 加入訂單:
+
+```
+   TAB 1 — their app                 DJANGO                    TAB 2 — the panel
+        │                               │                            │
+        │                               │◄──── SSE held open ───────│
+  press 加入訂單                         │                            │
+   ① probe makes id abc123              │                            │
+        │                               │                            │
+        │──② their normal request ─────►│                            │
+        │    + X-SV-Trace: abc123    ③ probes fire,                  │
+        │                              spans built in memory         │
+        │◄─④ 201 + JSON ────────────────│                            │
+        │    (unchanged — the app        │                           │
+        │     never sees a span)         │                           │
+        │                               │                            │
+        │──⑤ probe posts what it saw ──►│                            │
+        │    /__supervisualizer__/client/│                           │
+        │                          ⑥ join by abc123                  │
+        │                               │──⑦ push trace ────────────►│
+        │                               │                        draw it
+```
+
+### Three messages, three different jobs
+
+| | from → to | carries |
+|---|---|---|
+| ② | app → Django | their normal request, plus one ID header |
+| ⑤ | probe → Django | what the **browser** saw, same ID |
+| ⑦ | Django → panel | the finished, joined trace |
+
+### Why ⑤ exists — it is not a duplicate of ②
+
+Django only ever sees the **middle** of the story.
+
+```
+time ──────────────────────────────────────────────────────────►
+
+browser:  read DOM → build object → send ⋯⋯⋯ get reply → parse → update page
+                                      │                ▲
+django:                               └─── runs ───────┘
+                                        (sees only this)
+
+          └──── only the browser witnesses these ──────────────┘
+```
+
+Three things are invisible to Django and would be lost without ⑤:
+
+1. **Transformations that leave no trace on the wire.** `quantity` is the string `"2"` in the DOM and the number `2` in the JSON body. `Number()` ran in the browser; Django receives `2` and cannot know it was ever `"2"`. That stage — one of the most valuable the tool shows — exists only in the browser.
+2. **Everything after the response.** `res.json()`, `price` still being a string, the page updating. All of it happens *after* Django has responded and moved on.
+3. **Client-only interactions.** Ticking a checkbox sends no request at all, so there is no ② to hook. Without ⑤ the tool is blind to them — and the dimmed-pipeline moment ("the server was never told") exists *only* because the browser reports independently.
+
+The probe also cannot attach its notes to ②: half of them have not happened yet.
+
+### Two tabs, two different responses
+
+"The browser" is two tabs, and they receive completely different things:
+
+- **The app tab** gets `201 Created` and the JSON the API always returned. Nothing added. If Django put spans in that response it would be altering the very thing it is meant to observe.
+- **The panel tab** is a separate page with its own long-lived SSE connection. The spans go there.
+
+Same server, two conversations. The app must behave identically whether supervisualizer is installed or not.
+
+### What the probe sends
+
+A plain POST, buffered rather than one per event, using the **same `{type, value}` encoding as the server side** — which is what lets Django merge the halves without translating between them:
+
+```jsonc
+POST /__supervisualizer__/client/
+{
+  "trace": "abc123",
+  "stages": [
+    { "kind": "read_ui_state", "data": { "quantity": {"type": "string", "value": "2"} } },
+    { "kind": "build_payload", "data": { "quantity": {"type": "number", "value": 2  } } }
+  ]
+}
+```
+
+---
+
 ## Phase 0 — Decide and scaffold
 
 Nothing is built yet. Close the questions that change everything downstream.
