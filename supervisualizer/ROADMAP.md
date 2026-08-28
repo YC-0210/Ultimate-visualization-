@@ -8,7 +8,7 @@
 ## Status
 
 ```
-Current phase:  Phase 0 — decisions closed, scaffolding next
+Current phase:  Phase 0 — decisions closed, spike done, scaffolding next
 Next action:    P0.5 (scaffold the package) — first coding task
 Last updated:   2026-08-27
 ```
@@ -88,10 +88,15 @@ Nothing is built yet. Close the questions that change everything downstream.
   - Consequence: panel HTML/CSS/JS must ship *inside* the package — `MANIFEST.in` and the app-template/static-file conventions are load-bearing, not boilerplate.
 - [x] **P0.3** ❓ ~~Transport.~~ → **SSE** (`text/event-stream`). The panel only ever receives; WebSockets' second direction would sit unused while costing Channels + ASGI. Plain `StreamingHttpResponse` on the Django side, built-in `EventSource` with free reconnect on the browser side. One-off panel→server calls (e.g. "explain this stage") are ordinary POSTs.
   - Known cost: an open SSE connection holds a worker thread. Irrelevant for a dev tool on `runserver`; would matter under load.
-- [ ] **P0.4** ❓ **Trace schema, v0.** The framework-neutral JSON every adapter emits. Three sub-decisions, two already settled:
+- [x] **P0.4** ❓ ~~Trace schema, v0.~~ All sub-decisions closed:
   - [x] **Shape: a tree, not a flat list.** Each stage carries a `parent_id`. This matches OTel spans and is simply more truthful — the `SlugRelatedField` SQL happens *inside* serializer validation, not beside it. The panel renders depth as indentation, so nesting costs little visually.
-  - [x] **Build on OpenTelemetry first**, customise only where it does not stretch. `opentelemetry-instrumentation-django` supplies request and DB spans free; a custom `SpanProcessor` receives finished spans in-process; our own probes attach the values.
-  - [ ] 🔴 **P0.4a — the experiment that validates the OTel bet.** Specced in [`spikes/P0.4a-otel-nested-values.md`](spikes/P0.4a-otel-nested-values.md). One afternoon, before Phase 1. Verified already: OTel **silently drops** nested attributes (warning only, no exception), and the JSON-string workaround has no default length limit. What remains is judgement — chiefly what OTel is still buying us once every value rides as an opaque blob.
+  - [x] **Build on OpenTelemetry**, customise where it does not stretch. A custom `SpanProcessor` receives finished spans in-process; our probes create the stage spans and attach the values as JSON. What OTel actually contributes is **context propagation** — not instrumentation. `DjangoInstrumentor` adds one HTTP span; DB spans we build ourselves with `connection.execute_wrapper`. (Corrected after P0.4a; the earlier "request and DB spans free" claim was false.)
+  - [x] 🔴 ~~**P0.4a** — the experiment that validates the OTel bet.~~ → **PASS, keep the dependency**, but for a different reason than D6 assumed. Full results in [`spikes/P0.4a-otel-nested-values.md`](spikes/P0.4a-otel-nested-values.md); runnable evidence in [`spikes/P0.4a-code/`](spikes/P0.4a-code/).
+    - ✅ Values round-trip: a `{type, value}` encoder JSON-dumped into one string attribute preserves model instances, nested lists and non-ASCII intact (743 chars for a real `validated_data`).
+    - ✅ Span per stage gives the D5 tree for free.
+    - 🔑 **The real justification: context propagation.** Probes monkeypatched into DRF fired deep inside a request and parented under Django's request span automatically, with no manual threading. That is the part worth depending on.
+    - ❌ "Free Django instrumentation" is **one** span (`http.method`/`route`/`status`). ❌ "Free DB spans" do not exist for Django's ORM — `SQLite3Instrumentor` captures zero. Both were overstated in D6 and are corrected there.
+    - Overhead +3%. Silent-drop behaviour confirmed.
   - [x] **Stage vocabulary, v0 — provisional.** `kind` = the job (stable, closed, framework-neutral); `label` = what this framework calls it. The panel reads only `kind`; adapters write `label`.
 
     | `kind` | the job | Django | FastAPI | Express |
@@ -134,9 +139,9 @@ Pure Python. No UI yet. Output is a JSON file you read in a terminal.
 - [ ] **P1.2** Capture the resolved route (`request.resolver_match` — pattern, url_name, view class, kwargs).
 - [ ] **P1.3** Capture post-middleware state: `request.user`, session keys, auth.
 - [ ] **P1.4** Capture view facts: class, `permission_classes`, `serializer_class`, queryset model.
-- [ ] **P1.5** Capture SQL. Note `connection.queries` only populates when `DEBUG=True`; use an execute wrapper instead so it works either way.
+- [ ] **P1.5** Capture SQL with `connection.execute_wrapper` — P0.4a confirmed OTel gives no DB spans for Django's ORM, so this is ours to build. (`connection.queries` also only populates when `DEBUG=True`.)
 - [ ] **P1.6** Capture the response: status, headers, body, size.
-- [ ] **P1.7** 🔴 **Probe the serializer.** Capture `validated_data` *and the types inside it* — the string-becomes-model-instance moment. This is the single most valuable thing the tool shows and the most likely to fight you. Wrap `Serializer.is_valid` / `.save` / `.to_representation`. Try it on one endpoint before generalising.
+- [ ] **P1.7** 🔴 **Probe the serializer.** Capture `validated_data` *and the types inside it* — the string-becomes-model-instance moment, the single most valuable thing the tool shows. **P0.4a already proved the approach**: monkeypatch `Serializer.is_valid` / `BaseSerializer.save`, wrap each in a span, JSON-encode the values. Start from `spikes/P0.4a-code/02_probe_integration.py`, which does exactly this against a real request.
 - [ ] **P1.8** Capture template render + context for non-DRF views.
 - [ ] **P1.9** Serialise everything to the Trace schema and write it to a file per request.
 - [ ] **P1.10** 🔴 Make capture safe: never let a probe crash a real request. Wrap every hook in try/except and drop the trace on failure rather than 500ing the app.

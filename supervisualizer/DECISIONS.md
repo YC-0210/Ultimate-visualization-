@@ -74,11 +74,25 @@ Format: what was decided, what else was considered, why this won, and what it co
 
 **Considered:** borrowing OTel's *shape* (spans, tree, trace/parent ids, semantic-convention discipline) while emitting our own JSON.
 
-**Why:** OTel already solved framework-neutral request description across dozens of languages, and ships auto-instrumentation for Django, FastAPI, Flask, Express and Rails. If it fits, Phase 6 gets much cheaper. Deciding empirically beats deciding by argument.
+**Why (as argued):** OTel already solved framework-neutral request description across dozens of languages, and ships auto-instrumentation for Django, FastAPI, Flask, Express and Rails. If it fits, Phase 6 gets much cheaper.
 
-**Known risk, and the experiment that settles it:** OTel attributes may only be scalars or flat sequences of scalars. Our data is nested objects — which is the whole point of the tool. Verified: OTel does **not** raise on a nested value; it logs a warning and **silently drops the attribute**. A span event given nested attributes survives with its attributes empty. The JSON-string workaround is mechanically fine (35k chars survived untruncated; `max_attribute_length` defaults to `None`; limits are 128 attributes and 128 events per span). See `spikes/P0.4a-otel-nested-values.md`. **Unresolved until that spike runs.**
+**✅ CONFIRMED by spike P0.4a — keep the dependency. But the reasoning above was wrong in two places, and the real justification is something it never mentioned.**
 
-**Consequence regardless of outcome:** never conclude a probe worked because no exception was raised. Assert on what is actually present on the finished span.
+**What actually justifies it: context propagation.** Probes monkeypatched into DRF's `Serializer.is_valid` and `.save`, firing deep inside a real request, produced spans that **automatically parented under Django's request span with zero manual context threading**. Building that ourselves means contextvars, a span stack, and correct behaviour under async and threads — real work, easy to get subtly wrong, already done. *That* is what we are paying for.
+
+**Two claimed benefits that do not exist:**
+- **"Free Django instrumentation" is one span.** `DjangoInstrumentor` emits exactly one span per request carrying `http.method`, `http.route`, `http.status_code`. The request boundary and nothing else — no view internals, no serializer stages. Every stage that matters is ours to build.
+- **"Free DB spans" are not free for Django.** `SQLite3Instrumentor` installs cleanly and captures **zero** ORM queries: Django's ORM uses its own connection wrapper, which `sqlite3` instrumentation never sees. Use `connection.execute_wrapper` (already planned in P1.5).
+
+**Honest summary:** OTel is a context-propagation library we are using as one, plus a tree format. It is **not** an instrumentation shortcut. Do not expect framework #2 to arrive cheaply just because OTel supports that framework — it buys one HTTP span there too.
+
+**Nested values: solved.** A `{type, value}` encoder JSON-dumped into a single string attribute round-trips intact — model instances, non-ASCII, nested lists, 743 chars for a real `validated_data`. No truncation (`max_attribute_length` defaults to `None`; limits are 128 attributes and 128 events per span).
+
+**Overhead:** +3% per request (2.13 ms vs 2.06 ms). Not a concern.
+
+**Consequence, permanent:** OTel does **not** raise on a nested value — it logs a warning and silently drops the attribute. Never conclude a probe worked because no exception was raised. Assert on what is actually present on the finished span.
+
+**Evidence:** `spikes/P0.4a-otel-nested-values.md` and the runnable scripts in `spikes/P0.4a-code/`.
 
 ---
 
