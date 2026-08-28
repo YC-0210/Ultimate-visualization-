@@ -3,9 +3,9 @@
 > This folder is the **real tool**, built by hand, that runs on the developer's own machine and watches a live backend.
 > `../prototype/` is the throwaway that proved the idea. Do not import from it — port ideas, not files.
 >
-> **Why any of this exists** is in [`../README.md`](../README.md): I can write Django code but cannot *see* the path a request takes through it, or what happens to my data's type at each hop. Every phase below should serve that. If a task does not, cut it.
+> **Why any of this exists** is in [`../MISSION.md`](../MISSION.md): I can write Django code but cannot *see* the path a request takes through it, or what happens to my data's type at each hop. Every phase below should serve that. If a task does not, cut it.
 >
-> **How I want to be taught** is in [`../NOTES.md`](../NOTES.md) and the current [`../MISSION.md`](../MISSION.md). The standing rule: **I write the code in this folder.** AI plans, explains, reviews and spikes — it does not hand me an implementation.
+> **How I want to be taught** is in [`../MISSION.md`](../MISSION.md) and [`../NOTES.md`](../NOTES.md). The standing rule: **I write the code in this folder.** AI plans, explains, reviews and spikes — it does not hand me an implementation.
 
 ---
 

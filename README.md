@@ -6,7 +6,7 @@ I can write Django code. What I cannot see is the path a single request takes th
 
 So this is the tool I want to learn with, built to learn by building it.
 
-**→ [`MISSION.md`](MISSION.md)** — the *current* teaching mission, maintained by the `teach` skill and scoped to whatever is being learned right now. **[`NOTES.md`](NOTES.md)** carries the working preferences.
+**→ [`MISSION.md`](MISSION.md)** — the reason, what success looks like, and what is deliberately out of scope. Every decision here should trace back to it. **[`NOTES.md`](NOTES.md)** carries the standing teaching preferences; the current task is the Status block in [`supervisualizer/ROADMAP.md`](supervisualizer/ROADMAP.md).
 
 ---
 
@@ -43,7 +43,7 @@ Its core move: it does not guess and it does not re-implement. It **runs the rea
 
 | File | Role |
 |---|---|
-| [`MISSION.md`](MISSION.md) | The current teaching mission — what is being learned right now |
+| [`MISSION.md`](MISSION.md) | **Why this exists.** Read first. |
 | [`NOTES.md`](NOTES.md) | Teaching preferences and workspace rules |
 | [`CONTEXT.md`](CONTEXT.md) | The glossary — the words this project uses and what they mean |
 | [`RESOURCES.md`](RESOURCES.md) | Trusted sources for the current topic, annotated with when to reach for them |
