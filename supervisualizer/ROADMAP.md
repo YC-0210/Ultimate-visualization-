@@ -8,8 +8,8 @@
 ## Status
 
 ```
-Current phase:  Phase 0 — deciding
-Next action:    P0.4a (OTel nested-value spike), then stage vocabulary
+Current phase:  Phase 0 — decisions closed, scaffolding next
+Next action:    P0.5 (scaffold the package) — first coding task
 Last updated:   2026-08-27
 ```
 
@@ -92,14 +92,35 @@ Nothing is built yet. Close the questions that change everything downstream.
   - [x] **Shape: a tree, not a flat list.** Each stage carries a `parent_id`. This matches OTel spans and is simply more truthful — the `SlugRelatedField` SQL happens *inside* serializer validation, not beside it. The panel renders depth as indentation, so nesting costs little visually.
   - [x] **Build on OpenTelemetry first**, customise only where it does not stretch. `opentelemetry-instrumentation-django` supplies request and DB spans free; a custom `SpanProcessor` receives finished spans in-process; our own probes attach the values.
   - [ ] 🔴 **P0.4a — the experiment that validates the OTel bet.** Specced in [`spikes/P0.4a-otel-nested-values.md`](spikes/P0.4a-otel-nested-values.md). One afternoon, before Phase 1. Verified already: OTel **silently drops** nested attributes (warning only, no exception), and the JSON-string workaround has no default length limit. What remains is judgement — chiefly what OTel is still buying us once every value rides as an opaque blob.
-  - [ ] **Stage vocabulary.** Still open. `kind` = the job (stable, closed, framework-neutral); `label` = what this framework calls it. The panel reads only `kind`; adapters write `label`. Draft list: `receive_input`, `route`, `attach_context`, `authorize`, `validate_input`, `query_data`, `mutate_data`, `render_output`, `send_response`.
+  - [x] **Stage vocabulary, v0 — provisional.** `kind` = the job (stable, closed, framework-neutral); `label` = what this framework calls it. The panel reads only `kind`; adapters write `label`.
+
+    | `kind` | the job | Django | FastAPI | Express |
+    |---|---|---|---|---|
+    | `read_ui_state` | pull values out of the live UI | — (probe) | — | — |
+    | `build_payload` | assemble the object to send | — (probe) | — | — |
+    | `send_request` | hand it to the network | `fetch` | — | — |
+    | `receive_input` | parse the incoming request | request parsing | Starlette request | body-parser |
+    | `route` | match a path to a handler | urlconf | path decorator | router |
+    | `attach_context` | populate session / user / locals | middleware | `Depends` | middleware |
+    | `authorize` | decide if this caller may proceed | `permission_classes` | `Security` | guard |
+    | `validate_input` | untrusted input → typed objects | serializer | Pydantic model | zod / joi |
+    | `query_data` | read persisted data | ORM read | ORM read | query |
+    | `mutate_data` | write persisted data | ORM write | ORM write | insert / update |
+    | `render_output` | typed objects → wire format | serializer out / template | `response_model` | `res.json` / template |
+    | `send_response` | hand it back to the network | — | — | — |
+    | `receive_response` | parse what came back | `res.json()` | — | — |
+    | `update_ui` | reflect the result on screen | — (probe) | — | — |
+
+    Fourteen, not the nine first drafted: the original list covered only the server's half of the lifecycle, and Phase 4's client stages (DOM read, payload build, fetch, response parse, DOM update) fit none of them. Freezing at nine would have forced Phase 4 to either abuse a verb or extend the vocabulary — precisely what the nearest-fit rule forbids.
+
+    **Provisional until tested against a framework not written by us.** A vocabulary that only fits Django is worthless; the Express and FastAPI columns above are reasoned, not verified. Confirm them in P6.4 before freezing as v1.
     - Prior art is **LSP's `SymbolKind`**, not OTel's `SpanKind` — OTel's classifies messaging role (server/client), not lifecycle job.
     - **Values are strings, not LSP-style integers.** LSP numbers because it is a high-frequency wire protocol between processes; neither compactness nor name-independent stability matters here, and these traces are read by a human debugging a JSON file. `"validate_input"` is self-describing; `7` needs a lookup table. OTel uses strings for the same reason.
     - The four properties that actually matter — none of them numeric: **closed** (fixed list, never free text), **agreed** (panel and every adapter share exactly one list), **stable** (never repurpose a shipped value), **nearest-fit** (a framework whose concept does not fit picks the closest existing kind rather than adding one). Go reports a struct as `Struct`; nobody extends the enum per language. The last property is the easiest to break and the most expensive to undo.
     - **Why this is worth the effort at all:** LSP turned editor support from M×N into M+N — 10 editors × 20 languages went from 200 hand-built integrations to 30. Same arithmetic here. Without the schema, every panel feature must be built per framework; with it, the panel is written once and each framework costs one adapter. That is what makes "works for all backends" achievable by one person.
 - [ ] **P0.5** Scaffold an installable Python package (`pyproject.toml`, `pip install -e .`).
 - [ ] **P0.6** Add the middleware to `restautant-order-system`'s settings and have it print one line per request.
-- [ ] **P0.7** Write `DECISIONS.md` in this folder recording the answers to P0.1–P0.4 *and why*. Future-you will not remember.
+- [x] **P0.7** ~~Write `DECISIONS.md`~~ → [`DECISIONS.md`](DECISIONS.md), D1–D8. Keep adding an entry whenever a ❓ closes.
 
 **Done when:** `python manage.py runserver` on your restaurant project prints a line from your own middleware on every request.
 

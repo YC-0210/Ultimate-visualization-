@@ -1,0 +1,111 @@
+# Decisions
+
+Why supervisualizer is built the way it is. One entry per decision that would be expensive to reverse. Add to this whenever a ❓ in `ROADMAP.md` is closed.
+
+Format: what was decided, what else was considered, why this won, and what it costs.
+
+---
+
+## D1 — Runs on the developer's machine, live
+
+**Decided:** supervisualizer watches a running backend on the developer's own machine and reports what it actually did.
+
+**Considered:** the `../prototype/` approach — run the target's code ahead of time, record every intermediate, replay the recording in a published page.
+
+**Why:** the prototype recorded only because it was built on a cloud machine that could not reach the developer's laptop, and produced a page that could not either. That constraint does not exist here. Recording brings problems that live capture simply does not have — seeding a database, enumerating an input space that explodes on any free-text field, rebuilding the app's pages by hand, and going stale the moment the code changes.
+
+**Cost:** the tool must be installed to be used. It cannot be shared as a link. If "explain this codebase to someone else" ever becomes a goal, that is a separate product built on an export, not this one.
+
+---
+
+## D2 — Capture is deterministic; the LLM explains, never observes
+
+**Decided:** no model is ever in the path that produces a value the panel displays as fact. Values come from middleware, execute wrappers, and `type(v).__name__`. The LLM writes prose about facts already captured.
+
+**Considered:** letting a model infer what happened from the code, which would need far fewer probes.
+
+**Why:** the entire worth of the prototype was that its numbers were real, because real code produced them. A tool that *infers* what `validated_data` contained is a confident guesser, and nothing it shows can be trusted. Capture needs no intelligence — it is middleware and reflection.
+
+**The test:** unplug the LLM and the tool must still capture and display everything correctly, just without prose. If removing it breaks the data, it is in the wrong place.
+
+**Cost:** every framework needs hand-written probes. There is no shortcut where a model reads the source and skips that work.
+
+---
+
+## D3 — Ships as an installable Django app *(P0.2)*
+
+**Decided:** a Python package. `pip install supervisualizer`, add to `INSTALLED_APPS` and `MIDDLEWARE`. The panel is a view the app serves at `/__supervisualizer__/`.
+
+**Considered:** a browser extension.
+
+**Why:** an app can already ship middleware, views, URLs, templates and static files, so the panel is just a view — no CORS, no second server, no store review. An extension would additionally work against apps you cannot modify, but it cannot see the server side at all, so the Django app would still be needed underneath it. It buys nothing yet.
+
+**Cost:** the panel's assets ship *inside* the package, which makes `MANIFEST.in` and the app static/template conventions load-bearing rather than boilerplate. And it cannot watch an app whose settings you cannot edit.
+
+---
+
+## D4 — SSE, not WebSockets *(P0.3)*
+
+**Decided:** traces reach the panel over Server-Sent Events.
+
+**Considered:** WebSockets, and polling.
+
+**Why:** only the server knows when a request finished, so it has to be able to speak first — which rules out plain request/response, and makes polling both laggy and wasteful. Between the two push options, the panel *only ever receives*; a WebSocket's second direction would sit unused while costing Django Channels and an ASGI deployment. SSE is a `StreamingHttpResponse` on one side and the browser's built-in `EventSource`, which reconnects for free, on the other. One-off panel→server calls such as "explain this stage" are ordinary POSTs.
+
+**Cost:** an open SSE connection holds a worker thread. Irrelevant for a dev tool on `runserver`; would matter under load.
+
+---
+
+## D5 — Stages form a tree *(P0.4)*
+
+**Decided:** each stage carries a `parent_id`. The trace is a tree, not a flat list.
+
+**Considered:** a flat ordered list, as the prototype used.
+
+**Why:** it is simply more truthful. The `SlugRelatedField` SQL happens *inside* serializer validation, not beside it, and a flat list cannot say so. It also matches OTel spans, which are trees. The panel renders depth as indentation, so the extra fidelity costs almost nothing visually.
+
+**Cost:** slightly more care in the renderer, and probes must know their parent.
+
+---
+
+## D6 — Build on OpenTelemetry first *(P0.4)*
+
+**Decided:** try depending on OTel — `opentelemetry-instrumentation-django` for request and DB spans, a custom `SpanProcessor` to receive finished spans in-process, our own probes for values — and customise only where it does not stretch.
+
+**Considered:** borrowing OTel's *shape* (spans, tree, trace/parent ids, semantic-convention discipline) while emitting our own JSON.
+
+**Why:** OTel already solved framework-neutral request description across dozens of languages, and ships auto-instrumentation for Django, FastAPI, Flask, Express and Rails. If it fits, Phase 6 gets much cheaper. Deciding empirically beats deciding by argument.
+
+**Known risk, and the experiment that settles it:** OTel attributes may only be scalars or flat sequences of scalars. Our data is nested objects — which is the whole point of the tool. Verified: OTel does **not** raise on a nested value; it logs a warning and **silently drops the attribute**. A span event given nested attributes survives with its attributes empty. The JSON-string workaround is mechanically fine (35k chars survived untruncated; `max_attribute_length` defaults to `None`; limits are 128 attributes and 128 events per span). See `spikes/P0.4a-otel-nested-values.md`. **Unresolved until that spike runs.**
+
+**Consequence regardless of outcome:** never conclude a probe worked because no exception was raised. Assert on what is actually present on the finished span.
+
+---
+
+## D7 — `kind` and `label` are separate fields *(P0.4)*
+
+**Decided:** every stage carries a `kind` (the job it does — a small closed vocabulary) and a `label` (what this framework calls it). The panel reads only `kind`. Adapters write `label`.
+
+**Considered:** one name field, using the framework's own word.
+
+**Why:** Django says Serializer, FastAPI says Pydantic model, Rails says strong parameters — four words, one job. If the framework's vocabulary leaks into the schema, a second adapter must either impersonate Django or teach the panel a second vocabulary, and that is a rewrite rather than an adapter.
+
+The prior art is **LSP's `SymbolKind`**, not OTel's `SpanKind` — OTel's classifies messaging role (server/client), not lifecycle job. LSP is the proof the pattern works: VS Code knows no Python, the language server sends `kind: 5`, the editor draws a class icon. The historically important part is the arithmetic — LSP turned editor support from M×N into M+N, which is the only reason "works for all backends" is tractable for one person.
+
+**Values are strings, not LSP-style integers.** LSP numbers because it is a high-frequency wire protocol between processes; neither compactness nor name-independent stability applies to traces a human reads while debugging. `"validate_input"` is self-describing; `7` needs a lookup table. OTel uses strings for the same reason.
+
+**The four properties that matter** — none of them numeric: **closed** (fixed list, never free text), **agreed** (panel and every adapter share exactly one list), **stable** (never repurpose a shipped value), **nearest-fit** (a framework whose concept does not fit picks the nearest existing kind rather than adding one). Go reports a struct as `Struct`; nobody extends the enum per language. The last is the easiest to break and the most expensive to undo.
+
+**Cost:** discipline. Every new framework is a temptation to add a kind.
+
+---
+
+## D8 — The vocabulary covers the whole round trip *(P0.4)*
+
+**Decided:** fourteen kinds spanning client and server, listed in `ROADMAP.md` under P0.4.
+
+**Considered:** the nine server-lifecycle verbs first drafted.
+
+**Why:** the nine covered only the server's half. Phase 4 adds stages captured by the injected browser probe — reading the DOM, building the payload, `fetch`, parsing the response, updating the page — and none of them fit `receive_input` or `route`. Freezing at nine would have forced Phase 4 to abuse a verb or extend the vocabulary, which is exactly what D7's nearest-fit rule forbids.
+
+**Status: provisional.** The Django column is grounded; the FastAPI and Express columns are reasoned, not verified. A vocabulary that only fits Django is worthless, so this is not frozen as v1 until P6.4 tests it against a framework we did not design it around.
