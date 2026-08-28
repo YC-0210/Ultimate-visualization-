@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ResolverMatch — field card</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Reference · P1.2</p>
+      <h1>ResolverMatch field card</h1>
+      <p class="lede">
+        What to read off <code>request.resolver_match</code> once URL resolving has run.
+        Source:
+        <a href="https://docs.djangoproject.com/en/5.2/ref/urlresolvers/#django.urls.ResolverMatch">django.urls.ResolverMatch</a>.
+      </p>
+    </header>
+
+    <h2>When it exists</h2>
+    <table>
+      <thead><tr><th>Moment</th><th>Match?</th></tr></thead>
+      <tbody>
+        <tr><td>Middleware <code>__call__</code>, before <code>get_response</code></td><td>No</td></tr>
+        <tr><td><code>process_view()</code></td><td>Yes</td></tr>
+        <tr><td>The view</td><td>Yes</td></tr>
+        <tr><td>Middleware <code>__call__</code>, after <code>get_response</code></td><td>Yes, if a pattern matched</td></tr>
+        <tr><td>404, no pattern matched</td><td>Attribute missing — <code>getattr(..., None)</code></td></tr>
+      </tbody>
+    </table>
+    <p>
+      Docs:
+      <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#django.http.HttpRequest.resolver_match">HttpRequest.resolver_match</a>,
+      <a href="https://docs.djangoproject.com/en/5.2/topics/http/middleware/#process-view">process_view</a>.
+    </p>
+
+    <h2>Fields P1.2 needs</h2>
+    <table>
+      <thead><tr><th>Want</th><th>Attribute</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>pattern</td>
+          <td><code>route</code></td>
+          <td>The matching <code>path()</code> string, including include prefixes. Example: <code>api/menuitem/&lt;str:slug&gt;/</code>.</td>
+        </tr>
+        <tr>
+          <td>url_name</td>
+          <td><code>url_name</code></td>
+          <td>May be <code>None</code> if the pattern was unnamed. Namespaces live on <code>view_name</code> / <code>namespaces</code>.</td>
+        </tr>
+        <tr>
+          <td>kwargs</td>
+          <td><code>kwargs</code></td>
+          <td>Union of captured path converters and extra kwargs from the URLconf. JSON-encode values (ints are fine; UUID is not — <code>default=str</code> if needed).</td>
+        </tr>
+        <tr>
+          <td>view</td>
+          <td><code>func</code></td>
+          <td>A callable. Do not dump it. See naming below.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Naming <code>func</code></h2>
+    <pre><code>func = match.func
+cls = getattr(func, "view_class", None)
+if cls is not None:
+    view = f"{cls.__module__}.{cls.__qualname__}"
+else:
+    view = f"{func.__module__}.{func.__qualname__}"</code></pre>
+    <p>
+      <code>view_class</code> is what
+      <a href="https://docs.djangoproject.com/en/5.2/ref/class-based-views/base/#django.views.generic.base.View.as_view">View.as_view()</a>
+      hangs on the wrapper.
+      Django Debug Toolbar's <code>get_name_from_obj</code> does the same.
+      Prefer this over DRF's extra <code>func.cls</code>.
+    </p>
+
+    <h2>Leave for later</h2>
+    <p>
+      <code>args</code>, <code>captured_kwargs</code>, <code>extra_kwargs</code>,
+      <code>app_name</code>, <code>namespace</code>, <code>tried</code>,
+      <code>view_name</code> — real fields, not P1.2.
+      <code>kwargs</code> already includes captured + extra.
+    </p>
+
+    <footer class="foot">
+      <a href="../lessons/0001-when-resolver-match-appears.html">Lesson 0001</a>
+      <a href="https://docs.djangoproject.com/en/5.2/ref/urlresolvers/#django.urls.ResolverMatch">ResolverMatch</a>
+    </footer>
+  </article>
+</body>
+</html>

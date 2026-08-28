@@ -8,8 +8,8 @@
 ## Status
 
 ```
-Current phase:  Phase 0 done — package printing, OTel spike closed
-Next action:    P1.1 (capture request basics)
+Current phase:  Phase 1 — Capture the server half (P1.1 done)
+Next action:    P1.2 (capture the resolved route)
 Last updated:   2026-08-28
 ```
 
@@ -255,7 +255,7 @@ Nothing is built yet. Close the questions that change everything downstream.
 
 Pure Python. No UI yet. Output is a JSON file you read in a terminal.
 
-- [ ] **P1.1** Capture request basics: method, path, headers, body.
+- [x] **P1.1** Capture request basics: method, path, headers, body.
 - [ ] **P1.2** Capture the resolved route (`request.resolver_match` — pattern, url_name, view class, kwargs).
 - [ ] **P1.3** Capture post-middleware state: `request.user`, session keys, auth.
 - [ ] **P1.4** Capture view facts: class, `permission_classes`, `serializer_class`, queryset model.
