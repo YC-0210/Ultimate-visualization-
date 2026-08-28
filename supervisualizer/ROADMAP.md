@@ -2,6 +2,10 @@
 
 > This folder is the **real tool**, built by hand, that runs on the developer's own machine and watches a live backend.
 > `../prototype/` is the throwaway that proved the idea. Do not import from it — port ideas, not files.
+>
+> **Why any of this exists** is in [`../README.md`](../README.md): I can write Django code but cannot *see* the path a request takes through it, or what happens to my data's type at each hop. Every phase below should serve that. If a task does not, cut it.
+>
+> **How I want to be taught** is in [`../NOTES.md`](../NOTES.md) and the current [`../MISSION.md`](../MISSION.md). The standing rule: **I write the code in this folder.** AI plans, explains, reviews and spikes — it does not hand me an implementation.
 
 ---
 
@@ -396,3 +400,4 @@ Two things to get right: **`kind` is a closed vocabulary** the panel understands
 | **django-silk** | Another capture approach, different trade-offs. |
 | **`../prototype/HOW-IT-WORKS.md`** | Why record-and-replay existed and what carries over. |
 | **`../CONTEXT.md`** | The vocabulary. Keep using it so the two folders stay talking about the same things. |
+| **`../RESOURCES.md`** | The annotated source list for whatever is being learned now. Every reference above should end up there with a note on when to reach for it. |

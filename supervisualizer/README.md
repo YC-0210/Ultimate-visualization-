@@ -6,6 +6,8 @@ Hand-built. Not generated. This folder is currently empty except for planning do
 
 ## Start here
 
+**[`../MISSION.md`](../MISSION.md)** — why this exists, and the constraint that matters most here: **the code in this folder is written by hand.** AI plans, explains, reviews and spikes; it does not hand over a finished tool. That is the point, not a limitation.
+
 **[`ROADMAP.md`](ROADMAP.md)** — the phased checklist. It carries a Status block at the top; the Cursor agent reads it to work out where we are and what is next.
 
 ## Why this is separate from `../prototype/`
