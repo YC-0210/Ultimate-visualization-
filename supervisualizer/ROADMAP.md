@@ -2,6 +2,8 @@
 
 > This folder is the **real tool**, built by hand, that runs on the developer's own machine and watches a live backend.
 > `../prototype/` is the throwaway that proved the idea. Do not import from it — port ideas, not files.
+>
+> **Every phase here should trace back to [`../MISSION.md`](../MISSION.md).** If a task does not serve it, cut the task. If the mission has changed, change it there first. Note especially its constraint that **the code in this folder is written by hand** — AI plans, explains, reviews and spikes; it does not hand over a finished tool.
 
 ---
 
@@ -20,7 +22,9 @@ Last updated:   2026-08-27
 
 ### How to use this file
 
-**For the Cursor agent.** At the start of a session, read the Status block, find the first unchecked task, and tell me where we are and what is next. Do not skip ahead — phases build on each other. When I finish something, update the checkbox *and* the Status block. If I ask for something that belongs to a later phase, say so and ask whether to reorder deliberately.
+**For the Cursor agent.** Read [`../MISSION.md`](../MISSION.md) first — it says why this exists and how I want to be taught. Then read the Status block, find the first unchecked task, and tell me where we are and what is next. Do not skip ahead — phases build on each other. When I finish something, update the checkbox *and* the Status block. If I ask for something that belongs to a later phase, say so and ask whether to reorder deliberately.
+
+The mission asks for **one idea at a time, one reference at a time, with a reason why it matters here** — and for me to write the code. Explain and review; do not generate the implementation.
 
 **For me.** Every phase ends in something I can *see* working. If a phase is dragging, the phase is too big — split it. Tasks marked 🔴 are the risky ones; do them early in their phase so failure is cheap.
 
@@ -396,3 +400,5 @@ Two things to get right: **`kind` is a closed vocabulary** the panel understands
 | **django-silk** | Another capture approach, different trade-offs. |
 | **`../prototype/HOW-IT-WORKS.md`** | Why record-and-replay existed and what carries over. |
 | **`../CONTEXT.md`** | The vocabulary. Keep using it so the two folders stay talking about the same things. |
+| **`../MISSION.md`** | Why this exists at all, and how I want to be taught. |
+| **`../RESOURCES.md`** | The annotated source list — every reference above lives there with a note on when to reach for it. |
