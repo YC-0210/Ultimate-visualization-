@@ -34,6 +34,7 @@ Write one when any of these is true:
 2. **The user disclosed prior knowledge**: "I already know X." Record it so future sessions don't re-teach it. Also record the _depth_ claimed.
 3. **A misconception was corrected**: the user previously believed something wrong and now sees why. These are high-value: they predict future stumbling blocks for related topics.
 4. **The mission shifted in response to learning**: the user discovered they cared about something different than they thought. Cross-link to [[MISSION.md]] and update it.
+5. **A linked project roadmap task was completed**: when `MISSION.md` points at a roadmap (see [SKILL.md](./SKILL.md#orienting-to-a-project-roadmap)) and the user demonstrably finishes one of its tasks, record what they can now do and which roadmap task it satisfies. Only after this record exists should the roadmap's checkbox be ticked.
 
 ### What does _not_ qualify
 

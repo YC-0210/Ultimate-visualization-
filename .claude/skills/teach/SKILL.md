@@ -78,6 +78,18 @@ Failing to understand the mission will mean knowledge acquisition is not grounde
 
 Missions may change as the user develops more skills and knowledge. This is normal - make sure to update the `MISSION.md` and add a learning record to capture the change. Confirm with the user before changing the mission.
 
+## Orienting to a Project Roadmap
+
+Some topics being taught aren't free-standing: they're one leg of a wider project that already has its own plan - a `ROADMAP.md`, `PLAN.md`, or similar, often written for a coding agent, with a "Status" block and checkboxed phases. When one exists, it is the source of truth for where the project currently stands. Do not invent a second one, and do not let the lessons drift into their own parallel sense of progress.
+
+**Find it once, then reuse.** On first contact with a workspace, check `MISSION.md` for a pointer to a roadmap file. If none is recorded yet and the topic plausibly belongs to a larger coding project (a sibling folder, a repo root above the workspace), ask the user whether such a file exists before assuming it doesn't. Once found, record its path under `MISSION.md`'s Constraints so future sessions don't re-ask.
+
+**Orient before teaching.** At the start of every session where a roadmap is known, read its current status (most keep a short "Status" or "Current phase" block near the top - read that, not the whole file) before deciding what to teach. State it back to the user in a line or two: which phase/task the roadmap says is next, and how today's lesson serves it. A lesson that doesn't trace to the current or an imminent phase is probably the wrong lesson to teach right now - check with the user before drifting.
+
+**Reconnect inside the lesson, not just before it.** Open each lesson with a short "Where this fits" note linking it to the roadmap's current phase/task and the mission's Why. This is what keeps the user from feeling lost in a small detail while deep in it - it costs a sentence or two and should never be skipped.
+
+**Write back only what the roadmap invites.** Some roadmaps address instructions to "the agent" directly (read for this) and explicitly want their Status block and checkboxes kept current as work lands. If so, treat finishing a roadmap task as learning-record-worthy: once the user has demonstrably done it, tick its checkbox, update the Status block (current phase, next action, date), and write the matching learning record. Never tick a box on the strength of a lesson alone - the roadmap's own "done when" bar is what a checkbox certifies, and that bar is usually "the thing works," not "it was explained."
+
 ## Zone Of Proximal Development
 
 Each lesson, the user should always feel as if they are being challenged 'just enough'.

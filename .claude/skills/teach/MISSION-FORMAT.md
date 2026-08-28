@@ -17,6 +17,7 @@
 
 ## Constraints
 - {Time, budget, prior commitments, learning preferences, anything that bounds the approach}
+- {If this topic is one leg of a larger project that already has its own plan, the path to it, e.g. "Roadmap: `../supervisualizer/ROADMAP.md` - source of truth for phase/task status; keep its Status block updated"}
 
 ## Out of scope
 - {Adjacent topics the user explicitly does not want to chase right now, protecting the zone of proximal development}
