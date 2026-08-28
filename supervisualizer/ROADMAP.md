@@ -8,9 +8,9 @@
 ## Status
 
 ```
-Current phase:  Phase 0 — decisions closed, spike done, scaffolding next
-Next action:    P0.5 (scaffold the package) — first coding task
-Last updated:   2026-08-27
+Current phase:  Phase 0 done — package printing, OTel spike closed
+Next action:    P1.1 (capture request basics)
+Last updated:   2026-08-28
 ```
 
 <!-- AGENT: keep the three lines above accurate. Update them at the end of every
@@ -243,8 +243,8 @@ Nothing is built yet. Close the questions that change everything downstream.
     - **Values are strings, not LSP-style integers.** LSP numbers because it is a high-frequency wire protocol between processes; neither compactness nor name-independent stability matters here, and these traces are read by a human debugging a JSON file. `"validate_input"` is self-describing; `7` needs a lookup table. OTel uses strings for the same reason.
     - The four properties that actually matter — none of them numeric: **closed** (fixed list, never free text), **agreed** (panel and every adapter share exactly one list), **stable** (never repurpose a shipped value), **nearest-fit** (a framework whose concept does not fit picks the closest existing kind rather than adding one). Go reports a struct as `Struct`; nobody extends the enum per language. The last property is the easiest to break and the most expensive to undo.
     - **Why this is worth the effort at all:** LSP turned editor support from M×N into M+N — 10 editors × 20 languages went from 200 hand-built integrations to 30. Same arithmetic here. Without the schema, every panel feature must be built per framework; with it, the panel is written once and each framework costs one adapter. That is what makes "works for all backends" achievable by one person.
-- [ ] **P0.5** Scaffold an installable Python package (`pyproject.toml`, `pip install -e .`).
-- [ ] **P0.6** Add the middleware to `restautant-order-system`'s settings and have it print one line per request.
+- [x] **P0.5** Scaffold an installable Python package (`pyproject.toml`, `pip install -e .`).
+- [x] **P0.6** Add the middleware to `restautant-order-system`'s settings and have it print one line per request.
 - [x] **P0.7** ~~Write `DECISIONS.md`~~ → [`DECISIONS.md`](DECISIONS.md), D1–D8. Keep adding an entry whenever a ❓ closes.
 
 **Done when:** `python manage.py runserver` on your restaurant project prints a line from your own middleware on every request.

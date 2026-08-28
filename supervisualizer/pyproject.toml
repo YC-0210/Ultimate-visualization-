@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "supervisualizer"
+version = "0.0.0"
+description = "Watch a live backend and show what each request actually did."
+requires-python = ">=3.12"
+authors =[
+    {name = 'yancheng'}
+]
+maintainers = [
+    {name = 'yancheng'}
+]
+dependencies = [
+  "Django>=4.2",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+supervisualizer = ["templates/**", "static/**"]

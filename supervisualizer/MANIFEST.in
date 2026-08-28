@@ -1,0 +1,2 @@
+recursive-include src/supervisualizer/templates *
+recursive-include src/supervisualizer/static *
