@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>template + context — render card</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Reference · P1.8</p>
+      <h1>template + context</h1>
+      <p class="lede">
+        The template file and the dict of Python objects
+        that <code>render</code> combines.
+        Source:
+        <a href="https://docs.djangoproject.com/en/5.2/topics/http/shortcuts/#render">render()</a>,
+        <a href="https://docs.djangoproject.com/en/5.2/topics/templates/#django.template.backends.base.Template.render">Template.render</a>.
+      </p>
+    </header>
+
+    <h2>What they are</h2>
+    <p>
+      Django’s shortcut: <code>render()</code> “Combines a given
+      template with a given context dictionary and returns an
+      HttpResponse object with that rendered text.”
+      Common API: <code>Template.render(context=None, request=None)</code>
+      “Renders this template with a given context.”
+      “If <code>context</code> is provided, it must be a dict.”
+    </p>
+    <p>
+      <code>django.template.backends.django.Template</code>
+      “is a thin wrapper adapting django.template.Template to
+      the common template API.”
+      That is the class <code>get_template()</code> returns.
+      The filename lives on the inner compiled template:
+      <code>self.template.name</code>.
+    </p>
+
+    <h2>The type on this project</h2>
+    <table>
+      <thead><tr><th>Key</th><th>In context</th><th>In response.body</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>item</code></td>
+          <td><code>menuitem</code> instance</td>
+          <td>HTML text inside <code>{{ item.product }}</code></td>
+        </tr>
+        <tr>
+          <td><code>meats</code></td>
+          <td><code>QuerySet</code></td>
+          <td><code>&lt;option&gt;</code> labels</td>
+        </tr>
+        <tr>
+          <td><code>slug</code></td>
+          <td><code>str</code></td>
+          <td><code>data-slug</code> attribute text</td>
+        </tr>
+        <tr>
+          <td><code>ingredients</code></td>
+          <td><code>QuerySet</code></td>
+          <td>checkbox labels</td>
+        </tr>
+        <tr>
+          <td><code>table_number</code></td>
+          <td><code>int</code> or <code>None</code></td>
+          <td>the 桌號 line</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Render writes HTML. It does not replace
+      <code>item</code> in the dict.
+      Contrast
+      <a href="validated-data.html"><code>validated_data</code></a>,
+      where <code>is_valid</code> builds a new typed dict.
+    </p>
+
+    <h2>Where P1.8 copies it</h2>
+    <pre><code>original = Template.render
+Template.render = probed
+try:
+    response = self.get_response(request)
+finally:
+    Template.render = original</code></pre>
+    <p>
+      Inside <code>probed</code>: call <code>original</code>, then
+      <code>encode(dict(context))</code> with
+      <code>self.template.name</code>.
+      Same timing as <code>is_valid</code>: during
+      <code>get_response</code>, not after.
+    </p>
+
+    <h2>Not this</h2>
+    <table>
+      <thead><tr><th>Thing</th><th>Why not P1.8</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>django.shortcuts.render</code></td>
+          <td>The view already imported that name. Replacing the module later does not change the view’s copy.</td>
+        </tr>
+        <tr>
+          <td><code>template_rendered</code></td>
+          <td>Test-only. “Not emitted during normal operation of a Django server.”</td>
+        </tr>
+        <tr>
+          <td><code>response.content</code></td>
+          <td>P1.6. Already HTML. Types have already become markup.</td>
+        </tr>
+        <tr>
+          <td><code>user</code> / <code>csrf_token</code></td>
+          <td>Context processors add these inside <code>render</code>. They are not in the dict the view passed.</td>
+        </tr>
+        <tr>
+          <td><code>POST /api/cart/item/</code></td>
+          <td>JSON. No <code>Template.render</code>. Use
+            <code>GET /menuitem/經典原味鍋/</code>.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>JSON shape</h2>
+    <pre><code>"templates": [
+  {
+    "template": "includes/menuitem-detail.html",
+    "context": {
+      "type": "dict",
+      "value": {
+        "item": {"type": "menuitem instance", "value": "pk=…"},
+        "slug": {"type": "str", "value": "經典原味鍋"}
+      }
+    }
+  }
+]</code></pre>
+    <p>
+      A list, like <code>sql</code> and
+      <code>validations</code>. Empty on
+      <code>POST /api/cart/item/</code>.
+      Do not invent the <code>pk</code> — copy yours.
+    </p>
+
+    <footer class="foot">
+      <a href="../lessons/0013-template-is-not-the-html.html">Lesson 0013</a>
+      <a href="../lessons/0010-validated-data-is-the-type-change.html">Lesson 0010</a>
+      <a href="https://docs.djangoproject.com/en/5.2/topics/http/shortcuts/#render">render()</a>
+      <a href="https://docs.djangoproject.com/en/5.2/topics/templates/#django.template.backends.base.Template.render">Template.render</a>
+      <a href="https://docs.djangoproject.com/en/5.2/ref/signals/#template-rendered">template_rendered</a>
+    </footer>
+  </article>
+</body>
+</html>

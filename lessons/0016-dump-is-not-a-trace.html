@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The dump is not a Trace</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Lesson 0016 · P1.9 · supervisualizer</p>
+      <h1>The dump is not a Trace</h1>
+      <p class="lede">
+        You already have every fact from the request.
+        You do not yet have them in the shape a second adapter
+        would also write.
+      </p>
+    </header>
+
+    <p class="fits">
+      <strong>Where this fits</strong>
+      Roadmap: Phase 1, P1.9 — serialise to the Trace schema,
+      one file per request.
+      P1.1–P1.8 filled a Django-shaped dict and printed it.
+      Today is the reshape, not a new pocket.
+      The file write is the next lesson.
+    </p>
+
+    <h2>The problem</h2>
+    <p>
+      You already know the keys on
+      <code>captured</code>.
+      You do not yet know which of those keys a
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">FastAPI</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> a Python web framework —
+            not Django, not this restaurant app.
+          </span>
+          <span class="gloss-line">
+            FastAPI’s docs: “a modern, fast (high-performance),
+            web framework for building APIs with Python.”
+            In this repo it is only an example of a second
+            adapter (Phase 6). It would not write
+            <code>captured["templates"]</code>.
+            You are not installing it today.
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://fastapi.tiangolo.com/">FastAPI</a>
+            ·
+            <a href="../../ROADMAP.md">P6.4</a>
+          </span>
+        </span>
+      </span>
+      adapter will never write.
+      Real request:
+      <code>GET /menuitem/經典原味鍋/</code>
+      — the HTML page, view
+      <code>menuitem_detail</code>,
+      <code>url_name</code>
+      <code>menuitem_page</code>.
+    </p>
+
+    <div class="facts">
+      <div class="fact have">
+        <p class="tag">Already have · P1.1–P1.8</p>
+        <h3>Django pocket names</h3>
+        <p><code>validations</code>, <code>templates</code>, <code>sql</code> — names this adapter invented.</p>
+        <p class="example">captured["templates"]</p>
+      </div>
+      <div class="fact need">
+        <p class="tag">Missing · P1.9</p>
+        <h3>A closed job name</h3>
+        <p>The same facts, as stages the panel reads by <code>kind</code>.</p>
+        <p class="example">kind: "render_output"</p>
+      </div>
+    </div>
+
+    <p>
+      D7: every stage carries a
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">kind</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> a string from a closed list —
+            <a href="../../DECISIONS.md">D7</a>.
+          </span>
+          <span class="gloss-line">
+            D7: “the job it does — a small closed vocabulary.”
+            The panel reads only this field.
+            Values are strings
+            (<code>"validate_input"</code>), not numbers.
+            The list is in the
+            <a href="../../ROADMAP.md">roadmap</a>
+            under P0.4.
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="../../DECISIONS.md">D7 — kind and label</a>
+          </span>
+        </span>
+      </span>
+      and a
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">label</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> a string this adapter chose —
+            <a href="../../DECISIONS.md">D7</a>.
+          </span>
+          <span class="gloss-line">
+            D7: “what this particular framework calls it.”
+            Django writes
+            <code>"Template"</code>
+            or
+            <code>"Serializer (in)"</code>.
+            The panel does not read this field.
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="../../DECISIONS.md">D7 — kind and label</a>
+          </span>
+        </span>
+      </span>.
+      The print line is neither.
+      It is a
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">Trace</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> one JSON object per request —
+            the schema in the
+            <a href="../../ROADMAP.md">roadmap</a>.
+          </span>
+          <span class="gloss-line">
+            CONTEXT: “The record of one interaction… a tree of
+            Stages sharing a trace id.”
+            Phase 1 writes that object to a file.
+            The panel, later, reads only this shape.
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="../CONTEXT.md">CONTEXT — Trace</a>
+            ·
+            <a href="../../ROADMAP.md">Trace schema — starting point</a>
+          </span>
+        </span>
+      </span>
+      only after you copy the facts into stages.
+    </p>
+
+    <figure class="typehop" data-typehop data-start="dump">
+      <div class="typehop-moments">
+        <button type="button" data-moment="dump"
+          data-caption="The print. Pocket names this Django adapter invented. A FastAPI adapter has no templates key.">1 · captured dump</button>
+        <button type="button" data-moment="trace"
+          data-caption="The same facts as stages. The panel reads kind. label is Django’s word, stored, not styled on.">2 · Trace stages</button>
+      </div>
+      <table>
+        <thead>
+          <tr><th>fact</th><th>shape</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th>method / path / body</th>
+            <td>
+              <span data-when="dump"><code>captured["method"]</code><span class="type-badge">key</span></span>
+              <span data-when="trace" hidden><code>receive_input</code><span class="type-badge">kind</span></span>
+            </td>
+          </tr>
+          <tr>
+            <th>route / view / kwargs</th>
+            <td>
+              <span data-when="dump"><code>captured["route"]</code><span class="type-badge">key</span></span>
+              <span data-when="trace" hidden><code>route</code><span class="type-badge">kind</span></span>
+            </td>
+          </tr>
+          <tr>
+            <th>user / session_keys</th>
+            <td>
+              <span data-when="dump"><code>captured["username"]</code><span class="type-badge">key</span></span>
+              <span data-when="trace" hidden><code>attach_context</code><span class="type-badge">kind</span></span>
+            </td>
+          </tr>
+          <tr>
+            <th>sql</th>
+            <td>
+              <span data-when="dump"><code>captured["sql"]</code><span class="type-badge">key</span></span>
+              <span data-when="trace" hidden><code>trace["sql"]</code><span class="type-badge">not a stage</span></span>
+            </td>
+          </tr>
+          <tr>
+            <th>templates</th>
+            <td>
+              <span data-when="dump"><code>captured["templates"]</code><span class="type-badge">key</span></span>
+              <span data-when="trace" hidden><code>render_output</code><span class="type-badge">kind</span></span>
+            </td>
+          </tr>
+          <tr>
+            <th>response</th>
+            <td>
+              <span data-when="dump"><code>captured["response"]</code><span class="type-badge">key</span></span>
+              <span data-when="trace" hidden><code>send_response</code><span class="type-badge">kind</span></span>
+            </td>
+          </tr>
+          <tr>
+            <th>validations</th>
+            <td>
+              <span data-when="dump"><code>[]</code><span class="type-badge">empty list</span></span>
+              <span data-when="trace" hidden>no stage<span class="type-badge">omit</span></span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="typehop-caption" data-typehop-caption></p>
+    </figure>
+
+    <div class="callout">
+      <strong>An empty list is not a stage.</strong>
+      This GET never calls
+      <code>Serializer.is_valid</code>, so
+      <code>validations</code> is
+      <code>[]</code>.
+      CONTEXT: which stages exist is a property of the endpoint.
+      Do not emit
+      <code>validate_input</code>
+      with empty data.
+      Same rule the other way:
+      <code>POST /api/cart/item/</code>
+      never calls
+      <code>Template.render</code> — omit
+      <code>render_output</code>.
+    </div>
+
+    <h2>Two requests, two stage lists</h2>
+    <p>
+      Same adapter. Different views. The closed list does not change.
+      The stages that appear do.
+    </p>
+
+    <figure class="typehop" data-typehop data-start="page">
+      <div class="typehop-moments">
+        <button type="button" data-moment="page"
+          data-caption="HTML page. Template.render ran. is_valid did not. Omit validate_input.">1 · GET menuitem page</button>
+        <button type="button" data-moment="cart"
+          data-caption="JSON POST. is_valid ran. Template.render did not. Omit render_output.">2 · POST cart item</button>
+      </div>
+      <table>
+        <thead>
+          <tr><th>kind</th><th>on this request</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th><code>receive_input</code></th>
+            <td>
+              <span data-when="page">present<span class="type-badge">yes</span></span>
+              <span data-when="cart" hidden>present<span class="type-badge">yes</span></span>
+            </td>
+          </tr>
+          <tr>
+            <th><code>route</code></th>
+            <td>
+              <span data-when="page">present<span class="type-badge">yes</span></span>
+              <span data-when="cart" hidden>present<span class="type-badge">yes</span></span>
+            </td>
+          </tr>
+          <tr>
+            <th><code>attach_context</code></th>
+            <td>
+              <span data-when="page">present<span class="type-badge">yes</span></span>
+              <span data-when="cart" hidden>present<span class="type-badge">yes</span></span>
+            </td>
+          </tr>
+          <tr>
+            <th><code>validate_input</code></th>
+            <td>
+              <span data-when="page">omit<span class="type-badge">no is_valid</span></span>
+              <span data-when="cart" hidden>present<span class="type-badge">validated_data</span></span>
+            </td>
+          </tr>
+          <tr>
+            <th><code>sql</code> (top level)</th>
+            <td>
+              <span data-when="page">one flat list<span class="type-badge">not a stage</span></span>
+              <span data-when="cart" hidden>one flat list<span class="type-badge">not a stage</span></span>
+            </td>
+          </tr>
+          <tr>
+            <th><code>render_output</code></th>
+            <td>
+              <span data-when="page">present<span class="type-badge">template</span></span>
+              <span data-when="cart" hidden>omit<span class="type-badge">no render</span></span>
+            </td>
+          </tr>
+          <tr>
+            <th><code>send_response</code></th>
+            <td>
+              <span data-when="page">present<span class="type-badge">yes</span></span>
+              <span data-when="cart" hidden>present<span class="type-badge">yes</span></span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="typehop-caption" data-typehop-caption></p>
+    </figure>
+
+    <p>
+      <code>permission_classes</code> and
+      <code>serializer_class</code>
+      are names on the view class.
+      They are not kinds.
+      Copy them as
+      <code>data</code>
+      on the
+      <code>route</code>
+      stage when they exist.
+      Do not invent an
+      <code>authorize</code>
+      stage: you never copied the check running, only the class list.
+    </p>
+
+    <h2>Check</h2>
+
+    <div class="quiz" data-quiz
+         data-explain-right="D7: the panel reads only kind. label is this framework’s word, stored for a human, not used to style the stage."
+         data-explain-wrong="label is Django’s word. A FastAPI adapter would write a different label and the same kind.">
+      <p class="quiz-q">The panel styles a stage by…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">kind only</button>
+        <button type="button" data-answer data-correct="0">label too</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <div class="quiz" data-quiz
+         data-explain-right="CONTEXT: which stages exist is a property of the endpoint. An empty list means that probe never fired. Omit the stage."
+         data-explain-wrong="Keeping templates: [] would force every adapter to invent a templates key. The Trace has no such key — only stages that ran.">
+      <p class="quiz-q">POST cart has templates []. The Trace should…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">leave it out</button>
+        <button type="button" data-answer data-correct="0">keep the key</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <div class="quiz" data-quiz
+         data-explain-right="validations is the copy of validated_data. That job is validate_input. attach_context is user / session."
+         data-explain-wrong="attach_context is username, is_authenticated, session_keys — facts middleware stamped on the request, not the serializer dict.">
+      <p class="quiz-q">captured validations maps to which kind?</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">validate_input</button>
+        <button type="button" data-answer data-correct="0">attach_context</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <h2>Do this</h2>
+    <ol class="steps">
+      <li>Click both moments on each table.</li>
+      <li>
+        Read
+        <a href="../../DECISIONS.md">D7</a>
+        — the paragraph that starts “every stage carries a
+        <code>kind</code>.”
+        Then the kind table under P0.4 in the
+        <a href="../../ROADMAP.md">roadmap</a>.
+      </li>
+      <li>
+        From your last
+        <code>GET /menuitem/經典原味鍋/</code>
+        print, list the kinds that request produced.
+        Paste the list here.
+        Do not edit
+        <code>middleware.py</code>
+        yet.
+      </li>
+    </ol>
+
+    <h2>Ask me</h2>
+    <p>
+      If “omit the empty list” or why
+      <code>serializer_class</code>
+      is not a kind is muddy, ask before reshaping.
+      The file write is the next lesson.
+    </p>
+
+    <footer class="foot">
+      <a href="0013-template-is-not-the-html.html">Lesson 0013</a>
+      <a href="0010-validated-data-is-the-type-change.html">Lesson 0010</a>
+      <a href="0017-otel-trace-and-why-stage-is-not-span.html">Lesson 0017</a>
+      <a href="../reference/trace-schema.html">Trace schema card</a>
+      <a href="../reference/otel-span.html">span anatomy card</a>
+      <a href="../../DECISIONS.md">D7</a>
+      <a href="../../ROADMAP.md">kind table</a>
+    </footer>
+  </article>
+  <script src="../assets/quiz.js"></script>
+  <script src="../assets/gloss.js"></script>
+  <script src="../assets/type-hop.js"></script>
+</body>
+</html>

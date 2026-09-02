@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The HTML is not the context</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Lesson 0013 · P1.8 · supervisualizer</p>
+      <h1>The HTML is not the context</h1>
+      <p class="lede">
+        You already have the HTML bytes that went back.
+        You do not yet know which file wrote them, or which
+        Python objects the view handed that file.
+      </p>
+    </header>
+
+    <p class="fits">
+      <strong>Where this fits</strong>
+      Roadmap: Phase 1, P1.8 — capture template render + context
+      for non-DRF views.
+      P1.6 stored the HTML string.
+      P1.7 copied typed objects on the way <em>in</em>.
+      Today you copy typed objects on the way <em>out</em>,
+      before they become markup.
+    </p>
+
+    <h2>The problem</h2>
+    <p>
+      You already know the HTML in the response.
+      You do not yet know the live row that
+      <code>{{ item.product }}</code> read.
+      Real request:
+      <code>GET /menuitem/經典原味鍋/</code>
+      — the HTML page, view
+      <code>menuitem_detail</code>,
+      <code>url_name</code>
+      <code>menuitem_page</code>.
+    </p>
+
+    <div class="facts">
+      <div class="fact have">
+        <p class="tag">Already have · P1.6</p>
+        <h3>The HTML bytes</h3>
+        <p><code>response.content</code> is already a string of tags.</p>
+        <p class="example">&lt;h1&gt;經典原味鍋&lt;/h1&gt;</p>
+      </div>
+      <div class="fact need">
+        <p class="tag">Missing · P1.8</p>
+        <h3>The context dict</h3>
+        <p><code>item</code> still holds a live <code>menuitem</code> instance.</p>
+        <p class="example">item → menuitem instance</p>
+      </div>
+    </div>
+
+    <p>
+      The view
+      <code>menuitem_detail</code>
+      calls
+      <code>render(request, "includes/menuitem-detail.html", {…})</code>.
+      Django’s docs call that file a
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">template</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> a
+            <a href="https://docs.djangoproject.com/en/5.2/topics/templates/#django.template.backends.base.Template.render"><code>Template</code></a>
+            returned by
+            <code>get_template()</code>.
+          </span>
+          <span class="gloss-line">
+            Django’s docs: “django.template.backends.django.Template
+            is a thin wrapper adapting django.template.Template to
+            the common template API.”
+            The view asked for
+            <code>includes/menuitem-detail.html</code>.
+            That string lives on the inner compiled template as
+            <code>.name</code>.
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://docs.djangoproject.com/en/5.2/topics/templates/#django.template.backends.django.Template">Templates — Django backend</a>
+          </span>
+        </span>
+      </span>,
+      the dict a
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">context</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> a
+            <code>dict</code> of names to Python objects —
+            <a href="https://docs.djangoproject.com/en/5.2/topics/http/shortcuts/#render"><code>render(..., context)</code></a>.
+          </span>
+          <span class="gloss-line">
+            Django’s shortcut docs: “A dictionary of values to add
+            to the template context.”
+            The common render API: “If <code>context</code> is
+            provided, it must be a dict.”
+            On <code>menuitem_detail</code> the keys are
+            <code>item</code>, <code>meats</code>,
+            <code>slug</code>, <code>ingredients</code>,
+            <code>table_number</code>.
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://docs.djangoproject.com/en/5.2/topics/http/shortcuts/#render">render()</a>
+            ·
+            <a href="https://docs.djangoproject.com/en/5.2/topics/templates/#django.template.backends.base.Template.render">Template.render</a>
+          </span>
+        </span>
+      </span>,
+      and combining them
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">render</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> a method —
+            <a href="https://docs.djangoproject.com/en/5.2/topics/templates/#django.template.backends.base.Template.render"><code>Template.render(context=None, request=None)</code></a>.
+          </span>
+          <span class="gloss-line">
+            Django’s docs: “Renders this template with a given
+            context.”
+            The shortcut
+            <code>render(request, name, context)</code>
+            is equivalent to
+            <code>get_template(name)</code>
+            then
+            <code>t.render(context, request)</code>
+            then wrap the string in an
+            <code>HttpResponse</code>.
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://docs.djangoproject.com/en/5.2/topics/templates/#django.template.backends.base.Template.render">Template.render</a>
+            ·
+            <a href="https://docs.djangoproject.com/en/5.2/topics/http/shortcuts/#render">render() equivalent</a>
+          </span>
+        </span>
+      </span>.
+    </p>
+
+    <figure class="typehop" data-typehop data-start="html">
+      <div class="typehop-moments">
+        <button type="button" data-moment="html"
+          data-caption="P1.6 body is HTML text. item.product is already characters inside a tag.">1 · response body</button>
+        <button type="button" data-moment="context"
+          data-caption="During Template.render, the same name still holds a menuitem instance. That is the hop P1.8 has to copy.">2 · context</button>
+      </div>
+      <table>
+        <thead>
+          <tr><th>key</th><th>value · type</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th><code>item</code></th>
+            <td>
+              <span data-when="html"><code>&lt;h1&gt;經典原味鍋&lt;/h1&gt;</code><span class="type-badge">HTML text</span></span>
+              <span data-when="context" hidden><code>menuitem(pk=…)</code><span class="type-badge">instance</span></span>
+            </td>
+          </tr>
+          <tr>
+            <th><code>meats</code></th>
+            <td>
+              <span data-when="html"><code>&lt;option&gt;豬肉&lt;/option&gt;…</code><span class="type-badge">HTML text</span></span>
+              <span data-when="context" hidden><code>meattype.objects.all()</code><span class="type-badge">QuerySet</span></span>
+            </td>
+          </tr>
+          <tr>
+            <th><code>slug</code></th>
+            <td>
+              <span data-when="html"><code>data-slug="經典原味鍋"</code><span class="type-badge">attr text</span></span>
+              <span data-when="context" hidden><code>"經典原味鍋"</code><span class="type-badge">str</span></span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="typehop-caption" data-typehop-caption></p>
+    </figure>
+
+    <div class="callout">
+      <strong>Render writes HTML. It does not convert the dict.</strong>
+      After <code>is_valid</code>, <code>product</code> in
+      <code>validated_data</code> is a new typed value.
+      After <code>Template.render</code>,
+      <code>context["item"]</code> is still a
+      <code>menuitem</code> instance.
+      The HTML is the <em>return value</em> — already in
+      <code>response.content</code>.
+      Copy the dict the view passed, while
+      <code>render</code> runs.
+      After <code>get_response</code> that dict is a local
+      that went out of scope.
+    </div>
+
+    <h2>Same wrap as is_valid</h2>
+    <p>
+      The view writes
+      <code>return render(request, "includes/menuitem-detail.html", {…})</code>.
+      Do not replace
+      <code>django.shortcuts.render</code>.
+      The view already imported that name; changing the module
+      later does not change the view’s copy.
+      Wrap the method looked up at call time, same as
+      <code>Serializer.is_valid</code>:
+      <code>django.template.backends.django.Template.render</code>
+      — the class
+      <code>get_template()</code> returns.
+    </p>
+    <p>
+      Django has a
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the meaning">template_rendered</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line">
+            <strong>Meaning:</strong> a signal Django fires
+            <em>in tests</em> when a template is rendered.
+          </span>
+          <span class="gloss-line">
+            Django’s docs: “This signal is not emitted during
+            normal operation of a Django server – it is only
+            available during testing.”
+            Same class of trap as
+            <code>connection.queries</code> only populating when
+            <code>DEBUG</code> is True.
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://docs.djangoproject.com/en/5.2/ref/signals/#template-rendered">template_rendered</a>
+          </span>
+        </span>
+      </span>
+      signal. It does not fire on
+      <code>runserver</code>.
+      Do not listen for it. Replace the method.
+    </p>
+
+    <h2>Reuse encode</h2>
+    <p>
+      <code>item</code> is a model instance — encode already
+      handles that.
+      <code>meats</code> and
+      <code>ingredients</code> are querysets, not lists.
+      Encode will not walk them; the type name will be
+      <code>QuerySet</code>.
+      That is not a bug.
+      The template’s
+      <code>{% for meat in meats %}</code>
+      is what walks the collection.
+    </p>
+    <p>
+      Keys the view did not put in the dict will be missing.
+      <code>user</code> and
+      <code>csrf_token</code> are added later, inside
+      <code>render</code>, from context processors.
+      Copying the dict the view passed will not show them.
+    </p>
+
+    <h2>Shape of the code</h2>
+    <p>
+      Put the wrap in the same
+      <code>try</code> / <code>finally</code>
+      as <code>is_valid</code>.
+      Restore both.
+      This is a copyable shape; wiring it into
+      <code>middleware.py</code> is yours.
+    </p>
+
+    <p class="snippet-label">Copy this</p>
+    <pre><code>from django.template.backends.django import Template
+
+renders = []
+original_render = Template.render
+
+def probed_render(self, *args, **kwargs):
+    result = original_render(self, *args, **kwargs)
+    context = args[0] if args else kwargs.get("context")
+    renders.append({
+        "template": self.template.name,
+        "context": encode(dict(context) if context else {}),
+    })
+    return result
+
+Template.render = probed_render
+try:
+    with connection.execute_wrapper(capture_sql):
+        response = self.get_response(request)
+finally:
+    Serializer.is_valid = original_is_valid
+    Template.render = original_render
+
+captured["templates"] = renders</code></pre>
+
+    <p class="snippet-label">Same, with a comment on each line</p>
+    <pre><code>from django.template.backends.django import Template
+# The class get_template returns. Not django.template.Template.
+
+renders = []
+original_render = Template.render
+
+def probed_render(self, *args, **kwargs):
+    # Run the real render. Skip this and the page never becomes HTML.
+    result = original_render(self, *args, **kwargs)
+    # The view called t.render(context, request). args[0] is that dict.
+    context = args[0] if args else kwargs.get("context")
+    renders.append({
+        # Inner compiled template. The filename the view asked for.
+        "template": self.template.name,
+        # The dict the view passed, not csrf_token / user.
+        "context": encode(dict(context) if context else {}),
+    })
+    return result
+
+Template.render = probed_render
+try:
+    with connection.execute_wrapper(capture_sql):
+        response = self.get_response(request)
+finally:
+    Serializer.is_valid = original_is_valid
+    # Always restore. Same reason as is_valid.
+    Template.render = original_render
+
+captured["templates"] = renders</code></pre>
+
+    <p>
+      <code>POST /api/cart/item/</code> returns JSON.
+      That view does not call
+      <code>Template.render</code>, so the list stays empty.
+      That is not a bug.
+      P1.8’s request is the HTML page:
+      <code>GET /menuitem/經典原味鍋/</code>.
+    </p>
+
+    <h2>Expected result</h2>
+    <p>
+      After that GET,
+      <code>captured["templates"]</code> is a list.
+      <code>templates[0].template</code> is
+      <code>includes/menuitem-detail.html</code>.
+      <code>context.value.item.type</code> is
+      <code>menuitem instance</code>, not
+      <code>str</code>.
+      Do not invent the <code>pk</code> — copy yours.
+    </p>
+
+    <pre><code>"templates": [
+  {
+    "template": "includes/menuitem-detail.html",
+    "context": {
+      "type": "dict",
+      "value": {
+        "item": {"type": "menuitem instance", "value": "pk=…"},
+        "meats": {"type": "QuerySet", "value": "…"},
+        "slug": {"type": "str", "value": "經典原味鍋"},
+        "ingredients": {"type": "QuerySet", "value": "…"},
+        "table_number": {"type": "…", "value": "…"}
+      }
+    }
+  }
+]</code></pre>
+
+    <h2>Check</h2>
+
+    <div class="quiz" data-quiz
+         data-explain-right="The view’s context dict exists only while Template.render runs, inside get_response. Copy there, the same way you copy validated_data inside is_valid."
+         data-explain-wrong="After get_response returns, that dict is gone. response.content is already HTML text.">
+      <p class="quiz-q">Where do you copy the context?</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">inside wrapped render</button>
+        <button type="button" data-answer data-correct="0">after get_response ends</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <div class="quiz" data-quiz
+         data-explain-right="Render writes HTML and returns it. It does not replace item in the dict. The instance is still sitting in context."
+         data-explain-wrong="That is the P1.7 move. is_valid builds a new typed dict. Template.render leaves context['item'] as the instance.">
+      <p class="quiz-q">After render, context item is…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">a menuitem row</button>
+        <button type="button" data-answer data-correct="0">an HTML string</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <h2>Do this on the restaurant app</h2>
+    <ol class="steps">
+      <li>
+        Import
+        <code>Template</code> from
+        <code>django.template.backends.django</code>.
+      </li>
+      <li>
+        Replace
+        <code>Template.render</code> in the same
+        <code>try</code> as
+        <code>is_valid</code>.
+        Restore both in
+        <code>finally</code>.
+        Store the list on
+        <code>captured["templates"]</code>.
+      </li>
+      <li>
+        Hit
+        <code>GET /menuitem/經典原味鍋/</code>
+        (the HTML page, not
+        <code>/api/menuitem/…</code>).
+      </li>
+      <li>
+        Paste the
+        <code>templates</code> list here. We will
+        inspect the types before marking P1.8 done.
+      </li>
+    </ol>
+
+    <h2>Ask me</h2>
+    <p>
+      If “copy inside Template.render” or why the JSON POST
+      leaves an empty list is muddy, ask before editing.
+      I will not add the probe to the middleware for you.
+    </p>
+
+    <footer class="foot">
+      <a href="0014-two-names-one-function.html">Lesson 0014</a>
+      <a href="0010-validated-data-is-the-type-change.html">Lesson 0010</a>
+      <a href="0009-read-the-response-object.html">Lesson 0009</a>
+      <a href="0011-the-model-is-not-the-instance.html">Lesson 0011</a>
+      <a href="../reference/template-context.html">template + context card</a>
+      <a href="https://docs.djangoproject.com/en/5.2/topics/http/shortcuts/#render">render()</a>
+      <a href="https://docs.djangoproject.com/en/5.2/topics/templates/#django.template.backends.base.Template.render">Template.render</a>
+    </footer>
+  </article>
+  <script src="../assets/quiz.js"></script>
+  <script src="../assets/gloss.js"></script>
+  <script src="../assets/type-hop.js"></script>
+</body>
+</html>

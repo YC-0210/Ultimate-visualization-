@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>A probe must be able to fail alone</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Lesson 0019 · P1.10 · supervisualizer</p>
+      <h1>A probe must be able to fail alone</h1>
+      <p class="lede">
+        Your middleware reads facts off every request.
+        It can also stop a request that would otherwise have worked.
+      </p>
+    </header>
+
+    <p class="fits">
+      <strong>Where this fits</strong>
+      Roadmap: Phase 1, P1.10 — the last task in the phase, and marked 🔴.
+      <a href="0018-the-print-is-gone-the-file-stays.html">Lesson 0018</a>
+      put the Trace on disk.
+      Today the reads that build it stop being able to take the app down with
+      them. Phase 2 opens the panel in a browser tab; a tool that 500s the app
+      it is watching does not get opened twice.
+    </p>
+
+    <h2>The problem</h2>
+    <p>
+      Loading one page sends more than one request. Two of them reach your
+      middleware: the page, and the image on it. One of those two is broken
+      right now, and your middleware is what broke it.
+    </p>
+
+    <div class="facts">
+      <div class="fact have">
+        <p class="tag">Works · verified today</p>
+        <h3><code>GET /menuitem/經典原味鍋/</code></h3>
+        <p>200. Five stages, five queries, a Trace file on disk.</p>
+        <p class="example">status 200 · HttpResponse</p>
+      </div>
+      <div class="fact need">
+        <p class="tag">Broken · verified today</p>
+        <h3><code>GET /media/menu/images.jpeg</code></h3>
+        <p>The <code>&lt;img&gt;</code> on that same page. 500, from your
+          middleware, not from the app.</p>
+        <p class="example">AttributeError · no `content`</p>
+      </div>
+    </div>
+
+    <p>
+      That second row is not hypothetical and it is not a future worry. It is
+      the image on the page you have been practising on. The template asks for
+      it:
+    </p>
+    <pre><code>&lt;img src="{{ item.image.url }}" alt="{{ item.product }}"&gt;</code></pre>
+    <p>
+      <code>經典原味鍋</code>'s <code>image</code> column holds
+      <code>menu/images.jpeg</code>, so the browser requests
+      <code>/media/menu/images.jpeg</code>, and the exception raised is:
+    </p>
+    <pre><code>AttributeError: This FileResponse instance has no `content` attribute.
+Use `streaming_content` instead.</code></pre>
+
+    <h2>Why that line raises</h2>
+    <p>
+      Your project's root <code>urls.py</code> ends with
+      <code>urlpatterns += static(settings.MEDIA_URL, …)</code>, so media
+      files are matched by a route and served by a view — which means they
+      travel the whole middleware stack, yours included. This is also why you
+      have not tripped over it before: <code>/static/</code> is intercepted by
+      <code>runserver</code>'s <code>StaticFilesHandler</code> before the
+      middleware chain begins, so stylesheets never reach you.
+      <code>/media/</code> is an ordinary route, so it does. That view returns
+      a
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">FileResponse</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> a subclass of
+            <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#streaminghttpresponse-objects"><code>StreamingHttpResponse</code></a>,
+            not of <code>HttpResponse</code>.
+          </span>
+          <span class="gloss-line">
+            Django's docs: <code>StreamingHttpResponse</code> “should only be
+            used in situations where it is absolutely required that the whole
+            content isn't iterated before transferring the data to the
+            client.” It “has no <code>content</code> attribute. Instead, it
+            has a <code>streaming_content</code> attribute.” The docs add
+            that middleware “should not” consume that attribute.
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#django.http.FileResponse">FileResponse</a>
+            ·
+            <a href="https://docs.djangoproject.com/en/5.2/topics/http/middleware/#dealing-with-streaming-responses">Dealing with streaming responses</a>
+          </span>
+        </span>
+      </span>.
+    </p>
+    <p>
+      Reading <code>.content</code> on it does not return an empty value or
+      <code>None</code>. Django deliberately raises, and the message tells you
+      the replacement attribute. Your
+      <a href="0009-read-the-response-object.html">lesson 0009</a> line catches
+      <code>UnicodeDecodeError</code>, which is the wrong exception — so it
+      escapes, and Django turns it into a 500 for a request that had a
+      perfectly good image ready to send.
+    </p>
+    <div class="callout">
+      <strong>The response object is not one type.</strong>
+      <code>HttpResponse.streaming</code> is <code>False</code> and
+      <code>StreamingHttpResponse.streaming</code> is <code>True</code>. Django
+      documents that flag precisely so middleware can tell them apart before
+      touching the body. Check the flag; do not guess from the status code or
+      the path.
+    </div>
+
+    <h2>Where the guard goes</h2>
+    <p>
+      P1.10 says “wrap every hook in <code>try</code>/<code>except</code>”.
+      The whole task turns on <em>how much</em> each wrap covers. Click through
+      the three placements.
+    </p>
+
+    <figure class="guard" data-guard data-start="none">
+      <div class="guard-moments">
+        <button type="button" data-moment="none"
+          data-caption="What you have now. An exception from your own bookkeeping leaves __call__, and Django converts it into a response the same way it would convert one from a view — so your AttributeError becomes a 500 on an image that was ready to send.">1 · no guard</button>
+        <button type="button" data-moment="wide"
+          data-caption="The tempting fix: one try around everything. It cannot work. If the guard fires, the name `response` was never assigned, so `return response` raises — or you invent a response the app never produced. Django's docs also say plainly that you do not need to guard this call.">2 · guard around everything</button>
+        <button type="button" data-moment="tight"
+          data-caption="The rule: the observed call sits outside the guard, your own bookkeeping sits inside. The response always exists, so `return response` is always reachable. A probe failure costs one field.">3 · guard the bookkeeping</button>
+      </div>
+      <div class="guard-stack">
+        <p class="guard-line" data-role="work" data-in="wide">response = self.get_response(request)  <span class="guard-note"># the app's own work</span></p>
+        <p class="guard-line" data-role="books" data-in="wide tight">if response.streaming: ...            <span class="guard-note"># ours</span></p>
+        <p class="guard-line" data-role="books" data-in="wide tight">captured["response"] = {...}          <span class="guard-note"># ours</span></p>
+        <p class="guard-line" data-role="books" data-in="wide tight">json.dump(trace, f, ...)              <span class="guard-note"># ours</span></p>
+        <p class="guard-line" data-role="work" data-in="">return response                       <span class="guard-note"># must always happen</span></p>
+      </div>
+      <div class="guard-out">
+        <div class="guard-outcome">
+          <span class="guard-outcome-label">the image request</span>
+          <span data-when="none" data-kind="bad">500 — probe took it down</span>
+          <span data-when="wide" data-kind="bad" hidden>no response to return</span>
+          <span data-when="tight" data-kind="ok" hidden>200 — image served</span>
+        </div>
+        <div class="guard-outcome">
+          <span class="guard-outcome-label">what the panel gets</span>
+          <span data-when="none" data-kind="bad">nothing — no trace file</span>
+          <span data-when="wide" data-kind="bad" hidden>a trace, or a crash</span>
+          <span data-when="tight" data-kind="ok" hidden>a trace, one field short</span>
+        </div>
+      </div>
+      <p class="guard-caption" data-guard-caption></p>
+    </figure>
+
+    <p>
+      Placement 2 is worth being precise about, because the obvious argument
+      against it is wrong. You might expect a wide <code>try</code> to swallow
+      the view's own errors — it does not, and Django's docs say why:
+    </p>
+    <blockquote>
+      <p>
+        “This conversion takes place before and after each middleware … so
+        that every middleware can always rely on getting some kind of HTTP
+        response back from calling its <code>get_response</code> callable.
+        Middleware don't need to worry about wrapping their call to
+        <code>get_response</code> in a <code>try/except</code> … Even if the
+        very next middleware in the chain raises an <code>Http404</code>
+        exception, for example, your middleware won't see that exception;
+        instead it will get an <code>HttpResponse</code> object with a
+        <code>status_code</code> of 404.”
+      </p>
+      <p class="quote-cite">
+        <a href="https://docs.djangoproject.com/en/5.2/topics/http/middleware/#exception-handling">Django:
+        Middleware — Exception handling</a>
+      </p>
+    </blockquote>
+    <p>
+      So the view's exception has already become a response by the time your
+      code resumes. Guarding <code>get_response</code> is not dangerous so
+      much as pointless — and actively harmful in one way: if the wide guard
+      ever <em>does</em> fire, <code>response</code> was never assigned and
+      <code>return response</code> fails. The only escape is to invent a
+      response the app never produced, which is a tool writing the output it
+      claims to be observing.
+    </p>
+    <p>
+      The same paragraph also explains the 500 you can reproduce today: “an
+      exception raised from a middleware will immediately be converted to the
+      appropriate HTTP response.” Django does not distinguish your probe's
+      <code>AttributeError</code> from a real failure. Nothing outside your
+      middleware can make that distinction for you — which is why the guard
+      has to be inside it.
+    </p>
+    <div class="callout">
+      <strong>Call the original outside the guard. Guard only what you do with
+      the result.</strong>
+      A probe that swallows the exception it was watching has stopped
+      observing and started editing.
+    </div>
+    <p>
+      Your two monkeypatched probes already have the first half of this right.
+      <code>probed_is_valid</code> and <code>probed_render</code> both call the
+      original on their first line and only then append, and the
+      <code>finally</code> restore is already in the right place
+      (<a href="0013-template-is-not-the-html.html">lesson 0013</a>). What is
+      missing is the guard around the append itself: if
+      <code>encode()</code> raises on some value it has not met before, that
+      exception surfaces from the middle of DRF's <code>is_valid</code>.
+    </p>
+    <div class="callout">
+      <strong>Inside the view, Django's safety net is not there.</strong>
+      The paragraph above applies at the middleware boundary. Your two probes
+      run somewhere else — deep inside <code>get_response</code>, in the
+      app's own call stack. An exception from
+      <code>probed_render</code>'s append does not arrive at your
+      <code>__call__</code> as a tidy 500 response; it arrives inside the
+      view, at the line that called <code>render</code>. That is why these two
+      sites need their own guards even though the response read is guarded
+      separately.
+    </div>
+
+    <h2><code>except Exception</code>, not bare <code>except</code></h2>
+    <p>
+      Python's docs on the class:
+      <a href="https://docs.python.org/3/library/exceptions.html#Exception">“All
+      built-in, non-system-exiting exceptions are derived from this class.”</a>
+      The exclusion is the point. <code>KeyboardInterrupt</code> and
+      <code>SystemExit</code> derive from
+      <a href="https://docs.python.org/3/library/exceptions.html#BaseException"><code>BaseException</code></a>
+      instead, so they pass straight through <code>except Exception</code>.
+    </p>
+    <p>
+      A bare <code>except:</code> catches those too. In a middleware that runs
+      on every request, that means Ctrl-C on <code>runserver</code> gets
+      eaten by your probe's error handler.
+    </p>
+
+    <h2>Silence is a lie in this schema</h2>
+    <p>
+      This is the part of P1.10 the roadmap line does not say out loud.
+      “Drop the trace on failure” is only half a design, because in
+      <a href="0016-dump-is-not-a-trace.html">lesson 0016</a> you decided that
+      an absent stage <em>means something</em>: your
+      <code>POST /api/cart/item/</code> Trace has no
+      <code>render_output</code>, and that absence is a true fact — no
+      template rendered.
+    </p>
+    <p>
+      So if a guard swallows a failure without a trace of its own, the panel
+      reads the same absence and reports the same fact — except this time it is
+      false. The template did render; your probe fell over. That is exactly
+      what <a href="../../DECISIONS.md">D2</a> forbids: the displayed facts
+      have to be things the code observed.
+    </p>
+    <div class="callout">
+      <strong>Swallow, then leave a mark.</strong>
+      A guard that fires appends to a <code>capture_errors</code> list on the
+      Trace. Absence keeps meaning “did not happen”; a named failure means
+      “happened, not captured”. Two different facts need two different
+      shapes in the file.
+    </div>
+    <p>
+      This is what shipped instrumentation does. The Sentry SDK wraps its own
+      internals in <code>capture_internal_exceptions()</code>, whose
+      <code>__exit__</code> returns <code>True</code> — Python's signal to
+      suppress — and hands the exception to a function whose docstring reads
+      “Capture an exception that is likely caused by a bug in the SDK itself.
+      These exceptions do not end up in Sentry and are just logged instead.”
+      Swallowed from the host application; recorded for the tool's author.
+      Both halves.
+    </p>
+
+    <h2>Shape of the code</h2>
+    <p>
+      Two small pieces, then the same pattern at each site. Nothing new to
+      import except <code>logging</code>.
+    </p>
+
+    <p class="snippet-label">Copy this</p>
+    <pre><code>import logging
+
+logger = logging.getLogger("supervisualizer")
+
+
+# inside __call__, near the top
+capture_errors = []
+
+def note_failure(where, exc):
+    capture_errors.append({
+        "where": where,
+        "error": type(exc).__name__ + ": " + str(exc)[:200],
+    })
+    logger.warning("[supervisualizer] capture failed at %s", where, exc_info=True)
+
+
+# the response read, replacing your current try/except
+if response.streaming:
+    response_body = "&lt;streaming response; body not read&gt;"
+    response_size = None
+else:
+    try:
+        response_body = response.content.decode("utf-8")
+    except UnicodeDecodeError:
+        response_body = f"&lt;binary {len(response.content)} bytes&gt;"
+    response_size = len(response.content)
+
+captured["response"] = {
+    "status": response.status_code,
+    "headers": dict(response.headers),
+    "body": response_body,
+    "size": response_size,
+}
+
+
+# every site that is bookkeeping, including the file write
+try:
+    ...
+except Exception as exc:
+    note_failure("response", exc)
+
+
+# and on the trace, beside notes
+"capture_errors": capture_errors,</code></pre>
+
+    <p class="snippet-label">Same, with a comment on each line</p>
+    <pre><code>import logging
+# Standard library. The mark goes to the console as well as into the file,
+# so you notice a broken probe while developing it.
+
+logger = logging.getLogger("supervisualizer")
+# Module level, named for the package. Django configures the root logger,
+# so this prints under runserver without further setup.
+
+
+# inside __call__, near the top
+capture_errors = []
+# Per request, like queries and validations. Not module level, or two
+# requests share one list.
+
+def note_failure(where, exc):
+    capture_errors.append({
+        "where": where,
+        # Which hook fell over: "response", "sql", "serializer", "trace".
+        "error": type(exc).__name__ + ": " + str(exc)[:200],
+        # The class name is the useful half. str(exc) can be huge, so cap it,
+        # same reason encode() caps values at 200.
+    })
+    logger.warning("[supervisualizer] capture failed at %s", where, exc_info=True)
+    # exc_info=True prints the traceback. warning, not error: the request
+    # itself succeeded.
+
+
+# the response read, replacing your current try/except
+if response.streaming:
+    # Django documents this flag: False on HttpResponse, True on
+    # StreamingHttpResponse. Check it BEFORE touching .content, because
+    # reading .content is what raises.
+    response_body = "&lt;streaming response; body not read&gt;"
+    # A recorded fact, not a guess: we chose not to read it. Django's docs
+    # say middleware must not consume streaming_content — the client needs it.
+    response_size = None
+    # No byte count without reading the body. None, not 0: 0 would be a lie.
+else:
+    try:
+        response_body = response.content.decode("utf-8")
+    except UnicodeDecodeError:
+        # Still the right exception for this one narrow case: real bytes
+        # that are not UTF-8 text.
+        response_body = f"&lt;binary {len(response.content)} bytes&gt;"
+    response_size = len(response.content)
+    # Byte length of content, as in lesson 0009. Only legal in this branch.
+
+captured["response"] = {
+    "status": response.status_code,
+    # Safe on both types: status_code is on HttpResponseBase, the shared parent.
+    "headers": dict(response.headers),
+    # Also on the shared parent. A streaming response still has headers.
+    "body": response_body,
+    # Now a name from the branch above, not a second read of .content.
+    "size": response_size,
+    # This is the line that changes: it was len(response.content).
+}
+
+
+# every site that is bookkeeping, including the file write
+try:
+    ...
+except Exception as exc:
+    # Exception, not a bare except: Ctrl-C must still stop runserver.
+    note_failure("response", exc)
+    # Swallowed here. The request carries on and `return response` is reached.
+
+
+# and on the trace, beside notes
+"capture_errors": capture_errors,
+# Usually []. When it is not, the panel can say "not captured" rather than
+# letting a missing stage read as "did not happen".</code></pre>
+
+    <h2>Check</h2>
+
+    <div class="quiz" data-quiz
+         data-explain-right="Right. original_render is the app's work. An except around it turns a real template error into a silent success, and Django's error handling never runs."
+         data-explain-wrong="The other way round. The probe's own error is the one you want to hide; the call being observed must stay exposed.">
+      <p class="quiz-q">A guard around <code>original_render(...)</code> would…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">hide the app's error</button>
+        <button type="button" data-answer data-correct="0">hide the probe error</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <div class="quiz" data-quiz
+         data-explain-right="KeyboardInterrupt derives from BaseException, not Exception, so a bare except catches it and your middleware eats Ctrl-C."
+         data-explain-wrong="It catches far more. Python's docs: Exception covers the non-system-exiting ones, which is exactly the set you want.">
+      <p class="quiz-q">Bare <code>except:</code> also catches…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">Ctrl-C on runserver</button>
+        <button type="button" data-answer data-correct="0">only probe mistakes</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <div class="quiz" data-quiz
+         data-explain-right="Either the template never rendered, or it did and the probe failed. The panel cannot tell, so the trace has to carry the difference."
+         data-explain-wrong="That is what absence means only while every probe works. The moment one can fail silently, the same absence covers two situations.">
+      <p class="quiz-q">With no mark, an absent <code>render_output</code> means…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">two possible causes</button>
+        <button type="button" data-answer data-correct="0">one certain absence</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <h2>Do this on the restaurant app</h2>
+    <ol class="steps">
+      <li>
+        Reproduce it first, before changing anything. <code>runserver</code>,
+        then load <code>/media/menu/images.jpeg</code> directly. You should
+        get the <code>AttributeError</code> above, with your
+        <code>middleware.py</code> in the traceback.
+      </li>
+      <li>
+        Add <code>capture_errors</code> and <code>note_failure</code>, and put
+        <code>"capture_errors"</code> on the trace dict.
+      </li>
+      <li>
+        Fix the response read with the <code>response.streaming</code> branch.
+        Reload the image: 200, and a Trace file for it.
+      </li>
+      <li>
+        Guard the remaining four sites — the <code>request.body</code> read,
+        the append in <code>capture_sql</code> (after
+        <code>execute</code>, before <code>return result</code>), the appends
+        in both probes, and the file write. The
+        <a href="../reference/capture-guards.html">capture guards card</a>
+        lists what each one can raise.
+      </li>
+      <li>
+        Prove the mark works: make <code>encode</code> raise on purpose for one
+        request (<code>raise ValueError("x")</code> at the top of it), load the
+        page, and confirm you get a 200, a warning in the console, and a
+        Trace whose <code>capture_errors</code> names the site. Then take the
+        line out.
+      </li>
+      <li>
+        Paste that <code>capture_errors</code> entry here, and the status code
+        for the image. Those two are P1.10's evidence.
+      </li>
+    </ol>
+
+    <h2>Read this one</h2>
+    <p>
+      <a href="https://github.com/getsentry/sentry-python/blob/master/sentry_sdk/utils.py">Sentry
+      SDK — <code>sentry_sdk/utils.py</code></a>, the
+      <code>CaptureInternalException</code> class and the two functions under
+      it. Twenty lines, and it is this whole lesson as shipped code: a context
+      manager whose <code>__exit__</code> returns <code>True</code>, and a
+      logger that keeps the failure visible to the person who wrote the probe.
+      Read it as the version of <code>note_failure</code> you will refactor
+      towards once repeating <code>try</code>/<code>except</code> at six sites
+      annoys you.
+    </p>
+
+    <h2>Deliberately not today</h2>
+    <table>
+      <thead><tr><th>Not yet</th><th>Why / when</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Your two probes are assignments to a <em>class</em> attribute,
+            so they are shared by every request in flight.
+            <code>runserver</code> is threaded, so two overlapping requests
+            can save each other's wrappers as “the original” and leave one
+            installed permanently.</td>
+          <td>Real, and not what P1.10 is. It needs a decision (thread-local
+            state, or patch once at startup rather than per request) — ask me
+            and we will open it properly.</td>
+        </tr>
+        <tr>
+          <td>Redacting <code>Cookie</code>. Still carried over from P1.9.</td>
+          <td>An open question in the roadmap. Before you show this to
+            anyone.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Ask me</h2>
+    <p>
+      If it is unclear why the observed call has to sit outside the guard, or
+      why <code>None</code> rather than <code>0</code> for the streaming
+      size, ask before editing.
+    </p>
+
+    <footer class="foot">
+      <a href="0009-read-the-response-object.html">Lesson 0009</a>
+      <a href="0016-dump-is-not-a-trace.html">Lesson 0016</a>
+      <a href="0018-the-print-is-gone-the-file-stays.html">Lesson 0018</a>
+      <a href="../reference/capture-guards.html">Capture guards card</a>
+      <a href="../reference/http-response.html">HttpResponse card</a>
+      <a href="../../ROADMAP.md">P1.10</a>
+      <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#streaminghttpresponse-objects">StreamingHttpResponse</a>
+      <a href="https://docs.python.org/3/library/exceptions.html#Exception">Python: Exception</a>
+    </footer>
+  </article>
+  <script src="../assets/quiz.js"></script>
+  <script src="../assets/gloss.js"></script>
+  <script src="../assets/guard-scope.js"></script>
+</body>
+</html>

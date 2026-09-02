@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>self, *args, **kwargs</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Lesson 0012 · Python · supervisualizer</p>
+      <h1>self, *args, **kwargs</h1>
+      <p class="lede">
+        You can already write a named parameter.
+        You do not yet know Python’s three extra forms on a
+        <code>def</code> line.
+      </p>
+    </header>
+
+    <p class="fits">
+      <strong>Where this fits</strong>
+      Python, not Django.
+      Your wrap uses these names.
+      Today they get their own examples, from
+      <a href="https://docs.python.org/3/tutorial/classes.html#method-objects">method objects</a>
+      and
+      <a href="https://docs.python.org/3/tutorial/controlflow.html#arbitrary-argument-lists">arbitrary argument lists</a>.
+    </p>
+
+    <h2>The problem</h2>
+    <p>
+      A <code>def</code> line can list names like
+      <code>voltage</code>.
+      Three other marks exist:
+      <code>self</code>, a star, and two stars.
+      Each catches a different kind of leftover.
+    </p>
+
+    <div class="facts">
+      <div class="fact have">
+        <p class="tag">Already have</p>
+        <h3>A named parameter</h3>
+        <p>You write the name. The caller fills it.</p>
+        <p class="example">def parrot(voltage):</p>
+      </div>
+      <div class="fact need">
+        <p class="tag">Missing</p>
+        <h3>Three extra forms</h3>
+        <p>Instance, leftover positionals, leftover keywords.</p>
+        <p class="example">self · *args · **kwargs</p>
+      </div>
+    </div>
+
+    <p>
+      One short analogy for the new idea: empty pockets on a tray,
+      filled when the diner arrives — not values you write in the
+      workshop.
+      Python’s docs then name the three pockets below.
+      From here on, those names.
+    </p>
+
+    <h2>1 · self</h2>
+    <p>
+      Docs example:
+    </p>
+    <pre><code>class MyClass:
+    def f(self):
+        return 'hello world'
+
+x = MyClass()
+x.f()</code></pre>
+    <p>
+      The call looks like it has no argument.
+      Python still passes one.
+      Click the two equivalent calls.
+    </p>
+
+    <figure class="fnslots" data-typehop data-start="method">
+      <div class="typehop-moments">
+        <button type="button" data-moment="method"
+          data-caption="You write x.f() with an empty (). Python still passes x in as the first argument.">1 · x.f()</button>
+        <button type="button" data-moment="plain"
+          data-caption="Same call, written as a plain function. The instance is now visible in the parentheses.">2 · MyClass.f(x)</button>
+      </div>
+      <p class="fnslots-call">
+        <span data-when="method">Call: <code>x.f()</code></span>
+        <span data-when="plain" hidden>Call: <code>MyClass.f(x)</code></span>
+      </p>
+      <div class="fnslots-grid">
+        <article class="fnslots-card">
+          <p class="tag">self</p>
+          <p><code>x</code> — the instance</p>
+        </article>
+        <article class="fnslots-card">
+          <p class="tag">returns</p>
+          <p><code>'hello world'</code></p>
+        </article>
+      </div>
+      <p class="typehop-caption" data-typehop-caption></p>
+    </figure>
+
+    <p>
+      Python’s docs: “the instance object is passed as the first
+      argument of the function.”
+      <code>x.f()</code> is “exactly equivalent to”
+      <code>MyClass.f(x)</code>.
+      The name
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">self</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> the instance, passed as the first
+            argument.
+          </span>
+          <span class="gloss-line">
+            “Often, the first argument of a method is called
+            <code>self</code>. This is nothing more than a convention:
+            the name <code>self</code> has absolutely no special
+            meaning to Python.”
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://docs.python.org/3/tutorial/classes.html#method-objects">Method objects</a>
+          </span>
+        </span>
+      </span>
+      is only a convention.
+    </p>
+
+    <h2>2 · *args</h2>
+    <p>
+      Docs example. Extra positional arguments become a tuple.
+    </p>
+    <pre><code>def concat(*args, sep="/"):
+    return sep.join(args)</code></pre>
+
+    <figure class="fnslots" data-typehop data-start="slash">
+      <div class="typehop-moments">
+        <button type="button" data-moment="slash"
+          data-caption="Three strings are leftover positionals. They land in args as a tuple. sep keeps its default.">1 · three names</button>
+        <button type="button" data-moment="dot"
+          data-caption="sep='.' is a keyword. It fills the named parameter sep. It does not go into *args.">2 · sep='.'</button>
+      </div>
+      <p class="fnslots-call">
+        <span data-when="slash">Call: <code>concat("earth", "mars", "venus")</code></span>
+        <span data-when="dot" hidden>Call: <code>concat("earth", "mars", "venus", sep=".")</code></span>
+      </p>
+      <div class="fnslots-grid">
+        <article class="fnslots-card">
+          <p class="tag">*args</p>
+          <p><code>("earth", "mars", "venus")</code></p>
+        </article>
+        <article class="fnslots-card">
+          <p class="tag">sep</p>
+          <p>
+            <span data-when="slash"><code>"/"</code> (default)</span>
+            <span data-when="dot" hidden><code>"."</code></span>
+          </p>
+        </article>
+        <article class="fnslots-card">
+          <p class="tag">returns</p>
+          <p>
+            <span data-when="slash"><code>"earth/mars/venus"</code></span>
+            <span data-when="dot" hidden><code>"earth.mars.venus"</code></span>
+          </p>
+        </article>
+      </div>
+      <p class="typehop-caption" data-typehop-caption></p>
+    </figure>
+
+    <p>
+      Python’s docs: those extra positionals “will be wrapped up in a
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">tuple</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong>
+            <code>tuple</code>
+            — here named
+            <code>args</code>.
+          </span>
+          <span class="gloss-line">
+            The star is the catch-all. The name after it is yours.
+            People often write <code>*args</code>.
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://docs.python.org/3/tutorial/controlflow.html#arbitrary-argument-lists">Arbitrary argument lists</a>
+          </span>
+        </span>
+      </span>.”
+      <code>sep</code> is named, so it is not inside that tuple.
+    </p>
+
+    <h2>3 · **kwargs</h2>
+    <p>
+      Docs example. Named leftovers the function did not list
+      become a dict.
+      Combined with a star:
+    </p>
+    <pre><code>def cheeseshop(kind, *arguments, **keywords):
+    ...</code></pre>
+    <p>
+      Call from the docs:
+    </p>
+    <pre><code>cheeseshop("Limburger",
+           "It's very runny, sir.",
+           "It's really very, VERY runny, sir.",
+           shopkeeper="Michael Palin",
+           client="John Cleese",
+           sketch="Cheese Shop Sketch")</code></pre>
+
+    <figure class="urlwalk">
+      <p class="urlwalk-label">What that call fills</p>
+      <ol>
+        <li class="hit">
+          <code>kind</code>
+          <span class="why">Named parameter. First positional: <code>"Limburger"</code>.</span>
+        </li>
+        <li class="hit">
+          <code>*arguments</code>
+          <span class="why">Leftover positionals as a tuple: the two “runny” strings.</span>
+        </li>
+        <li class="hit">
+          <code>**keywords</code>
+          <span class="why">Leftover keywords as a dict: <code>shopkeeper</code>, <code>client</code>, <code>sketch</code>.</span>
+        </li>
+      </ol>
+    </figure>
+
+    <p>
+      Python’s docs:
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">**keywords</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> a
+            <code>dict</code>.
+            The usual name is
+            <code>**kwargs</code>.
+          </span>
+          <span class="gloss-line">
+            “<code>**name</code> … receives a dictionary containing
+            all keyword arguments except for those corresponding to
+            a formal parameter.”
+            Combined with
+            <code>*name</code>, which “receives a tuple containing
+            the positional arguments beyond the formal parameter list.”
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://docs.python.org/3/tutorial/controlflow.html#keyword-arguments">Keyword arguments</a>
+          </span>
+        </span>
+      </span>
+      is that dict.
+      <code>*name</code> must be written before
+      <code>**name</code>.
+    </p>
+
+    <h2>Check</h2>
+
+    <div class="quiz" data-quiz
+         data-explain-right="x.f() still receives x. Python inserts the instance as the first argument. That is self."
+         data-explain-wrong="'hello world' is what f returns. self is x, the instance, on the way in.">
+      <p class="quiz-q">In x.f(), self is…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">the instance object</button>
+        <button type="button" data-answer data-correct="0">the returned string</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <div class="quiz" data-quiz
+         data-explain-right="The three strings are leftover positionals. *args wraps them in a tuple. sep is a separate named parameter."
+         data-explain-wrong="sep is named (default '/'). The leftover positionals are the three planet names, as a tuple.">
+      <p class="quiz-q">concat("earth", "mars", "venus") puts in *args…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">a tuple of three strings</button>
+        <button type="button" data-answer data-correct="0">a dict of three strings</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <div class="quiz" data-quiz
+         data-explain-right="shopkeeper= is a keyword the def line did not name. It lands in the ** dict. *arguments only takes leftover positionals."
+         data-explain-wrong="*arguments is the tuple of the two 'runny' strings. shopkeeper= is a keyword, so it goes in **keywords.">
+      <p class="quiz-q">In cheeseshop, shopkeeper= lands in…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">the keywords dict</button>
+        <button type="button" data-answer data-correct="0">the arguments tuple</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <h2>Do this</h2>
+    <ol class="steps">
+      <li>Click the two <code>self</code> calls, then the two <code>concat</code> calls.</li>
+      <li>Read the three rows on <code>cheeseshop</code>.</li>
+      <li>
+        In chat, finish:
+        <code>concat("earth", "mars", "venus")</code>
+        → <code>args</code> is ______
+        and <code>sep</code> is ______.
+      </li>
+    </ol>
+
+    <h2>Ask me</h2>
+    <p>
+      If any of the three docs examples is muddy, ask before we
+      put these names back on your wrap.
+    </p>
+
+    <footer class="foot">
+      <a href="0010-validated-data-is-the-type-change.html">Lesson 0010</a>
+      <a href="../reference/fn-slots.html">Slots card</a>
+      <a href="https://docs.python.org/3/tutorial/classes.html#method-objects">Method objects</a>
+      <a href="https://docs.python.org/3/tutorial/controlflow.html#arbitrary-argument-lists">Arbitrary argument lists</a>
+      <a href="https://docs.python.org/3/tutorial/controlflow.html#keyword-arguments">Keyword arguments</a>
+    </footer>
+  </article>
+  <script src="../assets/quiz.js"></script>
+  <script src="../assets/gloss.js"></script>
+  <script src="../assets/type-hop.js"></script>
+</body>
+</html>

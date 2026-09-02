@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Middleware is wrapping, not a to-do list</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Lesson 0006 · P1.3 · supervisualizer</p>
+      <h1>Middleware is wrapping, not a to-do list</h1>
+      <p class="lede">
+        You already know SessionMiddleware then AuthenticationMiddleware
+        fill pockets on the request. You do not yet know why that list
+        is in that order — or why two directions exist.
+      </p>
+    </header>
+
+    <p class="fits">
+      <strong>Where this fits</strong>
+      Roadmap: still Phase 1, P1.3 — you already dump
+      <code>request.user</code> and session keys after
+      <code>get_response</code>.
+      <a href="0005-ticket-is-not-the-diner.html">Lesson 0005</a>
+      named those waiters. Today is why the
+      <code>MIDDLEWARE</code> list is ordered, and why your probe
+      sitting first can still read those pockets on the way out.
+      No new capture field. Mission: the Middleware stage is a
+      chain of stamps on one request, not a pile of unrelated files.
+    </p>
+
+    <h2>The problem</h2>
+    <p>
+      Same request:
+      <code>GET /api/menuitem/經典原味鍋/</code>.
+      Open the restaurant app’s
+      <code>settings.py</code>. One list. Two facts.
+    </p>
+
+    <div class="facts">
+      <div class="fact have">
+        <p class="tag">Already in settings.py</p>
+        <h3>The names, top to bottom</h3>
+        <p>Your probe first. Then Security, Session, Common, CSRF, Auth, …</p>
+        <p class="example">SupervisualizerMiddleware · … · SessionMiddleware · … · AuthenticationMiddleware</p>
+      </div>
+      <div class="fact need">
+        <p class="tag">Missing · this lesson</p>
+        <h3>Why that order, twice</h3>
+        <p>Inward the diner walks down the list. Outward they walk it backwards. Later names need pockets earlier names just filled.</p>
+        <p class="example">door first-in last-out · Auth after Session</p>
+      </div>
+    </div>
+
+    <p>
+      This is not a chore list that runs once from top to bottom
+      and stops. It is a line of waiters between the door and the
+      kitchen. Each waiter has one job. Each can stamp a pocket on
+      the same ticket — the
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">request</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> an instance of
+            <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#httprequest-objects"><code>django.http.HttpRequest</code></a>.
+          </span>
+          <span class="gloss-line">
+            Same object you already dump. Middleware and the view
+            all receive this one visit.
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#httprequest-objects">HttpRequest</a>
+          </span>
+        </span>
+      </span>
+      — then send the diner to the next waiter.
+    </p>
+    <div class="callout">
+      <strong>That “send them on” call is <code>get_response</code>.</strong>
+      Django’s docs: it might be the next middleware, or eventually
+      the view. You already wrote this in
+      <code>middleware.py</code>: print, call
+      <code>self.get_response(request)</code>, print again.
+    </div>
+
+    <h2>What one middleware is</h2>
+    <p>
+      Django’s docs: middleware is a plugin for globally altering
+      input or output. Each component does one specific function.
+      Example they give:
+      <a href="https://docs.djangoproject.com/en/5.2/topics/http/middleware/">AuthenticationMiddleware</a>
+      associates users with requests using sessions.
+    </p>
+    <p>
+      A middleware takes a request and returns a response —
+      the same shape as a view. The difference: before it returns,
+      it usually calls
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">get_response</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> a callable. You call it with
+            <code>request</code>; it returns a response.
+          </span>
+          <span class="gloss-line">
+            Django’s docs: “The get_response callable provided by
+            Django might be the actual view (if this is the last
+            listed middleware) or it might be the next middleware
+            in the chain.”
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://docs.djangoproject.com/en/5.2/topics/http/middleware/">Writing your own middleware</a>
+          </span>
+        </span>
+      </span>.
+    </p>
+
+    <h2>The real list, then the three that matter</h2>
+    <p>
+      Restaurant app, top of
+      <code>MIDDLEWARE</code>. Most names are other jobs.
+      Only Session and Auth stamp the pockets you already print.
+    </p>
+    <figure class="urlwalk">
+      <p class="urlwalk-in">
+        Incoming:
+        <code>GET /api/menuitem/經典原味鍋/</code>
+        — one request object, empty session and user pockets.
+      </p>
+      <p class="urlwalk-label">restaurant/settings.py · MIDDLEWARE, inward</p>
+      <ol>
+        <li class="hit">
+          <code>SupervisualizerMiddleware</code>
+          <span class="why">Door. Sees the diner first. Your P1.1 print. Then calls get_response.</span>
+        </li>
+        <li class="miss">
+          <code>SecurityMiddleware</code>
+          <span class="why">Not the diner. Security headers / HTTPS extras.</span>
+        </li>
+        <li class="hit">
+          <code>SessionMiddleware</code>
+          <span class="why">Loads <code>request.session</code> — the dictionary on the server — from the ticket number.</span>
+        </li>
+        <li class="miss">
+          Common, CSRF
+          <span class="why">Other jobs. Not today’s pockets.</span>
+        </li>
+        <li class="hit">
+          <code>AuthenticationMiddleware</code>
+          <span class="why">Reads that dictionary, sets <code>request.user</code>.</span>
+        </li>
+        <li class="miss">
+          Messages, XFrame
+          <span class="why">Other jobs. Then the view — the kitchen.</span>
+        </li>
+      </ol>
+    </figure>
+    <p>
+      Django’s docs call the wrapping an onion: each class is a
+      layer around the view. Request phase: top-down. Response
+      phase: reverse.
+      <a href="https://docs.djangoproject.com/en/5.2/topics/http/middleware/#middleware-order-and-layering">Middleware order and layering</a>.
+    </p>
+
+    <h2>Walk the door to the kitchen</h2>
+    <p>
+      Same GET, logged out. Press Next. Watch which waiter has
+      the diner, and which pockets exist.
+    </p>
+
+    <figure class="mwstack" data-mwstack>
+      <div class="mwstack-controls">
+        <button type="button" data-mw-prev>Previous</button>
+        <button type="button" data-mw-next>Next</button>
+      </div>
+      <p class="mwstack-step" data-mw-step></p>
+      <ol class="mwstack-layers">
+        <li data-layer="yours">
+          your middleware
+          <span class="job">door — first in the list, first in and last out</span>
+        </li>
+        <li data-layer="session">
+          SessionMiddleware
+          <span class="job">sets request.session from the ticket number</span>
+        </li>
+        <li data-layer="auth">
+          AuthenticationMiddleware
+          <span class="job">reads that dictionary, sets request.user</span>
+        </li>
+        <li data-layer="view" data-kind="view">
+          the view
+          <span class="job">kitchen — only after every inward waiter called get_response</span>
+        </li>
+      </ol>
+      <dl class="mwstack-pockets">
+        <dt>request.session</dt>
+        <dd data-fact="session"></dd>
+        <dt>request.user</dt>
+        <dd data-fact="user"></dd>
+      </dl>
+      <figcaption class="mwstack-caption" data-mw-caption></figcaption>
+    </figure>
+
+    <h2>Why Auth is after Session</h2>
+    <p>
+      Django’s docs, twice: the order in
+      <code>MIDDLEWARE</code> matters because a middleware can
+      depend on other middleware. AuthenticationMiddleware
+      “stores the authenticated user in the session; therefore,
+      it must run after SessionMiddleware.”
+      The ordering page says the same thing shorter:
+      “After SessionMiddleware: uses session storage.”
+    </p>
+    <p>
+      Pick an order. Do not change the live
+      <code>settings.py</code> — this widget is the experiment.
+    </p>
+
+    <figure class="mwswap" data-mwswap data-start="ok">
+      <div class="mwswap-orders">
+        <button type="button" data-order="ok">Session then Auth</button>
+        <button type="button" data-order="bad">Auth then Session</button>
+      </div>
+      <ol class="mwswap-layers" data-mwswap-layers></ol>
+      <figcaption class="mwswap-caption" data-mwswap-caption></figcaption>
+    </figure>
+    <div class="sidenote">
+      Primary source:
+      <a href="https://docs.djangoproject.com/en/5.2/topics/http/middleware/">Middleware</a>
+      — activating middleware (order matters) and the onion
+      diagram. Ordering hints:
+      <a href="https://docs.djangoproject.com/en/5.2/ref/middleware/#middleware-ordering">Middleware ordering</a>.
+      Card:
+      <a href="../reference/middleware-order.html">middleware-order.html</a>.
+    </div>
+
+    <h2>Check</h2>
+
+    <div class="quiz" data-quiz
+         data-explain-right="Request phase is top-down: first name in MIDDLEWARE runs first. Response phase is the same list backwards. Django’s docs: ‘Django applies middleware in the order it’s defined in MIDDLEWARE, top-down.’"
+         data-explain-wrong="Bottom-to-top is the way out, after the view. On the way in, the door waiter — the first name — runs first.">
+      <p class="quiz-q">On the way in, Django applies middleware…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">the list top to bottom</button>
+        <button type="button" data-answer data-correct="0">the list bottom to top</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <div class="quiz" data-quiz
+         data-explain-right="AuthenticationMiddleware reads request.session. SessionMiddleware is what sets that pocket. Django’s ordering page: ‘After SessionMiddleware: uses session storage.’"
+         data-explain-wrong="The Cookie header already arrived with the diner (P1.1). Auth does not write it. Auth needs the session dictionary SessionMiddleware loads from that ticket.">
+      <p class="quiz-q">AuthenticationMiddleware sits after SessionMiddleware because it…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">uses session storage later</button>
+        <button type="button" data-answer data-correct="0">writes Cookie headers later</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <div class="quiz" data-quiz
+         data-explain-right="Your middleware is the outer wrap. get_response runs every inner waiter, then the view, then returns. The print below that call is the door on the way out — session and user are already stamped."
+         data-explain-wrong="You are the outer layer, not an inner one. Inner waiters (Session, Auth) stamp on the way in, inside your get_response call.">
+      <p class="quiz-q">Your print after get_response can read request.user because…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">inner layers already stamped it</button>
+        <button type="button" data-answer data-correct="0">outer layers already stamped it</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <h2>Do this on the restaurant app</h2>
+    <p>
+      No code change. Point at the list you already have.
+    </p>
+    <ol class="steps">
+      <li>
+        Open <code>restaurant/settings.py</code>. Find
+        <code>MIDDLEWARE</code>. Confirm your probe is the first
+        string.
+      </li>
+      <li>
+        Point at <code>SessionMiddleware</code>, then
+        <code>AuthenticationMiddleware</code>. Say out loud:
+        dictionary first, then diner.
+      </li>
+      <li>
+        Open <code>supervisualizer/middleware.py</code>. The
+        print above <code>get_response</code> is the door on the
+        way in. The print below it is the door on the way out.
+      </li>
+      <li>
+        Do not reorder the live list. Use the swap widget if you
+        want to see Auth-before-Session fail.
+      </li>
+    </ol>
+
+    <h2>Ask me</h2>
+    <p>
+      I am your teacher for this. If “get_response is the next
+      waiter” is still muddy, or why outward is reverse, ask.
+    </p>
+
+    <footer class="foot">
+      <a href="0005-ticket-is-not-the-diner.html">Lesson 0005</a>
+      <a href="0001-when-resolver-match-appears.html">Lesson 0001</a>
+      <a href="../reference/middleware-order.html">Order card</a>
+      <a href="../reference/request-user.html">Field card</a>
+      <a href="https://docs.djangoproject.com/en/5.2/topics/http/middleware/">Middleware</a>
+      <a href="https://docs.djangoproject.com/en/5.2/ref/middleware/#middleware-ordering">Middleware ordering</a>
+    </footer>
+  </article>
+  <script src="../assets/quiz.js"></script>
+  <script src="../assets/gloss.js"></script>
+  <script src="../assets/mw-order.js"></script>
+</body>
+</html>

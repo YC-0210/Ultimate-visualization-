@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Four fields, not the whole object</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Lesson 0002 · P1.2 · supervisualizer</p>
+      <h1>Four fields, not the whole object</h1>
+      <p class="lede">
+        You already have Django’s choice on the request. P1.2 still needs
+        a JSON line — and the object you printed cannot be dumped as-is.
+      </p>
+    </header>
+
+    <p class="fits">
+      <strong>Where this fits</strong>
+      Roadmap: Phase 1, P1.2 — capture the resolved route
+      (pattern, url_name, view class, kwargs).
+      Lesson 0001 was <em>when</em> the choice exists. Today is
+      <em>what</em> to copy off it. Mission: the URL Router stage
+      shows Django’s decision as data, not as a Python repr in a terminal.
+    </p>
+
+    <h2>The problem</h2>
+    <p>
+      This is the
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">result</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> an instance of
+            <a href="https://docs.djangoproject.com/en/5.2/ref/urlresolvers/#django.urls.ResolverMatch"><code>ResolverMatch</code></a>.
+          </span>
+          <span class="gloss-line">
+            Django’s docs: “An instance of ResolverMatch representing
+            the resolved URL.”
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://docs.djangoproject.com/en/5.2/ref/urlresolvers/#django.urls.ResolverMatch">ResolverMatch</a>
+          </span>
+        </span>
+      </span>
+      you printed after the walk. One object. Two jobs.
+    </p>
+
+    <div class="facts">
+      <div class="fact have">
+        <p class="tag">Already done · lesson 0001</p>
+        <h3>What Django showed you</h3>
+        <p>A live object, printed for a human. Useful in the terminal. Not a Trace.</p>
+        <p class="example">ResolverMatch(func=restaurantAPI.views.menuitemDetail, …)</p>
+      </div>
+      <div class="fact need">
+        <p class="tag">Missing · P1.2</p>
+        <h3>What the tool must store</h3>
+        <p>Four JSON-safe pieces: pattern, name, view, leftover path pieces.</p>
+        <p class="example">{"route": "api/menuitem/&lt;str:slug&gt;/", "url_name": "menuitem_detail", "view": "…", "kwargs": {"slug": "經典原味鍋"}}</p>
+      </div>
+    </div>
+
+    <p>
+      Same request. Different job. The first is the waiter’s ticket
+      waved in the air. The second is writing the order down so the
+      kitchen can read it later.
+    </p>
+    <div class="callout">
+      <strong>P1.2 is writing the order down.</strong>
+      <code>json.dumps</code> on the whole object will fail — it is not
+      made of strings and dicts. Pull four fields off it.
+    </div>
+
+    <h2>Map the print to the four fields</h2>
+    <p>
+      Your exact print, from
+      <a href="https://docs.djangoproject.com/en/5.2/ref/urlresolvers/#django.urls.ResolverMatch"><code>ResolverMatch</code></a>.
+      Three fields are already sitting there under the names P1.2 wants.
+      One is a trap.
+    </p>
+
+    <table>
+      <thead>
+        <tr><th>P1.2 wants</th><th>On the object</th><th>Your value</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>pattern</td>
+          <td><code>route</code></td>
+          <td><code>api/menuitem/&lt;str:slug&gt;/</code></td>
+        </tr>
+        <tr>
+          <td>url_name</td>
+          <td><code>url_name</code></td>
+          <td><code>menuitem_detail</code></td>
+        </tr>
+        <tr>
+          <td>kwargs</td>
+          <td><code>kwargs</code></td>
+          <td><code>{"slug": "經典原味鍋"}</code></td>
+        </tr>
+        <tr>
+          <td>view class</td>
+          <td>not <code>func</code> as printed</td>
+          <td>see below</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="sidenote">
+      Leave <code>args</code>, <code>captured_kwargs</code>,
+      <code>app_names</code>, <code>namespaces</code> alone.
+      <code>kwargs</code> already includes the captured slug.
+      Field card:
+      <a href="../reference/resolver-match.html">resolver-match.html</a>.
+    </div>
+
+    <h2>The <code>func=</code> trap</h2>
+    <p>
+      Django’s print said
+      <code>func=restaurantAPI.views.menuitemDetail</code>.
+      That looks like the class you wrote. The letters are a label,
+      not the object — peel it here:
+      <a href="0003-func-is-not-the-print.html">lesson 0003</a>.
+    </p>
+
+    <pre class="repr-annot">ResolverMatch(
+  <span class="gloss" data-gloss>
+    <button type="button" class="gloss-term" title="Show what func actually is">func=restaurantAPI.views.menuitemDetail</button>
+    <span class="gloss-pop" hidden role="note">
+      <span class="gloss-line gloss-type">
+        <strong>Type of <code>match.func</code>:</strong> a callable —
+        the wrapper <code>as_view()</code> returned, not the class.
+      </span>
+      <span class="gloss-line">
+        The label in this print is a string Django built for display
+        (<code>_func_path</code>). Django’s own
+        <a href="https://github.com/django/django/blob/stable/5.2.x/django/urls/resolvers.py"><code>ResolverMatch.__repr__</code></a>
+        uses that path, not <code>repr(self.func)</code>.
+        If <code>func</code> has
+        <a href="https://docs.djangoproject.com/en/5.2/ref/class-based-views/base/#django.views.generic.base.View.as_view"><code>view_class</code></a>,
+        the path is the class’s module + name.
+      </span>
+      <span class="gloss-line">
+        <code>json.dumps(match.func)</code> fails.
+        <code>match.func.__name__</code> is usually
+        <code>"view"</code> — useless.
+        Read <code>func.view_class</code> when it exists;
+        otherwise the function itself.
+        Do not use the prototype’s <code>func.cls</code> — that is a
+        DRF extra. Django’s name is <code>view_class</code>.
+      </span>
+      <span class="gloss-line gloss-cite">
+        <a href="https://docs.djangoproject.com/en/5.2/ref/class-based-views/base/#django.views.generic.base.View.as_view">View.as_view()</a>
+        ·
+        <a href="https://github.com/django/django/blob/stable/5.2.x/django/urls/resolvers.py">resolvers.py</a>
+      </span>
+    </span>
+  </span>,
+  args=(),
+  kwargs={'slug': '經典原味鍋'},
+  url_name='menuitem_detail',
+  route='api/menuitem/&lt;str:slug&gt;/'
+)</pre>
+
+    <p>
+      The rule, in one line: if the wrapper carries
+      <code>view_class</code>, the view string is that class’s module +
+      name; if not (a function view like <code>/login/</code>), it is
+      the function’s module + name.
+    </p>
+
+    <h2>Shape of the code</h2>
+    <p>
+      After <code>get_response</code>. Skip if there is no match
+      (a 404). <code>view</code> is a string. The other three fields
+      are already JSON-safe. Copy this shape; wiring it into
+      <code>middleware.py</code> is still yours.
+    </p>
+    <pre><code>match = getattr(request, "resolver_match", None)
+if match is not None:
+    func = match.func
+    view_class = getattr(func, "view_class", None)
+    if view_class is not None:
+        view = view_class.__module__ + "." + view_class.__qualname__
+    else:
+        view = func.__module__ + "." + func.__qualname__
+    print(json.dumps({
+        "route": match.route,
+        "url_name": match.url_name,
+        "view": view,
+        "kwargs": match.kwargs,
+    }, ensure_ascii=False))</code></pre>
+
+    <h2>Check</h2>
+
+    <div class="quiz" data-quiz
+         data-explain-right="json.dumps only accepts strings, numbers, lists, dicts, bool, null. A ResolverMatch is a live object."
+         data-explain-wrong="If it were already a dict of strings, P1.2 would be done. The print is a Python object.">
+      <p class="quiz-q"><code>json.dumps(match)</code> fails because the match is…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">a Python object, not JSON</button>
+        <button type="button" data-answer data-correct="0">a JSON object, not Python</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <div class="quiz" data-quiz
+         data-explain-right="as_view() stored a wrapper in the URLconf. The class you wrote is view_class on that wrapper. The repr’s func= label is a display string."
+         data-explain-wrong="The print looks like the class because Django’s __repr__ substituted view_class into the label. match.func is still the wrapper.">
+      <p class="quiz-q">For this API view, <code>match.func</code> is…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">a wrapper, not a class</button>
+        <button type="button" data-answer data-correct="0">a class, not a wrapper</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <h2>Do this on the restaurant app</h2>
+    <p>
+      Keep the read <em>after</em> <code>get_response</code>.
+      Delete the “before” print — it was only to see the trap.
+      If the match is missing, skip; do not crash.
+    </p>
+    <ol class="steps">
+      <li>
+        After the walk, if there is a match, print one JSON object with
+        keys <code>route</code>, <code>url_name</code>, <code>view</code>,
+        <code>kwargs</code> — the block under <strong>Shape of the code</strong>.
+        Use <code>json.dumps(..., ensure_ascii=False)</code> so
+        <code>經典原味鍋</code> stays readable.
+      </li>
+      <li>
+        Hit <code>GET /api/menuitem/經典原味鍋/</code>
+        (class-based). Then <code>GET /login/</code>
+        (function <code>login_view</code>, empty kwargs).
+        Then a path that 404s.
+      </li>
+      <li>
+        Paste the two successful JSON lines here.
+        P1.2 is done when those four fields print, and a 404 does not
+        crash the app.
+      </li>
+    </ol>
+
+    <h2>Ask me</h2>
+    <p>
+      I am your teacher for this. If the <code>func=</code> label vs
+      the real callable is muddy, or a dump fails, ask.
+      I will not write the four-field JSON into the middleware for you.
+    </p>
+
+    <footer class="foot">
+      <a href="0001-when-resolver-match-appears.html">Lesson 0001</a>
+      <a href="0003-func-is-not-the-print.html">Lesson 0003</a>
+      <a href="0004-what-a-cookie-is.html">Lesson 0004</a>
+      <a href="../reference/resolver-match.html">Field card</a>
+      <a href="https://docs.djangoproject.com/en/5.2/ref/urlresolvers/#django.urls.ResolverMatch">ResolverMatch</a>
+      <a href="https://docs.djangoproject.com/en/5.2/ref/class-based-views/base/#django.views.generic.base.View.as_view">View.as_view()</a>
+    </footer>
+  </article>
+  <script src="../assets/quiz.js"></script>
+  <script src="../assets/gloss.js"></script>
+</body>
+</html>

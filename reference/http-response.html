@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HttpResponse — pocket card</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Reference · P1.6</p>
+      <h1>HttpResponse pocket card</h1>
+      <p class="lede">
+        The object the view returns. Source:
+        <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#httpresponse-objects">HttpResponse</a>.
+      </p>
+    </header>
+
+    <p>
+      Django’s docs: Django creates the request automatically.
+      “HttpResponse objects are your responsibility. Each view
+      you write is responsible for instantiating, populating,
+      and returning an HttpResponse.”
+    </p>
+
+    <h2>Where it appears in the probe</h2>
+    <pre><code>response = self.get_response(request)</code></pre>
+    <p>
+      After that line. A new object. The <code>request</code>
+      parameter is still there — do not read status or body off it.
+    </p>
+
+    <h2>P1.6 pockets</h2>
+    <table>
+      <thead><tr><th>Pocket</th><th>What it is</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>status_code</code></td>
+          <td>An <code>int</code>. The HTTP status. 200, 404, …</td>
+        </tr>
+        <tr>
+          <td><code>headers</code></td>
+          <td>Dict-like, case-insensitive. Dump with
+            <code>dict(response.headers)</code>.
+            Does <strong>not</strong> include
+            <code>Set-Cookie</code> — that is
+            <code>response.cookies</code>.</td>
+        </tr>
+        <tr>
+          <td><code>content</code></td>
+          <td>A <code>bytes</code> object. Same type as
+            <code>request.body</code>. Decode for JSON/HTML.</td>
+        </tr>
+        <tr>
+          <td>size</td>
+          <td><code>len(response.content)</code> — byte count,
+            not character count.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Not this</h2>
+    <table>
+      <thead><tr><th>Name</th><th>Why not P1.6</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>request</code></td>
+          <td>The request object. Method, path, user, session live here.
+            Status and body do not.</td>
+        </tr>
+        <tr>
+          <td><code>json.dumps(response)</code></td>
+          <td>Live object, same trap as
+            <code>match.func</code>. Copy fields.</td>
+        </tr>
+        <tr>
+          <td><code>response.data</code></td>
+          <td>DRF’s Python object before the JSON string.
+            Later (serializer out). P1.6 is the wire body.</td>
+        </tr>
+        <tr>
+          <td>streaming <code>.content</code></td>
+          <td>If <code>response.streaming</code> is
+            <code>True</code>, there is no
+            <code>.content</code>. Do not consume
+            <code>streaming_content</code>.
+            <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#streaminghttpresponse-objects">StreamingHttpResponse</a>.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>JSON shape</h2>
+    <pre><code>"response": {
+  "status": 200,
+  "headers": { "Content-Type": "application/json" },
+  "body": "{\"slug\": \"經典原味鍋\", …}",
+  "size": 123
+}</code></pre>
+    <p>
+      Nested under <code>response</code> so request
+      <code>headers</code> / <code>body</code> stay put.
+      A 404 still has this object — do not nest inside
+      <code>if match</code>.
+    </p>
+
+    <footer class="foot">
+      <a href="../lessons/0009-read-the-response-object.html">Lesson 0009</a>
+      <a href="http-request.html">HttpRequest card</a>
+      <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#httpresponse-objects">HttpResponse</a>
+    </footer>
+  </article>
+</body>
+</html>

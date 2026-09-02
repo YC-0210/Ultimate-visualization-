@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Middleware order — wrapping card</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Reference · P1.3</p>
+      <h1>Middleware order</h1>
+      <p class="lede">
+        The <code>MIDDLEWARE</code> list is wrapping, not a to-do list.
+        Source:
+        <a href="https://docs.djangoproject.com/en/5.2/topics/http/middleware/">Middleware</a>.
+      </p>
+    </header>
+
+    <h2>What one name is</h2>
+    <p>
+      A callable that takes a request and returns a response, like a
+      view. Before it returns, it usually calls
+      <code>get_response(request)</code> — the next middleware, or
+      eventually the view.
+    </p>
+
+    <h2>Two walks of one list</h2>
+    <table>
+      <thead><tr><th>Phase</th><th>Order</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Inward (before the view)</td>
+          <td>Top of <code>MIDDLEWARE</code> first. Django’s docs: top-down.</td>
+        </tr>
+        <tr>
+          <td>Outward (after the view)</td>
+          <td>Same list, backwards. Door waiter is first in and last out.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Django’s docs call this an onion: each class wraps the view.
+      <a href="https://docs.djangoproject.com/en/5.2/topics/http/middleware/#middleware-order-and-layering">Middleware order and layering</a>.
+    </p>
+
+    <h2>This restaurant app</h2>
+    <table>
+      <thead><tr><th>List position</th><th>On the way in</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>1. your middleware (door)</td>
+          <td><code>request.session</code> / <code>request.user</code> not set. Print above <code>get_response</code>.</td>
+        </tr>
+        <tr>
+          <td>SessionMiddleware</td>
+          <td>Sets <code>request.session</code> from the ticket number.</td>
+        </tr>
+        <tr>
+          <td>AuthenticationMiddleware</td>
+          <td>Reads that dictionary, sets <code>request.user</code>.</td>
+        </tr>
+        <tr>
+          <td>the view (kitchen)</td>
+          <td>Both pockets already exist.</td>
+        </tr>
+        <tr>
+          <td>1. your middleware, way out</td>
+          <td>Both pockets still exist. Print below <code>get_response</code>.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>The dependency that bites</h2>
+    <p>
+      Order matters because one middleware can need a pocket another
+      one sets. Django’s docs:
+      AuthenticationMiddleware must run after SessionMiddleware
+      (uses session storage).
+      <a href="https://docs.djangoproject.com/en/5.2/ref/middleware/#middleware-ordering">Middleware ordering</a>.
+    </p>
+    <p>
+      Do not swap them in the live <code>settings.py</code>.
+    </p>
+
+    <footer class="foot">
+      <a href="../lessons/0006-middleware-is-wrapping.html">Lesson 0006</a>
+      <a href="../lessons/0005-ticket-is-not-the-diner.html">Lesson 0005</a>
+      <a href="https://docs.djangoproject.com/en/5.2/topics/http/middleware/">Middleware</a>
+      <a href="https://docs.djangoproject.com/en/5.2/ref/middleware/#middleware-ordering">Middleware ordering</a>
+    </footer>
+  </article>
+</body>
+</html>

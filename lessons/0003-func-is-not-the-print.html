@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The print is a label, not the object</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Lesson 0003 · P1.2 · supervisualizer</p>
+      <h1>The print is a label, not the object</h1>
+      <p class="lede">
+        The letters you need are already on the ticket. They are not
+        inside the box the ticket is stuck to.
+      </p>
+    </header>
+
+    <p class="fits">
+      <strong>Where this fits</strong>
+      Roadmap: Phase 1, P1.2 — the view field. Lesson 0002 named the
+      four JSON keys. This page is only the trap: why
+      <code>func=restaurantAPI.views.menuitemDetail</code> looks like
+      the answer and still is not something you can dump.
+    </p>
+
+    <h2>The problem</h2>
+    <p>
+      Same request as before:
+      <code>GET /api/menuitem/經典原味鍋/</code>.
+      Two facts that use the same letters.
+    </p>
+
+    <div class="facts">
+      <div class="fact have">
+        <p class="tag">Already on screen</p>
+        <h3>What the terminal printed</h3>
+        <p>A label Django wrote for a human. Looks finished.</p>
+        <p class="example">func=restaurantAPI.views.menuitemDetail</p>
+      </div>
+      <div class="fact need">
+        <p class="tag">What the Trace stores</p>
+        <h3>A string you build</h3>
+        <p>Same letters, taken off the class inside the wrapper.</p>
+        <p class="example">"restaurantAPI.views.menuitemDetail"</p>
+      </div>
+    </div>
+
+    <p>
+      A takeout bag can have the dish name written on the outside.
+      That ink is not the food, and it is not the receipt you file.
+      Django’s
+      <a href="https://github.com/django/django/blob/stable/5.2.x/django/urls/resolvers.py"><code>ResolverMatch</code> print</a>
+      is the ink. <code>func</code> is the bag.
+    </p>
+
+    <h2>Peel the bag</h2>
+    <p>
+      Click through in order. Watch the
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">type</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>What changes:</strong> a display string, then a
+            function, then the string <code>"view"</code>, then a class,
+            then a JSON string.
+          </span>
+          <span class="gloss-line">
+            Django hangs the class you wrote on the wrapper as
+            <a href="https://docs.djangoproject.com/en/5.2/ref/class-based-views/base/#django.views.generic.base.View.as_view"><code>view_class</code></a>.
+            The URL list stores the wrapper, not the class.
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://docs.djangoproject.com/en/5.2/ref/class-based-views/base/#django.views.generic.base.View.as_view">View.as_view()</a>
+          </span>
+        </span>
+      </span>
+      line under the boxes.
+    </p>
+
+    <figure class="func-trap" data-func-trap data-start="print">
+      <div class="func-trap-moments">
+        <button type="button" data-layer="print">1 · The print</button>
+        <button type="button" data-layer="func">2 · Open func</button>
+        <button type="button" data-layer="name">3 · Ask its name</button>
+        <button type="button" data-layer="cls">4 · Open view_class</button>
+        <button type="button" data-layer="trace">5 · Write the string</button>
+      </div>
+      <div class="func-diagram" data-func-trap-diagram data-layer="print">
+        <div class="func-box func-sticker">
+          <span class="func-edge">ink on the bag · the print</span>
+          <code>func=restaurantAPI.views.menuitemDetail</code>
+          <div class="func-box func-wrapper">
+            <span class="func-edge">the bag · match.func</span>
+            <code>function view</code>
+            <p class="func-name">.__name__ → "view"</p>
+            <div class="func-box func-cls">
+              <span class="func-edge">the food · func.view_class</span>
+              <code>class menuitemDetail</code>
+              <code>restaurantAPI.views</code>
+            </div>
+          </div>
+        </div>
+        <div class="func-result">
+          <span class="func-edge">the receipt · Trace view field</span>
+          <code>"restaurantAPI.views.menuitemDetail"</code>
+        </div>
+      </div>
+      <p class="func-type" data-func-trap-type></p>
+      <figcaption class="func-caption" data-func-trap-caption></figcaption>
+    </figure>
+
+    <h2>Try putting it in JSON</h2>
+    <p>
+      Click each door. Leave them open. The trap is that door 1 and
+      door 3 look related, and only door 3 files.
+    </p>
+
+    <div class="func-try" data-func-try>
+      <div class="func-try-moments">
+        <button type="button" data-try="dump">dump func</button>
+        <button type="button" data-try="name">ask its name</button>
+        <button type="button" data-try="cls">name the class</button>
+      </div>
+      <div class="func-try-out" data-func-try-out></div>
+    </div>
+
+    <h2>Check</h2>
+
+    <div class="quiz" data-quiz
+         data-explain-right="Same letters. The print is ink Django invented for the terminal. The Trace string is built from the class."
+         data-explain-wrong="If func were already that string, json.dumps(func) would work. It is a function.">
+      <p class="quiz-q">The letters on the print are…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">a printed label</button>
+        <button type="button" data-answer data-correct="0">the func object</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <div class="quiz" data-quiz
+         data-explain-right="as_view() named the wrapper view. menuitemDetail lives on view_class."
+         data-explain-wrong="The print used the class path as a label. The wrapper’s own name is still view.">
+      <p class="quiz-q">Asking func its name gives…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">the name view</button>
+        <button type="button" data-answer data-correct="0">the class name</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <h2>Then</h2>
+    <p>
+      Back to
+      <a href="0002-json-from-resolver-match.html">lesson 0002</a>
+      and print the four-field JSON after <code>get_response</code>.
+      The field card has the stitch if you get stuck:
+      <a href="../reference/resolver-match.html">resolver-match.html</a>.
+    </p>
+
+    <footer class="foot">
+      <a href="0002-json-from-resolver-match.html">Lesson 0002</a>
+      <a href="../reference/resolver-match.html">Field card</a>
+      <a href="https://docs.djangoproject.com/en/5.2/ref/class-based-views/base/#django.views.generic.base.View.as_view">View.as_view()</a>
+    </footer>
+  </article>
+  <script src="../assets/quiz.js"></script>
+  <script src="../assets/gloss.js"></script>
+  <script src="../assets/func-trap.js"></script>
+</body>
+</html>

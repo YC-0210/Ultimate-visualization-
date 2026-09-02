@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Two names, one function object</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Lesson 0014 · Python · P1.8</p>
+      <h1>Two names, one function object</h1>
+      <p class="lede">
+        You already call <code>Template.render</code>.
+        You do not yet know why that name can sit in
+        <code>original_render</code> and then be replaced.
+      </p>
+    </header>
+
+    <p class="fits">
+      <strong>Where this fits</strong>
+      Python, then the P1.8 wrap.
+      Lesson 0012 covered <code>self</code> on a call.
+      Today is the assignment:
+      <code>original_render = Template.render</code>
+      and
+      <code>Template.render = probed_render</code>.
+      Examples are from the Python tutorial, then mapped onto
+      the class you wrap.
+    </p>
+
+    <h2>The problem</h2>
+    <p>
+      A method looks like it belongs on the class.
+      The wrap treats it as something you can store and replace.
+      Those are two assignments, not two copies of Django’s code.
+    </p>
+
+    <div class="facts">
+      <div class="fact have">
+        <p class="tag">Already have · 0012</p>
+        <h3>A call looks up the method</h3>
+        <p><code>x.f()</code> finds <code>f</code> on the class and passes <code>x</code>.</p>
+        <p class="example">t.render(context, request)</p>
+      </div>
+      <div class="fact need">
+        <p class="tag">Missing · 0014</p>
+        <h3>The name on the class is writable</h3>
+        <p>Another name can point at the same function. Then the class name can point at yours.</p>
+        <p class="example">original_render = Template.render</p>
+      </div>
+    </div>
+
+    <h2>1 · A second name, same function</h2>
+    <p>
+      Python’s tutorial, after
+      <code>def fib(n):</code>:
+      “A function definition associates the function name with the
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">function object</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> a user-defined function —
+            what <code>def fib</code> creates.
+          </span>
+          <span class="gloss-line">
+            “The interpreter recognizes the object pointed to by
+            that name as a user-defined function. Other names can
+            also point to that same function object and can also
+            be used to access the function.”
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://docs.python.org/3/tutorial/controlflow.html#defining-functions">Defining Functions</a>
+          </span>
+        </span>
+      </span>
+      in the current symbol table.”
+      Then the docs run this:
+    </p>
+
+    <pre><code>&gt;&gt;&gt; fib
+&lt;function fib at 10042ed0&gt;
+&gt;&gt;&gt; f = fib
+&gt;&gt;&gt; f(100)
+0 1 1 2 3 5 8 13 21 34 55 89</code></pre>
+
+    <figure class="bindnames" data-typehop data-start="one">
+      <div class="typehop-moments">
+        <button type="button" data-moment="one"
+          data-caption="def fib created one function object and bound the name fib to it.">1 · def fib</button>
+        <button type="button" data-moment="two"
+          data-caption="f = fib does not copy the code. f and fib now point at the same function. f(100) runs fib.">2 · f = fib</button>
+      </div>
+      <div class="bindnames-names">
+        <span class="bindnames-chip" data-when="one"><code>fib</code></span>
+        <span class="bindnames-chip" data-when="two" hidden><code>fib</code></span>
+        <span class="bindnames-chip" data-when="two" hidden><code>f</code></span>
+      </div>
+      <div class="bindnames-fn"><code>&lt;function fib at 10042ed0&gt;</code></div>
+      <p class="typehop-caption" data-typehop-caption></p>
+    </figure>
+
+    <p>
+      Python’s classes chapter says the same fact without
+      <code>fib</code>:
+      “Objects have individuality, and multiple names (in multiple
+      scopes) can be bound to the same object.”
+      <a href="https://docs.python.org/3/tutorial/classes.html#a-word-about-names-and-objects">Names and Objects</a>.
+    </p>
+
+    <h2>2 · Store a method, call it later</h2>
+    <p>
+      Same idea on an instance.
+      Docs:
+    </p>
+    <pre><code>class MyClass:
+    def f(self):
+        return 'hello world'
+
+x = MyClass()
+xf = x.f
+xf()</code></pre>
+    <p>
+      “It is not necessary to call a method right away:
+      <code>x.f</code> is a method object, and can be stored away
+      and called at a later time.”
+      <a href="https://docs.python.org/3/tutorial/classes.html#method-objects">Method objects</a>.
+    </p>
+    <p>
+      <code>x.f</code> is “not the same thing as
+      <code>MyClass.f</code> — it is a method object, not a
+      function object.”
+      That difference is
+      <a href="0015-function-vs-method-object.html">lesson 0015</a>.
+      The wrap stores
+      <code>Template.render</code> (the class), like
+      <code>Serializer.is_valid</code>.
+      That is <code>MyClass.f</code>, so
+      <code>original_render(self, *args, **kwargs)</code>
+      can pass <code>self</code> in.
+    </p>
+
+    <h2>3 · Assignment writes the class attribute</h2>
+    <p>
+      “Attributes may be read-only or writable. In the latter case,
+      assignment to attributes is possible.”
+      Docs example:
+      <code>modname.the_answer = 42</code>.
+      <a href="https://docs.python.org/3/tutorial/classes.html#python-scopes-and-namespaces">Scopes and Namespaces</a>.
+      A class attribute is a name after a dot on the class.
+      You already wrote
+      <code>Serializer.is_valid = probed_is_valid</code>.
+      Same assignment:
+      <code>Template.render = probed_render</code>.
+    </p>
+
+    <figure class="bindnames" data-typehop data-start="keep">
+      <div class="typehop-moments">
+        <button type="button" data-moment="keep"
+          data-caption="original_render = Template.render. Two names, Django’s function. Same as f = fib.">1 · keep the original</button>
+        <button type="button" data-moment="swap"
+          data-caption="Template.render = probed_render. The class name now points at yours. original_render still points at Django’s. t.render(…) looks up the class and finds probed_render.">2 · replace the class name</button>
+      </div>
+      <div class="bindnames-names">
+        <span class="bindnames-chip"><code>Template.render</code></span>
+        <span class="bindnames-chip"><code>original_render</code></span>
+      </div>
+      <div class="bindnames-fn" data-when="keep"><code>Django’s Template.render</code></div>
+      <div class="bindnames-fn" data-kind="probed" data-when="swap" hidden>
+        <code>Template.render</code> → <code>probed_render</code><br />
+        <code>original_render</code> → Django’s function
+      </div>
+      <p class="typehop-caption" data-typehop-caption></p>
+    </figure>
+
+    <h2>The two lines</h2>
+    <p>
+      This is a copyable shape. Wiring it into
+      <code>middleware.py</code> is still lesson 0013’s job.
+    </p>
+
+    <p class="snippet-label">Copy this</p>
+    <pre><code>original_render = Template.render
+Template.render = probed_render</code></pre>
+
+    <p class="snippet-label">Same, with a comment on each line</p>
+    <pre><code># Second name for Django’s function. Does not copy the code. Same as f = fib.
+original_render = Template.render
+# Writable class attribute. The next t.render(...) looks this up and finds probed_render.
+Template.render = probed_render</code></pre>
+
+    <h2>Check</h2>
+
+    <div class="quiz" data-quiz
+         data-explain-right="Python’s docs: other names can point to that same function object. f = fib does not copy the function."
+         data-explain-wrong="The hex id in the docs stays 10042ed0. One object, two names.">
+      <p class="quiz-q">f = fib gives you…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">a second name</button>
+        <button type="button" data-answer data-correct="0">a copied function</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <div class="quiz" data-quiz
+         data-explain-right="x.f is a method object (instance plus function). The wrap needs the class function so probed_render can pass self in, like original_is_valid(self, …)."
+         data-explain-wrong="t.render is bound to one Template instance. Template.render is the function on the class — same as Serializer.is_valid.">
+      <p class="quiz-q">original_render should hold…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">the class function</button>
+        <button type="button" data-answer data-correct="0">one instance method</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <h2>Do this</h2>
+    <ol class="steps">
+      <li>Click both moments on the <code>fib</code> figure, then both on the wrap figure.</li>
+      <li>
+        Read the three docs pages:
+        <a href="https://docs.python.org/3/tutorial/controlflow.html#defining-functions">Defining Functions</a>
+        (<code>f = fib</code>),
+        <a href="https://docs.python.org/3/tutorial/classes.html#method-objects">Method objects</a>
+        (<code>xf = x.f</code>),
+        <a href="https://docs.python.org/3/tutorial/classes.html#a-word-about-names-and-objects">Names and Objects</a>.
+      </li>
+      <li>
+        In chat: after
+        <code>Template.render = probed_render</code>,
+        what does
+        <code>original_render</code> still point at?
+      </li>
+    </ol>
+
+    <h2>Ask me</h2>
+    <p>
+      If “second name” vs “copy” is muddy, ask before you write
+      the wrap.
+      I will not add it to the middleware for you.
+    </p>
+
+    <footer class="foot">
+      <a href="0013-template-is-not-the-html.html">Lesson 0013</a>
+      <a href="0012-self-args-kwargs.html">Lesson 0012</a>
+      <a href="../reference/names-bind.html">names bind card</a>
+      <a href="https://docs.python.org/3/tutorial/controlflow.html#defining-functions">Defining Functions</a>
+      <a href="https://docs.python.org/3/tutorial/classes.html#method-objects">Method objects</a>
+    </footer>
+  </article>
+  <script src="../assets/quiz.js"></script>
+  <script src="../assets/gloss.js"></script>
+  <script src="../assets/type-hop.js"></script>
+</body>
+</html>

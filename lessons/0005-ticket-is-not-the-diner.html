@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The ticket is not the diner</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Lesson 0005 · P1.3 · supervisualizer</p>
+      <h1>The ticket is not the diner</h1>
+      <p class="lede">
+        You already know the ticket number the diner brought back.
+        You do not yet know what Django stored on the server for that number.
+      </p>
+    </header>
+
+    <p class="fits">
+      <strong>Where this fits</strong>
+      Roadmap: Phase 1, P1.3 — capture post-middleware state
+      (<code>request.user</code>, session keys, auth).
+      <a href="0004-what-a-cookie-is.html">Lesson 0004</a> was the ticket.
+      Today Django uses that number to load a session dictionary.
+      The panel is not a cookie browser. It needs a hop the URL cannot
+      show: same path, different diner. That hop’s kind is
+      <code>attach_context</code>. Mission: point at it and say the type
+      changed from a Cookie string to a user object.
+    </p>
+
+    <h2>The problem</h2>
+    <p>
+      Same request as P1.2:
+      <code>GET /api/menuitem/經典原味鍋/</code>.
+      One request. Two facts.
+    </p>
+
+    <div class="facts">
+      <div class="fact have">
+        <p class="tag">Already captured · P1.1 headers</p>
+        <h3>The ticket on the table</h3>
+        <p>A Cookie header, or nothing. You already dump this as a string.</p>
+        <p class="example">Cookie: (absent on a first API GET)</p>
+      </div>
+      <div class="fact need">
+        <p class="tag">Missing · P1.3</p>
+        <h3>What Django stored for that ticket</h3>
+        <p>Whether this diner signed in, a username, which session keys exist.</p>
+        <p class="example">is_authenticated false · username "" · session_keys []</p>
+      </div>
+    </div>
+
+    <p>
+      Same request. Different information. The first is the number on
+      the ticket. The second is the dictionary Django kept on the server
+      for that number — Django’s docs call it a session. The ticket is
+      still not the diner’s name.
+    </p>
+    <div class="callout">
+      <strong>P1.3 is writing down what is in that dictionary.</strong>
+      Django’s docs: sessions and middleware hook auth into the request.
+      Nobody posted a JSON field called <code>user</code>.
+    </div>
+
+    <h2>What <code>request</code> actually is</h2>
+    <p>
+      It is not a black box. Django wraps one visit in one Python object
+      and passes that same object to middleware and to the view.
+      Django’s docs call it an
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">HttpRequest</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> an instance of
+            <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#httprequest-objects"><code>django.http.HttpRequest</code></a>.
+          </span>
+          <span class="gloss-line">
+            Django’s docs: “When a page is requested, Django creates an
+            HttpRequest object that contains metadata about the request.
+            Then Django loads the appropriate view, passing the
+            HttpRequest as the first argument.”
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#httprequest-objects">HttpRequest</a>
+          </span>
+        </span>
+      </span>.
+      Named pockets. Some arrive with the diner. Some get stamped later.
+    </p>
+    <p>
+      Same visit you already dumped after login:
+      <code>GET /api/menuitem/經典原味鍋/</code>
+      with a <code>sessionid</code> ticket. Press each moment.
+    </p>
+
+    <figure class="reqbox" data-reqbox data-start="arrive">
+      <div class="reqbox-moments">
+        <button type="button" data-moment="arrive">When it arrives (P1.1)</button>
+        <button type="button" data-moment="after">After get_response</button>
+      </div>
+      <p class="reqbox-title">
+        <span>the object your middleware receives</span>
+        request
+      </p>
+      <div class="reqbox-pocket" data-pocket="arrived" data-state="live">
+        <p class="tag">Arrived with the diner</p>
+        <dl>
+          <dt>method</dt>
+          <dd>GET</dd>
+          <dt>path</dt>
+          <dd>/api/menuitem/經典原味鍋/</dd>
+          <dt>COOKIES</dt>
+          <dd>{"sessionid": "…"}  — a dict of strings</dd>
+          <dt>headers["Cookie"]</dt>
+          <dd>sessionid=…  — one string (what you already print)</dd>
+          <dt>body</dt>
+          <dd>b""  — empty bytes on this GET</dd>
+        </dl>
+      </div>
+      <div class="reqbox-pocket" data-pocket="later" data-state="empty">
+        <p class="tag">Stamped inside get_response</p>
+        <dl>
+          <dt>session</dt>
+          <dd data-fact="session"></dd>
+          <dt>user</dt>
+          <dd data-fact="user"></dd>
+          <dt>resolver_match</dt>
+          <dd data-fact="match"></dd>
+        </dl>
+      </div>
+      <p class="reqbox-caption" data-reqbox-caption></p>
+    </figure>
+    <p>
+      <code>COOKIES</code> is the parsed dict. The Cookie header is the
+      raw string. Same ticket, two types. Django’s docs:
+      “A dictionary containing all cookies. Keys and values are strings.”
+      <code>sessionid</code> is one key in that dict. The session
+      dictionary on the server is a different pocket — not inside
+      COOKIES.
+    </p>
+    <div class="sidenote">
+      Also on the object, not drawn above:
+      <code>GET</code> (query string), <code>POST</code> (form fields),
+      <code>META</code> (every header), <code>FILES</code>.
+      You do not need them for P1.3.
+      Full list:
+      <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#httprequest-objects">HttpRequest</a>.
+      Pocket card:
+      <a href="../reference/http-request.html">http-request.html</a>.
+    </div>
+
+    <h2>Who loads the session</h2>
+    <p>
+      Your middleware is first in the restaurant app’s
+      <code>MIDDLEWARE</code> list. On the way
+      <em>in</em>, after your P1.1 print:
+    </p>
+    <figure class="urlwalk">
+      <p class="urlwalk-in">
+        Incoming (what you already print): path
+        <code>/api/menuitem/經典原味鍋/</code>,
+        Cookie header absent.
+      </p>
+      <p class="urlwalk-label">other middleware, in order</p>
+      <ol>
+        <li class="miss">
+          <code>SecurityMiddleware</code>
+          <span class="why">Not the diner. Security headers.</span>
+        </li>
+        <li class="hit">
+          <code>SessionMiddleware</code>
+          <span class="why">Loads <code>request.session</code> — a dictionary on the server — using the ticket number. Empty keys until something writes one, e.g. <code>table_number</code>.</span>
+        </li>
+        <li class="miss">
+          Common, CSRF, …
+          <span class="why">Not the diner either.</span>
+        </li>
+        <li class="hit">
+          <code>AuthenticationMiddleware</code>
+          <span class="why">Reads that dictionary and sets <code>request.user</code>. No login id in the session → still a user object, the “not signed in” one.</span>
+        </li>
+      </ol>
+    </figure>
+    <p>
+      Django’s docs say
+      <a href="https://docs.djangoproject.com/en/5.2/ref/middleware/#django.contrib.auth.middleware.AuthenticationMiddleware">AuthenticationMiddleware</a>
+      “adds the <code>user</code> attribute,” and it must run
+      <strong>after</strong>
+      <a href="https://docs.djangoproject.com/en/5.2/ref/middleware/#module-django.contrib.sessions.middleware">SessionMiddleware</a>.
+      The type of that attribute is a
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">user</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong>
+            <a href="https://docs.djangoproject.com/en/5.2/ref/contrib/auth/#user-objects"><code>User</code></a>
+            if signed in, otherwise an
+            <a href="https://docs.djangoproject.com/en/5.2/ref/contrib/auth/#anonymoususer-object"><code>AnonymousUser</code></a>.
+          </span>
+          <span class="gloss-line">
+            Django’s docs: “If the current user has not logged in, this
+            attribute will be set to an instance of AnonymousUser,
+            otherwise it will be an instance of User.” Tell them apart
+            with <code>is_authenticated</code>.
+          </span>
+          <span class="gloss-line">
+            AuthenticationMiddleware actually assigns a
+            <code>SimpleLazyObject</code> that loads that instance on
+            first access (reading <code>is_authenticated</code> is that
+            access). The docs name the unwrapped result.
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://docs.djangoproject.com/en/5.2/topics/auth/default/#authentication-in-web-requests">Authentication in web requests</a>
+            ·
+            <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#django.http.HttpRequest.user">HttpRequest.user</a>
+          </span>
+        </span>
+      </span>
+      — never <code>None</code> just because nobody signed in.
+    </p>
+    <div class="sidenote">
+      Primary source:
+      <a href="https://docs.djangoproject.com/en/5.2/topics/auth/default/#authentication-in-web-requests">Authentication in web requests</a>
+      — “Django uses sessions and middleware to hook the authentication
+      system into request objects.” The stored dictionary:
+      <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#django.http.HttpRequest.session"><code>request.session</code></a>,
+      a dict-like object from SessionMiddleware
+      (<a href="https://docs.djangoproject.com/en/5.2/topics/http/sessions/">How to use sessions</a>).
+    </div>
+
+    <h2>Press each moment</h2>
+    <p>
+      Same GET. You already sit at the right print
+      (after <code>get_response</code>). Watch the session get loaded.
+    </p>
+
+    <figure class="onion" data-attach data-start="before">
+      <div class="onion-moments">
+        <button type="button" data-moment="before">Before get_response</button>
+        <button type="button" data-moment="attach">Session then user</button>
+        <button type="button" data-moment="after">After get_response</button>
+      </div>
+      <div class="onion-diagram" data-attach-diagram data-phase="before">
+        <div class="onion-layer onion-outer">
+          <span class="onion-edge onion-in">your middleware · inward (P1.1 — no user yet)</span>
+          <div class="onion-layer onion-mid">
+            <span class="onion-edge">SessionMiddleware, then AuthenticationMiddleware</span>
+            <div class="onion-layer onion-core">load the session, set request.user, then run the view</div>
+            <span class="onion-edge">other middleware</span>
+          </div>
+          <span class="onion-edge onion-out">your middleware · outward (read here)</span>
+        </div>
+      </div>
+      <figcaption class="onion-caption" data-attach-caption></figcaption>
+      <dl class="onion-facts">
+        <dt>Cookie header</dt>
+        <dd data-fact="cookie"></dd>
+        <dt>request.session</dt>
+        <dd data-fact="session"></dd>
+        <dt>request.user</dt>
+        <dd data-fact="user"></dd>
+      </dl>
+    </figure>
+
+    <h2>Same peel as the view</h2>
+    <p>
+      <code>json.dumps(request.user)</code> fails for the same reason
+      <code>json.dumps(match.func)</code> did: it is a live object, not
+      strings and dicts. Pull three JSON-safe pieces. Keys only on the
+      session — this app stores a table number in there, and login stores
+      an id plus a hash. P1.3 is which keys exist, not the values.
+    </p>
+    <pre><code>user = getattr(request, "user", None)
+if user is not None:
+    captured["is_authenticated"] = user.is_authenticated
+    captured["username"] = user.get_username()
+session = getattr(request, "session", None)
+if session is not None:
+    captured["session_keys"] = list(session.keys())</code></pre>
+    <div class="sidenote">
+      Put this <em>next to</em> the four route fields, not inside
+      <code>if match is not None</code>. A 404 still went through
+      SessionMiddleware and AuthenticationMiddleware.
+      Field card:
+      <a href="../reference/request-user.html">request-user.html</a>.
+      Copy the shape; wiring it into <code>middleware.py</code> is still yours.
+    </div>
+
+    <h2>Check</h2>
+
+    <div class="quiz" data-quiz
+         data-explain-right="session is stamped by SessionMiddleware inside get_response. The Cookie header can already be present at P1.1. Presence of sessionid is not the same as request.session existing yet."
+         data-explain-wrong="You already print Cookie at P1.1. request.session is a different pocket. It is attached later, even when sessionid is in COOKIES.">
+      <p class="quiz-q">At the P1.1 print, <code>request.session</code> is…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">not set at P1.1 print</button>
+        <button type="button" data-answer data-correct="0">gone if Cookie is empty</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <div class="quiz" data-quiz
+         data-explain-right="The diner brought a ticket (or nothing). SessionMiddleware plus AuthenticationMiddleware loaded the session dictionary from that number. There is no user field in the JSON body of this GET."
+         data-explain-wrong="This GET has no request body. request.user is attached from the session ticket, which may be absent — and you still get AnonymousUser.">
+      <p class="quiz-q"><code>request.user</code> is filled…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">from a session cookie</button>
+        <button type="button" data-answer data-correct="0">from the request body</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <div class="quiz" data-quiz
+         data-explain-right="Not signed in is AnonymousUser with is_authenticated False, not a missing attribute. Django’s docs: if the user has not logged in, the attribute is set to AnonymousUser."
+         data-explain-wrong="If user were None, every view that reads request.user.is_authenticated would crash when you are logged out. It does not.">
+      <p class="quiz-q">A logged-out GET still has…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">AnonymousUser not None</button>
+        <button type="button" data-answer data-correct="0">None not AnonymousUser</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <h2>Do this on the restaurant app</h2>
+    <p>
+      Keep the read after <code>get_response</code>. Add the three keys
+      to the same <code>captured</code> dict. Leave the route fields as they are.
+      Do this only after lesson 0004’s Cookie round-trip is visible.
+    </p>
+    <ol class="steps">
+      <li>
+        After the walk, add <code>is_authenticated</code>,
+        <code>username</code>, and <code>session_keys</code> —
+        the block under <strong>Same peel as the view</strong>.
+        Not inside the <code>if match</code>.
+      </li>
+      <li>
+        Hit <code>GET /api/menuitem/經典原味鍋/</code> logged out.
+        Expect <code>is_authenticated</code> false, empty username,
+        <code>session_keys</code> likely <code>[]</code>.
+      </li>
+      <li>
+        Hit <code>GET /?table_number=3</code> (the homepage). This app
+        writes <code>request.session['table_number']</code>. Expect
+        <code>"table_number"</code> in the keys, still not signed in.
+      </li>
+      <li>
+        Log in at <code>/login/</code> with a manager account you already
+        use, then hit <code>GET /cart_list/</code>.
+        Expect <code>is_authenticated</code> true, a username, and
+        <code>_auth_user_id</code> among the keys.
+      </li>
+      <li>
+        Paste the logged-out API line and the logged-in line here.
+        P1.3 is done when those three fields print on both, and a 404
+        still prints them.
+      </li>
+    </ol>
+
+    <h2>Ask me</h2>
+    <p>
+      I am your teacher for this. If “logged out still has a user” is
+      muddy, or a dump fails, ask. I will not write the three fields
+      into the middleware for you.
+    </p>
+
+    <footer class="foot">
+      <a href="0006-middleware-is-wrapping.html">Lesson 0006</a>
+      <a href="0004-what-a-cookie-is.html">Lesson 0004</a>
+      <a href="0002-json-from-resolver-match.html">Lesson 0002</a>
+      <a href="../reference/http-request.html">Request card</a>
+      <a href="../reference/request-user.html">Field card</a>
+      <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#httprequest-objects">HttpRequest</a>
+      <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#django.http.HttpRequest.user">HttpRequest.user</a>
+    </footer>
+  </article>
+  <script src="../assets/quiz.js"></script>
+  <script src="../assets/gloss.js"></script>
+  <script src="../assets/attach.js"></script>
+  <script src="../assets/request-box.js"></script>
+</body>
+</html>

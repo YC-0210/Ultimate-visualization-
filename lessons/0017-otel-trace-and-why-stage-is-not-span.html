@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OTel's Trace, and why a Stage is not a span</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Lesson 0017 · P1.9 · supervisualizer</p>
+      <h1>OTel's Trace, and why a Stage is not a span</h1>
+      <p class="lede">
+        You already know your Trace holds stages.
+        You do not yet know which parts of that shape
+        OpenTelemetry defined and which parts this repo invented.
+      </p>
+    </header>
+
+    <p class="fits">
+      <strong>Where this fits</strong>
+      Roadmap: Phase 1, P1.9 — the reshape.
+      <a href="0016-dump-is-not-a-trace.html">Lesson 0016</a>
+      gave you <code>kind</code> and <code>label</code>.
+      D5 borrowed OTel's tree; D6 kept the dependency.
+      Today: read the borrowed definitions at the source,
+      then see exactly where this repo departs from them.
+    </p>
+
+    <h2>The problem</h2>
+    <p>
+      <code>trace_id</code> and <code>parent_id</code>
+      are not words this repo coined.
+      <code>Stage</code> is.
+      One JSON object. Two vocabularies.
+    </p>
+
+    <div class="facts">
+      <div class="fact have">
+        <p class="tag">Borrowed · OTel</p>
+        <h3>trace_id, parent_id</h3>
+        <p>Defined in a public spec. Searchable. Same meaning everywhere.</p>
+        <p class="example">"trace_id": "5b8aa5a2…"</p>
+      </div>
+      <div class="fact need">
+        <p class="tag">This repo · CONTEXT.md</p>
+        <h3>Stage, kind, label</h3>
+        <p>Coined here. OTel has no field for the job a stage does.</p>
+        <p class="example">"kind": "validate_input"</p>
+      </div>
+    </div>
+
+    <h2>What OTel calls a Trace</h2>
+    <p>
+      OTel's one-line definition of a
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">Trace</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> one or more spans sharing a
+            <code>trace_id</code> —
+            <a href="https://opentelemetry.io/docs/concepts/signals/traces/">Traces</a>.
+          </span>
+          <span class="gloss-line">
+            OTel's docs: “The path of a request through your
+            application.”
+            And: “A trace is made of one or more spans. The first
+            span represents the root span.”
+            Tier 2 — a borrowed spec word, not Django's and not ours.
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://opentelemetry.io/docs/concepts/signals/traces/">Traces</a>
+            ·
+            <a href="https://opentelemetry.io/docs/concepts/observability-primer/">Observability primer</a>
+          </span>
+        </span>
+      </span>
+      is “the path of a request through your application.”
+      A
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">span</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> one timed unit of work —
+            <a href="https://opentelemetry.io/docs/concepts/signals/traces/#spans">Spans</a>.
+          </span>
+          <span class="gloss-line">
+            OTel's docs: “A span represents a unit of work or
+            operation. Spans are the building blocks of Traces.”
+            The spec lists what it encapsulates: the span name,
+            a <code>SpanContext</code>, a parent, a
+            <code>SpanKind</code>, start and end timestamps,
+            attributes, links, events, and a status.
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://opentelemetry.io/docs/specs/otel/trace/api/#span">Trace API — Span</a>
+          </span>
+        </span>
+      </span>
+      is one timed unit of work inside it.
+    </p>
+
+    <p>
+      OTel's docs walk three spans and then say what makes them one
+      Trace: “These three blocks of JSON all share the same
+      <code>trace_id</code>, and the <code>parent_id</code> field
+      represents a hierarchy. That makes it a Trace!”
+    </p>
+
+    <p class="snippet-label">OTel's root span, trimmed to the fields that matter here</p>
+    <pre><code>{
+  "name": "hello",
+  "context": {
+    "trace_id": "5b8aa5a2d2c872e8321cf37308d69df2",
+    "span_id": "051581bf3cb55c13"
+  },
+  "parent_id": null,
+  "start_time": "2022-04-29T18:52:58.114201Z",
+  "end_time": "2022-04-29T18:52:58.114687Z",
+  "attributes": { "http.route": "some_route1" }
+}</code></pre>
+
+    <p>
+      Two rules to keep from that object.
+      OTel on the root: it “has a <code>trace_id</code> field
+      indicating the trace, but has no <code>parent_id</code>.
+      That's how you know it's the root span.”
+      And the child <code>hello-greetings</code> carries
+      “a <code>parent_id</code> that matches the
+      <code>span_id</code> of the <code>hello</code> span.”
+      That pair of ids is the whole tree mechanism —
+      and it is exactly what
+      <a href="../../DECISIONS.md">D5</a>
+      borrowed when it decided stages form a tree.
+    </p>
+
+    <h2>The attribute rule your spike already hit</h2>
+    <p>
+      OTel constrains what an
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">attribute</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> a key-value pair on a span —
+            <a href="https://opentelemetry.io/docs/concepts/signals/traces/#attributes">Attributes</a>.
+          </span>
+          <span class="gloss-line">
+            OTel's docs: “Keys must be non-null string values.
+            Values must be a non-null string, boolean, floating
+            point value, integer, or an array of these values.”
+            No dicts. No nesting.
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://opentelemetry.io/docs/concepts/signals/traces/#attributes">Attributes</a>
+          </span>
+        </span>
+      </span>
+      may hold: strings, booleans, floats, integers, or arrays of
+      those. A <code>dict</code> is not on that list.
+    </p>
+    <p>
+      That single sentence is why
+      <a href="../supervisualizer/spikes/P0.4a-otel-nested-values.md">P0.4a</a>
+      had to JSON-dump the <code>{type, value}</code> encoding into
+      <em>one string</em> attribute instead of attaching
+      <code>validated_data</code> directly.
+      Your <code>encode</code> function exists because of this rule.
+      And P0.4a's permanent finding follows from it: OTel does not
+      raise on a nested value — it drops the attribute and logs a
+      warning.
+    </p>
+
+    <h2>Where this repo departs</h2>
+
+    <figure class="typehop" data-typehop data-start="span">
+      <div class="typehop-moments">
+        <button type="button" data-moment="span"
+          data-caption="OTel's span. A timed unit of work. Named by free text, kept low-cardinality so a backend can aggregate across services.">1 · OTel span</button>
+        <button type="button" data-moment="stage"
+          data-caption="This repo's Stage. A place data occupies. Named from a closed list of fourteen so the panel can switch on it without knowing Django.">2 · our Stage</button>
+      </div>
+      <table>
+        <thead>
+          <tr><th>question</th><th>answer</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th>what it is</th>
+            <td>
+              <span data-when="span"><code>a unit of work</code><span class="type-badge">time interval</span></span>
+              <span data-when="stage" hidden><code>a named place</code><span class="type-badge">location</span></span>
+            </td>
+          </tr>
+          <tr>
+            <th>what names it</th>
+            <td>
+              <span data-when="span"><code>name</code><span class="type-badge">free text</span></span>
+              <span data-when="stage" hidden><code>kind</code><span class="type-badge">closed list</span></span>
+            </td>
+          </tr>
+          <tr>
+            <th>the point of it</th>
+            <td>
+              <span data-when="span"><code>duration</code><span class="type-badge">how long</span></span>
+              <span data-when="stage" hidden><code>data shape</code><span class="type-badge">what type</span></span>
+            </td>
+          </tr>
+          <tr>
+            <th>what it carries</th>
+            <td>
+              <span data-when="span"><code>flat scalars</code><span class="type-badge">attributes</span></span>
+              <span data-when="stage" hidden><code>nested dict</code><span class="type-badge">encoded</span></span>
+            </td>
+          </tr>
+          <tr>
+            <th>who reads it</th>
+            <td>
+              <span data-when="span"><code>a backend</code><span class="type-badge">aggregates</span></span>
+              <span data-when="stage" hidden><code>the panel</code><span class="type-badge">one request</span></span>
+            </td>
+          </tr>
+          <tr>
+            <th>defined in</th>
+            <td>
+              <span data-when="span"><code>a public spec</code><span class="type-badge">tier 2</span></span>
+              <span data-when="stage" hidden><code>CONTEXT.md</code><span class="type-badge">tier 3</span></span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="typehop-caption" data-typehop-caption></p>
+    </figure>
+
+    <div class="callout">
+      <strong>A span measures time. A Stage holds a shape.</strong>
+      OTel: a span is “a unit of work or operation,” with a start
+      and an end timestamp.
+      CONTEXT.md: “A Stage is a <em>location</em>, not a step in
+      time; the Packet is what moves between them.”
+      Your mission is the type at each hop, not the millisecond
+      count — so the Stage is the thing the panel needs, and the
+      span is at best how it gets built.
+    </div>
+
+    <h2>Why not reuse SpanKind</h2>
+    <p>
+      OTel does have a closed enum called
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">SpanKind</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> one of five fixed values —
+            <a href="https://opentelemetry.io/docs/specs/otel/trace/api/#spankind">SpanKind</a>.
+          </span>
+          <span class="gloss-line">
+            The spec: “<code>SpanKind</code> describes two
+            independent properties” — whether the span is an
+            outgoing call or the processing of an incoming request,
+            and whether it is request/response or deferred
+            execution. Values: <code>CLIENT</code>,
+            <code>SERVER</code>, <code>INTERNAL</code>,
+            <code>PRODUCER</code>, <code>CONSUMER</code>.
+            Default is <code>INTERNAL</code>.
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://opentelemetry.io/docs/specs/otel/trace/api/#spankind">Trace API — SpanKind</a>
+          </span>
+        </span>
+      </span>
+      — five values, never extended.
+      It is the right shape and the wrong subject.
+    </p>
+    <p>
+      The spec defines <code>INTERNAL</code> as spans for
+      “operations which do not cross a process boundary. Things
+      like instrumenting a function call or an Express middleware
+      may use internal spans.”
+      Now apply that to your own request.
+    </p>
+
+    <table>
+      <thead>
+        <tr><th>our kind</th><th>its SpanKind</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>route</code></td><td><code>INTERNAL</code></td></tr>
+        <tr><td><code>attach_context</code></td><td><code>INTERNAL</code></td></tr>
+        <tr><td><code>validate_input</code></td><td><code>INTERNAL</code></td></tr>
+        <tr><td><code>render_output</code></td><td><code>INTERNAL</code></td></tr>
+      </tbody>
+    </table>
+
+    <p>
+      Four different jobs, one <code>SpanKind</code>.
+      It classifies messaging role, which is what a distributed
+      backend needs; it says nothing about which job in the request
+      lifecycle ran, which is the only thing the panel needs.
+      That is the sentence in
+      <a href="../../DECISIONS.md">D7</a>:
+      the prior art is LSP's <code>SymbolKind</code>, not OTel's
+      <code>SpanKind</code>.
+    </p>
+
+    <p>
+      The span <em>name</em> cannot do the job either.
+      The spec: the name “SHOULD be the most general string that
+      identifies a (statistically) interesting class of Spans,”
+      and “<code>get_user</code> is a reasonable name, while
+      <code>get_user/314159</code> … is not a good name due to its
+      high cardinality.”
+      It is disciplined free text, not a closed list — so no panel
+      can safely switch on it.
+    </p>
+
+    <div class="callout">
+      <strong>Not competitors — different layers.</strong>
+      D6 keeps the OTel dependency for
+      <em>context propagation</em>: a probe firing deep inside
+      DRF parents itself under the request span with no manual
+      threading.
+      Nothing in your <code>middleware.py</code> imports
+      <code>opentelemetry</code> today, and P1.9 does not need it.
+      When stages do nest, a Stage becomes what you read
+      <em>off</em> a finished span — not a rival to it.
+    </div>
+
+    <h2>Check</h2>
+
+    <div class="quiz" data-quiz
+         data-explain-right="OTel: “These three blocks of JSON all share the same trace_id, and the parent_id field represents a hierarchy. That makes it a Trace!” The root is the one with no parent_id."
+         data-explain-wrong="Names are free text and repeat across requests. The ids are what tie spans into one tree.">
+      <p class="quiz-q">Three spans form one Trace by…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">shared trace_id</button>
+        <button type="button" data-answer data-correct="0">shared span name</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <div class="quiz" data-quiz
+         data-explain-right="The spec: outgoing vs incoming, request/response vs deferred. Every Django stage is INTERNAL, so it cannot tell validate_input from render_output."
+         data-explain-wrong="That is what our kind does, and precisely why D7 could not reuse SpanKind. OTel has no lifecycle-job field.">
+      <p class="quiz-q">SpanKind classifies…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">messaging role only</button>
+        <button type="button" data-answer data-correct="0">lifecycle job only</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <div class="quiz" data-quiz
+         data-explain-right="A span has a start and an end timestamp — it is an interval. CONTEXT.md: “A Stage is a location, not a step in time.”"
+         data-explain-wrong="That is the Stage. A span measures how long the work took; the Stage says what shape the data has while it sits there.">
+      <p class="quiz-q">A span primarily measures a…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">time interval</button>
+        <button type="button" data-answer data-correct="0">data location</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <h2>Do this</h2>
+    <ol class="steps">
+      <li>Click both moments on the comparison table.</li>
+      <li>
+        Read the primary source:
+        <a href="https://opentelemetry.io/docs/concepts/signals/traces/">OTel — Traces</a>.
+        Stop after the “Spans” section; the Tracer Provider parts
+        are Phase 3 and later.
+      </li>
+      <li>
+        In chat, in your own words: your Trace keeps
+        <code>trace_id</code> but replaces the span
+        <code>name</code> with <code>kind</code>. Why can the panel
+        switch on one and not the other?
+      </li>
+    </ol>
+
+    <h2>Ask me</h2>
+    <p>
+      If “context propagation” or why every stage would be
+      <code>INTERNAL</code> is muddy, ask.
+      This lesson changes no code — P1.9's reshape is still
+      <a href="0016-dump-is-not-a-trace.html">lesson 0016</a>.
+    </p>
+
+    <footer class="foot">
+      <a href="0016-dump-is-not-a-trace.html">Lesson 0016</a>
+      <a href="../reference/otel-span.html">span anatomy card</a>
+      <a href="../reference/trace-schema.html">Trace schema card</a>
+      <a href="../CONTEXT.md">CONTEXT — Stage</a>
+      <a href="../../DECISIONS.md">D5 · D6 · D7</a>
+      <a href="https://opentelemetry.io/docs/concepts/signals/traces/">OTel — Traces</a>
+      <a href="https://opentelemetry.io/docs/specs/otel/trace/api/#spankind">SpanKind</a>
+    </footer>
+  </article>
+  <script src="../assets/quiz.js"></script>
+  <script src="../assets/gloss.js"></script>
+  <script src="../assets/type-hop.js"></script>
+</body>
+</html>

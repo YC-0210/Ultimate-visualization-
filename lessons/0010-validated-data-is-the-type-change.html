@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The JSON still holds names</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Lesson 0010 · P1.7 · supervisualizer</p>
+      <h1>The JSON still holds names</h1>
+      <p class="lede">
+        You already have the JSON the browser posted.
+        You do not yet know what types those values became.
+      </p>
+    </header>
+
+    <p class="fits">
+      <strong>Where this fits</strong>
+      Roadmap: Phase 1, P1.7 — probe the serializer; capture
+      <code>validated_data</code> and the types inside it.
+      P1.4 stored the serializer class name.
+      P1.1 stored the body as text.
+      Today you copy the typed dict while it still exists.
+    </p>
+
+    <h2>The problem</h2>
+    <p>
+      You already know the slug strings in the posted JSON.
+      You do not yet know what those same keys hold after
+      the lookup.
+      Real request:
+      <code>POST /api/cart/item/</code>
+      from the customize form on
+      <code>/menuitem/經典原味鍋/</code>.
+    </p>
+
+    <div class="facts">
+      <div class="fact have">
+        <p class="tag">Already have · P1.1</p>
+        <h3>The JSON body</h3>
+        <p><code>product</code> is still a slug string.</p>
+        <p class="example">"product": "經典原味鍋"</p>
+      </div>
+      <div class="fact need">
+        <p class="tag">Missing · P1.7</p>
+        <h3>The live rows those names point at</h3>
+        <p>That same key now holds a live <code>menuitem</code> row.</p>
+        <p class="example">product → menuitem instance</p>
+      </div>
+    </div>
+
+    <p>
+      The customize form wrote the dish’s name.
+      Someone still has to fetch the live row that name points at.
+      DRF’s docs call the dict after that lookup
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">validated_data</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> a dict of field names to validated
+            values —
+            <a href="https://www.django-rest-framework.org/api-guide/serializers/#validation"><code>serializer.validated_data</code></a>.
+          </span>
+          <span class="gloss-line">
+            DRF’s docs: “When deserializing data, you always need to
+            call <code>is_valid()</code> before attempting to access
+            the validated data.”
+            <code>.is_valid()</code> “Deserializes and validates incoming
+            data.”
+            <code>.validated_data</code> “Returns the validated incoming
+            data.”
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://www.django-rest-framework.org/api-guide/serializers/#validation">DRF validation</a>
+          </span>
+        </span>
+      </span>.
+      The field that looks that name up on the queryset is
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">SlugRelatedField</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> a DRF serializer field —
+            <a href="https://www.django-rest-framework.org/api-guide/relations/#slugrelatedfield"><code>SlugRelatedField</code></a>.
+          </span>
+          <span class="gloss-line">
+            DRF’s docs: it represents “the target of the relationship
+            using a field on the target.”
+            <code>queryset</code> is “used for model instance lookups
+            when validating the field input.”
+            On <code>cartitemSerializer</code>,
+            <code>product</code>, <code>meattype</code>, and
+            <code>hotpotingredients</code> are this field,
+            <code>slug_field='slug'</code>.
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://www.django-rest-framework.org/api-guide/relations/#slugrelatedfield">SlugRelatedField</a>
+          </span>
+        </span>
+      </span>.
+    </p>
+
+    <figure class="typehop" data-typehop data-start="body">
+      <div class="typehop-moments">
+        <button type="button" data-moment="body"
+          data-caption="request.body is JSON text. product is still a str — the slug the form posted.">1 · request body</button>
+        <button type="button" data-moment="valid"
+          data-caption="After is_valid returns True, the same key holds a menuitem instance. That is the hop P1.7 has to copy.">2 · validated_data</button>
+      </div>
+      <table>
+        <thead>
+          <tr><th>key</th><th>value · type</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th><code>product</code></th>
+            <td>
+              <span data-when="body"><code>"經典原味鍋"</code><span class="type-badge">str</span></span>
+              <span data-when="valid" hidden><code>menuitem(pk=…)</code><span class="type-badge">instance</span></span>
+            </td>
+          </tr>
+          <tr>
+            <th><code>meattype</code></th>
+            <td>
+              <span data-when="body"><code>"豬肉"</code><span class="type-badge">str</span></span>
+              <span data-when="valid" hidden><code>meattype(pk=…)</code><span class="type-badge">instance</span></span>
+            </td>
+          </tr>
+          <tr>
+            <th><code>hotpotingredients</code></th>
+            <td>
+              <span data-when="body"><code>["九層花枝"]</code><span class="type-badge">list of str</span></span>
+              <span data-when="valid" hidden><code>[hotpotingredients(…)]</code><span class="type-badge">list of instances</span></span>
+            </td>
+          </tr>
+          <tr>
+            <th><code>quantity</code></th>
+            <td>
+              <span data-when="body"><code>1</code><span class="type-badge">JSON number</span></span>
+              <span data-when="valid" hidden><code>1</code><span class="type-badge">int</span></span>
+            </td>
+          </tr>
+          <tr>
+            <th><code>doublemeat</code></th>
+            <td>
+              <span data-when="body"><code>false</code><span class="type-badge">JSON boolean</span></span>
+              <span data-when="valid" hidden><code>False</code><span class="type-badge">bool</span></span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="typehop-caption" data-typehop-caption></p>
+    </figure>
+
+    <div class="callout">
+      <strong>After <code>get_response</code>, this dict is gone.</strong>
+      The serializer instance lives inside the view, during
+      <code>is_valid</code>. Same timing as SQL: copy it while the
+      inner call runs, not after it returns. The request never grows
+      a <code>validated_data</code> attribute.
+    </div>
+
+    <h2>Same wrap, no Django hook</h2>
+    <p>
+      You already wrap <code>execute</code> around
+      <code>get_response</code>.
+      <code>is_valid</code> also runs inside that call.
+      Django gives you <code>execute_wrapper</code> for SQL.
+      DRF does not give you an <code>is_valid</code> wrapper.
+      You replace
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">Serializer.is_valid</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> a method on
+            <a href="https://www.django-rest-framework.org/api-guide/serializers/#serializers"><code>rest_framework.serializers.Serializer</code></a>.
+          </span>
+          <span class="gloss-line">
+            DRF’s docs: <code>.is_valid()</code> “Deserializes and
+            validates incoming data.” It returns
+            <code>True</code> or <code>False</code>.
+            Access <code>validated_data</code> only after it returns
+            <code>True</code> — the docs say you must call it first,
+            and a failed call leaves no validated dict.
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://www.django-rest-framework.org/api-guide/serializers/#validation">DRF validation</a>
+          </span>
+        </span>
+      </span>
+      on the class, call the original, copy, return whatever the
+      original returned. Then put the original back.
+    </p>
+
+    <h2>json.dumps will fail</h2>
+    <p>
+      Same trap as <code>match.func</code>: a model instance is a live
+      Python object. Copy JSON-safe pieces, and keep the type next to
+      the value — that type is the whole point of this hop.
+    </p>
+
+    <h2>Shape of the code</h2>
+    <p>
+      Put <code>encode</code> above the middleware class.
+      Replace <code>is_valid</code> around the existing
+      <code>get_response</code> line (inside or around the
+      <code>with</code> — it must be on while the view runs).
+      This is a copyable shape; wiring it into
+      <code>middleware.py</code> is yours.
+    </p>
+
+    <p class="snippet-label">Copy this</p>
+    <pre><code>from rest_framework.serializers import Serializer
+
+def encode(value):
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return {"type": type(value).__name__, "value": value}
+    if isinstance(value, (list, tuple)):
+        return {"type": "list", "value": [encode(item) for item in value]}
+    if isinstance(value, dict):
+        return {
+            "type": "dict",
+            "value": {str(key): encode(item) for key, item in value.items()},
+        }
+    if hasattr(value, "pk") and hasattr(value, "_meta"):
+        return {
+            "type": type(value).__name__ + " instance",
+            "value": "pk=" + str(value.pk),
+        }
+    return {"type": type(value).__name__, "value": str(value)[:200]}
+
+
+validations = []
+original_is_valid = Serializer.is_valid
+
+def probed_is_valid(self, *args, **kwargs):
+    result = original_is_valid(self, *args, **kwargs)
+    if result:
+        validations.append({
+            "serializer": type(self).__module__ + "." + type(self).__qualname__,
+            "data": encode(dict(self.validated_data)),
+        })
+    return result
+
+Serializer.is_valid = probed_is_valid
+try:
+    with connection.execute_wrapper(capture_sql):
+        response = self.get_response(request)
+finally:
+    Serializer.is_valid = original_is_valid
+
+captured["validated_data"] = validations</code></pre>
+
+    <p class="snippet-label">Same, with a comment on each line</p>
+    <pre><code>from rest_framework.serializers import Serializer
+
+def encode(value):
+    # JSON-safe primitives keep their Python type name and value.
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return {"type": type(value).__name__, "value": value}
+    # A list: encode each item the same way.
+    if isinstance(value, (list, tuple)):
+        return {"type": "list", "value": [encode(item) for item in value]}
+    # A dict: encode each value. Keys become strings.
+    if isinstance(value, dict):
+        return {
+            "type": "dict",
+            "value": {str(key): encode(item) for key, item in value.items()},
+        }
+    # Django model instance: has pk and _meta. Do not dump the live object.
+    if hasattr(value, "pk") and hasattr(value, "_meta"):
+        return {
+            "type": type(value).__name__ + " instance",
+            "value": "pk=" + str(value.pk),
+        }
+    # Anything else: type name + a short string. Avoid crashing dumps.
+    return {"type": type(value).__name__, "value": str(value)[:200]}
+
+
+# Empty list. Each successful is_valid appends one record.
+validations = []
+# Keep the real method so we can call it and put it back.
+original_is_valid = Serializer.is_valid
+
+def probed_is_valid(self, *args, **kwargs):
+    # Run the real method. Skip this and validation never happens.
+    result = original_is_valid(self, *args, **kwargs)
+    # Only a True result has validated_data. False would raise if you read it.
+    if result:
+        validations.append({
+            "serializer": type(self).__module__ + "." + type(self).__qualname__,
+            "data": encode(dict(self.validated_data)),
+        })
+    # Hand the bool (or raised error) back unchanged.
+    return result
+
+Serializer.is_valid = probed_is_valid
+try:
+    with connection.execute_wrapper(capture_sql):
+        response = self.get_response(request)
+finally:
+    # Always restore. Leaving the wrap on nests a new wrap every request.
+    Serializer.is_valid = original_is_valid
+
+captured["validated_data"] = validations</code></pre>
+
+    <p>
+      <code>GET /menuitem/經典原味鍋/</code> is the HTML page
+      (<code>menuitem_page</code>). That view does not call
+      <code>is_valid</code> on input, so the list stays empty.
+      That is not a bug. P1.7’s request is the customize form:
+      <code>POST /api/cart/item/</code>.
+      The form needs a session
+      <code>table_number</code> — open
+      <code>/?table_number=3</code> first, then the menuitem page,
+      then submit.
+    </p>
+
+    <h2>Expected result</h2>
+    <p>
+      After that POST,
+      <code>captured["validated_data"]</code> is a list.
+      <code>data.value.product.type</code> is
+      <code>menuitem instance</code>, not <code>str</code>.
+      Do not invent the <code>pk</code> — copy yours.
+    </p>
+
+    <pre><code>"validated_data": [
+  {
+    "serializer": "restaurantAPI.serializers.cartitemSerializer",
+    "data": {
+      "type": "dict",
+      "value": {
+        "product": {"type": "menuitem instance", "value": "pk=…"},
+        "meattype": {"type": "meattype instance", "value": "pk=…"},
+        "hotpotingredients": {
+          "type": "list",
+          "value": [{"type": "hotpotingredients instance", "value": "pk=…"}]
+        },
+        "doublemeat": {"type": "bool", "value": false},
+        "quantity": {"type": "int", "value": 1},
+        "notes": {"type": "str", "value": ""}
+      }
+    }
+  }
+]</code></pre>
+
+    <h2>Check</h2>
+
+    <div class="quiz" data-quiz
+         data-explain-right="The serializer instance exists only while is_valid runs, inside get_response. Copy there, the same way the SQL wrapper copies during execute."
+         data-explain-wrong="After get_response returns, that serializer instance is gone. The request has no validated_data attribute.">
+      <p class="quiz-q">Where do you copy validated_data?</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">inside wrapped is_valid</button>
+        <button type="button" data-answer data-correct="0">after get_response ends</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <div class="quiz" data-quiz
+         data-explain-right="SlugRelatedField looks up the slug on the queryset and puts the model instance in validated_data. The JSON still held the slug string."
+         data-explain-wrong="The request body still has the slug string. is_valid is the hop that replaces it with the live row.">
+      <p class="quiz-q">After is_valid, product is…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">a menuitem row</button>
+        <button type="button" data-answer data-correct="0">a product slug</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <h2>Do this on the restaurant app</h2>
+    <ol class="steps">
+      <li>
+        Add <code>encode</code> above the middleware class.
+        Import <code>Serializer</code> from
+        <code>rest_framework.serializers</code>.
+      </li>
+      <li>
+        Replace <code>Serializer.is_valid</code> around
+        <code>get_response</code>. Restore it in
+        <code>finally</code>. Store the list on
+        <code>captured["validated_data"]</code>.
+      </li>
+      <li>
+        Open <code>/?table_number=3</code>, then
+        <code>/menuitem/經典原味鍋/</code>, submit the customize form
+        (that is <code>POST /api/cart/item/</code>).
+      </li>
+      <li>
+        Paste the <code>validated_data</code> list here. We will
+        inspect the types before marking P1.7 done.
+      </li>
+    </ol>
+
+    <h2>Ask me</h2>
+    <p>
+      If “copy inside is_valid” or why a GET leaves an empty list is
+      muddy, ask before editing.
+      I will not add the probe to the middleware for you.
+    </p>
+
+    <footer class="foot">
+      <a href="0012-self-args-kwargs.html">Lesson 0012</a>
+      <a href="0011-the-model-is-not-the-instance.html">Lesson 0011</a>
+      <a href="0009-read-the-response-object.html">Lesson 0009</a>
+      <a href="0008-queryset-model-is-not-the-sql.html">Lesson 0008</a>
+      <a href="0007-the-view-class-is-a-recipe-card.html">Lesson 0007</a>
+      <a href="../reference/validated-data.html">validated_data card</a>
+      <a href="https://www.django-rest-framework.org/api-guide/serializers/#validation">DRF validation</a>
+      <a href="https://www.django-rest-framework.org/api-guide/relations/#slugrelatedfield">SlugRelatedField</a>
+    </footer>
+  </article>
+  <script src="../assets/quiz.js"></script>
+  <script src="../assets/gloss.js"></script>
+  <script src="../assets/type-hop.js"></script>
+</body>
+</html>

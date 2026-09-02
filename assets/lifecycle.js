@@ -3,7 +3,7 @@
     before: {
       label: "1 · Request-phase middleware (your P1.1 print lives here)",
       body:
-        "path: /api/menuitem/classic-original/\n" +
+        "path: /api/menuitem/經典原味鍋/\n" +
         "method: GET\n" +
         "resolver_match: <not set>\n" +
         "\n" +
@@ -21,10 +21,10 @@
     after: {
       label: "3 · Response-phase middleware (after get_response returns)",
       body:
-        "path: /api/menuitem/classic-original/\n" +
+        "path: /api/menuitem/經典原味鍋/\n" +
         "resolver_match.route: api/menuitem/<str:slug>/\n" +
         "resolver_match.url_name: menuitem_detail\n" +
-        "resolver_match.kwargs: {\"slug\": \"classic-original\"}\n" +
+        "resolver_match.kwargs: {\"slug\": \"經典原味鍋\"}\n" +
         "match.func.view_class: menuitemDetail\n" +
         "\n" +
         "Same request object. The match is still on it. This is the smallest change to your P1.1 middleware.",

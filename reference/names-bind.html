@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Names bind to function objects</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Reference · Python · P1.8</p>
+      <h1>Names bind</h1>
+      <p class="lede">
+        Two names can point at one function object.
+        Assignment on the class changes which function the
+        next lookup finds.
+      </p>
+    </header>
+
+    <h2>function object vs method object</h2>
+    <table>
+      <thead><tr><th>Lookup</th><th>Type</th><th>Packed instance</th><th>Call</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>MyClass.f</code> / <code>Template.render</code></td>
+          <td>function object</td>
+          <td>none</td>
+          <td><code>MyClass.f(x)</code></td>
+        </tr>
+        <tr>
+          <td><code>x.f</code> / <code>t.render</code></td>
+          <td>method object</td>
+          <td><code>x</code> already in</td>
+          <td><code>x.f()</code></td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Docs: “<code>x.f</code> is not the same thing as
+      <code>MyClass.f</code> — it is a method object, not a
+      function object.”
+      <a href="https://docs.python.org/3/tutorial/classes.html#method-objects">Method objects</a>.
+      The wrap stores the class function.
+    </p>
+
+    <h2>Docs examples</h2>
+    <table>
+      <thead><tr><th>Code</th><th>What happened</th><th>Source</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>f = fib</code></td>
+          <td>Second name, same function. <code>f(100)</code> runs <code>fib</code>.</td>
+          <td><a href="https://docs.python.org/3/tutorial/controlflow.html#defining-functions">Defining Functions</a></td>
+        </tr>
+        <tr>
+          <td><code>xf = x.f</code></td>
+          <td>Store a method object; call later with <code>xf()</code>.</td>
+          <td><a href="https://docs.python.org/3/tutorial/classes.html#method-objects">Method objects</a></td>
+        </tr>
+        <tr>
+          <td><code>MyClass.f</code> vs <code>x.f</code></td>
+          <td>Class function vs method object (instance already packed in).</td>
+          <td>same page: “not the same thing”</td>
+        </tr>
+        <tr>
+          <td><code>modname.the_answer = 42</code></td>
+          <td>Writable attribute assignment.</td>
+          <td><a href="https://docs.python.org/3/tutorial/classes.html#python-scopes-and-namespaces">Namespaces</a></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>The wrap</h2>
+    <pre><code>original_render = Template.render   # like f = fib
+Template.render = probed_render     # writable class attribute</code></pre>
+    <p>
+      Store the class function, not <code>t.render</code>.
+      Restore in <code>finally</code>, same as
+      <code>Serializer.is_valid</code>.
+    </p>
+
+    <footer class="foot">
+      <a href="../lessons/0014-two-names-one-function.html">Lesson 0014</a>
+      <a href="../lessons/0012-self-args-kwargs.html">Lesson 0012</a>
+      <a href="../lessons/0013-template-is-not-the-html.html">Lesson 0013</a>
+    </footer>
+  </article>
+</body>
+</html>

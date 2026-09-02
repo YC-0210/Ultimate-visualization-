@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>execute_wrapper — wrapper card</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Reference · P1.5</p>
+      <h1>execute_wrapper</h1>
+      <p class="lede">
+        Django’s hook for seeing SQL as it runs.
+        Source:
+        <a href="https://docs.djangoproject.com/en/5.2/topics/db/instrumentation/">Database instrumentation</a>.
+      </p>
+    </header>
+
+    <h2>What it is</h2>
+    <p>
+      A context manager on the thread-local
+      <code>connection</code>. Enter: install a wrapper around every
+      query. Exit: remove it. Docs: wrappers are modeled after
+      middleware — a callable that takes another callable.
+    </p>
+
+    <h2>The five arguments</h2>
+    <table>
+      <thead><tr><th>Name</th><th>What it is</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>execute</code></td>
+          <td>Callable. You must call
+            <code>execute(sql, params, many, context)</code>
+            and return that result.</td>
+        </tr>
+        <tr>
+          <td><code>sql</code></td>
+          <td>A <code>str</code>. The SQL to send. Placeholders, not interpolated values.</td>
+        </tr>
+        <tr>
+          <td><code>params</code></td>
+          <td>List/tuple of bound values, or a sequence of those for <code>executemany()</code>.</td>
+        </tr>
+        <tr>
+          <td><code>many</code></td>
+          <td><code>bool</code>. Whether this is <code>execute()</code> or <code>executemany()</code>.</td>
+        </tr>
+        <tr>
+          <td><code>context</code></td>
+          <td>A dict with the connection and cursor. Do not dump it — live objects.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Where P1.5 installs it</h2>
+    <pre><code>with connection.execute_wrapper(capture_sql):
+    response = self.get_response(request)</code></pre>
+    <p>
+      Around <code>get_response</code>, not after. SQL from inner
+      middleware and the view runs inside that call.
+    </p>
+
+    <h2>Not this</h2>
+    <table>
+      <thead><tr><th>Hook</th><th>Why not P1.5</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>connection.queries</code></td>
+          <td>Only populated when <code>DEBUG</code> is
+            <code>True</code>.
+            <a href="https://docs.djangoproject.com/en/5.2/faq/models/#how-can-i-see-the-raw-sql-queries-django-is-running">FAQ</a>.</td>
+        </tr>
+        <tr>
+          <td><code>queryset.model</code></td>
+          <td>P1.4. A class name on the view. Not the SQL that ran.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>JSON shape</h2>
+    <pre><code>"sql": [
+  {
+    "sql": "SELECT …",
+    "params": ["經典原味鍋"],
+    "duration_ms": 0.4
+  }
+]</code></pre>
+    <p>
+      Keep <code>sql</code> and <code>params</code> separate.
+      <code>duration_ms</code> is milliseconds around the
+      <code>execute</code> call
+      (<code>time.monotonic()</code>, as in Django’s QueryLogger example).
+    </p>
+
+    <footer class="foot">
+      <a href="../lessons/0008-queryset-model-is-not-the-sql.html">Lesson 0008</a>
+      <a href="https://docs.djangoproject.com/en/5.2/topics/db/instrumentation/">Database instrumentation</a>
+      <a href="https://docs.djangoproject.com/en/5.2/faq/models/#how-can-i-see-the-raw-sql-queries-django-is-running">connection.queries</a>
+    </footer>
+  </article>
+</body>
+</html>

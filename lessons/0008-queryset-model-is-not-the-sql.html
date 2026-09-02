@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The model name vs the SQL that ran</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Lesson 0008 · P1.5 · supervisualizer</p>
+      <h1>The model name vs the SQL that ran</h1>
+      <p class="lede">
+        You already know which model the view is configured for.
+        You do not yet see the SQL Django actually sent to the database.
+      </p>
+    </header>
+
+    <p class="fits">
+      <strong>Where this fits</strong>
+      Roadmap: Phase 1, P1.5 — capture SQL with
+      <code>connection.execute_wrapper</code>.
+      P1.4 read <code>queryset.model</code> without running a query.
+      Today you copy each query as it runs.
+    </p>
+
+    <h2>The problem</h2>
+    <p>
+      Same real request:
+      <code>GET /api/menuitem/經典原味鍋/</code>.
+      One view. Two facts.
+    </p>
+
+    <div class="facts">
+      <div class="fact have">
+        <p class="tag">Already have · P1.4</p>
+        <h3>The model on the view class</h3>
+        <p>The class name. Reading it did not run SQL.</p>
+        <p class="example">restaurantAPI.models.menuitem</p>
+      </div>
+      <div class="fact need">
+        <p class="tag">Missing · P1.5</p>
+        <h3>The SQL that actually ran</h3>
+        <p>The string Django sent to the database for this request.</p>
+        <p class="example">SELECT … FROM restaurantAPI_menuitem WHERE slug = %s</p>
+      </div>
+    </div>
+
+    <p>
+      One short analogy for the new idea: Python and the database
+      do not share a language. The view says
+      <code>menuitem</code> and slug <code>經典原味鍋</code>.
+      Django translates that lookup into a sentence the database
+      can read. That sentence is
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">sql</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> a
+            <code>str</code> — the SQL query to be sent to the database.
+          </span>
+          <span class="gloss-line">
+            Django passes it to your wrapper together with
+            <code>params</code> (the bound values) and
+            <code>execute</code> (the callable that actually runs it).
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://docs.djangoproject.com/en/5.2/topics/db/instrumentation/">Database instrumentation</a>
+          </span>
+        </span>
+      </span>.
+    </p>
+
+    <h2>Same wrap, one layer down</h2>
+    <p>
+      Middleware already wraps the view: call
+      <code>get_response</code>, then do something around it.
+      Django’s instrumentation docs say SQL wrappers are
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the meaning">modeled</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line">
+            <strong>Meaning:</strong> built to work like. Not a Django
+            <code>Model</code> (that is <code>menuitem</code>).
+          </span>
+          <span class="gloss-line">
+            Django’s docs: wrappers “are modeled after middleware –
+            they are callables which take another callable as one of
+            their arguments.” Middleware takes
+            <code>get_response</code> and calls it. The SQL wrapper
+            takes <code>execute</code> and calls it. Same shape.
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://docs.djangoproject.com/en/5.2/topics/db/instrumentation/">Database instrumentation</a>
+          </span>
+        </span>
+      </span>
+      after middleware. Same shape, smaller job: wrap
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">execute</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> a callable. Invoke it with
+            <code>sql</code>, <code>params</code>, <code>many</code>,
+            and <code>context</code> to run the query.
+          </span>
+          <span class="gloss-line">
+            Like <code>get_response</code>: if you do not call it,
+            the next step never happens. The wrapper must return
+            whatever <code>execute</code> returned.
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://docs.djangoproject.com/en/5.2/topics/db/instrumentation/">Database instrumentation</a>
+          </span>
+        </span>
+      </span>
+      instead of the view.
+    </p>
+
+    <div class="sqlwrap" data-sqlwrap data-start="install">
+      <div class="sqlwrap-moments">
+        <button type="button" data-moment="install">1 · install</button>
+        <button type="button" data-moment="queries">2 · queries</button>
+        <button type="button" data-moment="dump">3 · dump</button>
+      </div>
+      <div class="sqlwrap-hatch" data-sqlwrap-hatch>
+        <span class="sqlwrap-edge">wrapper around get_response</span>
+        <code>with connection.execute_wrapper(…):</code>
+        <ul class="sqlwrap-tickets">
+          <li data-query="session">
+            <code>SELECT … django_session …</code>
+            <span class="job">May appear: SessionMiddleware can query the session inside get_response.</span>
+          </li>
+          <li data-query="view">
+            <code>SELECT … restaurantAPI_menuitem WHERE slug = %s</code>
+            <span class="job">The view’s lookup. params holds <code>經典原味鍋</code> — the same slug you already dump in kwargs.</span>
+          </li>
+        </ul>
+      </div>
+      <p class="sqlwrap-caption" data-sqlwrap-caption></p>
+    </div>
+
+    <div class="callout">
+      <strong>Install around <code>get_response</code>, not after it.</strong>
+      SQL runs <em>inside</em> that call — inner middleware and the view.
+      After it returns, those queries have already happened. The wrapper
+      is a context manager: on for that block, then off.
+    </div>
+
+    <h2>Why not <code>connection.queries</code></h2>
+    <p>
+      Django’s FAQ will give you a list of SQL at
+      <code>connection.queries</code>. That list is only filled when
+      <code>DEBUG</code> is <code>True</code>. P1.5 needs a probe that
+      is ours, not a debug-mode side effect.
+      <a href="https://docs.djangoproject.com/en/5.2/faq/models/#how-can-i-see-the-raw-sql-queries-django-is-running">How can I see the raw SQL queries Django is running?</a>
+    </p>
+
+    <h2>Shape of the code</h2>
+    <p>
+      Django’s own example is a logger object with
+      <code>__call__</code>. A function that closes over a list is
+      the same idea, smaller. Put the import at the top. Wrap the
+      existing <code>get_response</code> line. This is a copyable
+      shape; wiring it into <code>middleware.py</code> is yours.
+    </p>
+
+    <pre><code># Django's handle to the database for this thread.
+from django.db import connection
+# A clock. We use it to time how long each query took.
+import time
+
+# Empty list. Every query we see gets appended here.
+queries = []
+
+# Django calls this function once per SQL, while the wrapper is on.
+# The five names are what Django always passes in.
+def capture_sql(execute, sql, params, many, context):
+    # Clock reading right now, before the query runs.
+    start = time.monotonic()
+    # Actually send this SQL to the database. Skip this and the
+    # query never runs. result is whatever the database sent back.
+    result = execute(sql, params, many, context)
+    # Write one record into our list. This does not print anything.
+    queries.append({
+        # The SQL string. Placeholders like %s, not the real values.
+        "sql": sql,
+        # The values that fill those placeholders. A tuple becomes a
+        # list. If Django passed nothing, store an empty list.
+        "params": list(params) if params else [],
+        # Milliseconds between start and now.
+        "duration_ms": round((time.monotonic() - start) * 1000, 2),
+    })
+    # Hand the database result back unchanged.
+    return result
+
+# Turn the wrapper on, run the next line, then turn it off.
+with connection.execute_wrapper(capture_sql):
+    # Inner middleware + the view. SQL runs in here.
+    response = self.get_response(request)
+
+# Put the list onto captured so json.dumps prints it with the rest.
+captured["sql"] = queries</code></pre>
+
+    <p>
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show what with does">with</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Meaning:</strong> turn something on, run the
+            indented block, then turn it off automatically.
+          </span>
+          <span class="gloss-line">
+            Python’s docs: the <code>with</code> statement wraps a
+            block with setup and cleanup. Django’s
+            <code>execute_wrapper</code> is that setup/cleanup:
+            enter installs <code>capture_sql</code>, exit removes it.
+            Cleanup still runs if the indented lines crash.
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://docs.python.org/3/reference/compound_stmts.html#the-with-statement">The with statement</a>
+            ·
+            <a href="https://docs.djangoproject.com/en/5.2/topics/db/instrumentation/#connection-execute-wrapper">execute_wrapper</a>
+          </span>
+        </span>
+      </span>
+      is Python, not Django. On this line it means: install
+      <code>capture_sql</code>, run <code>get_response</code>, then
+      uninstall it. The indented line is the only window where
+      Django will call your wrapper.
+    </p>
+    <p>
+      Two rules from the docs, both already true of middleware:
+      call the next callable, and return what it returned. Skip
+      <code>execute</code> and the request never reaches the database.
+    </p>
+    <p>
+      <code>sql</code> is a template with placeholders.
+      <code>params</code> is the list of values. Keep them separate —
+      do not glue the slug into the string. The type at this hop
+      is still a Python list sitting next to a string.
+    </p>
+
+    <h2>Expected result</h2>
+    <p>
+      For <code>GET /api/menuitem/經典原味鍋/</code>,
+      <code>captured["sql"]</code> is a list. At least one item’s
+      <code>sql</code> mentions <code>restaurantAPI_menuitem</code>.
+      You may also see a session query. That is not a bug: wrapping
+      <code>get_response</code> sees every query this request caused.
+    </p>
+
+    <pre><code>"sql": [
+  {
+    "sql": "SELECT … restaurantAPI_menuitem … WHERE slug = %s …",
+    "params": ["經典原味鍋"],
+    "duration_ms": 0.4
+  }
+]</code></pre>
+
+    <h2>Check</h2>
+
+    <div class="quiz" data-quiz
+         data-explain-right="SQL runs inside get_response — SessionMiddleware and the view. Install the wrapper around that call so you copy each query as it happens."
+         data-explain-wrong="After get_response returns, those queries have already run. execute_wrapper is a context manager around the flow that issues them.">
+      <p class="quiz-q">Where do you install the SQL wrapper?</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">around get_response</button>
+        <button type="button" data-answer data-correct="0">after get_response</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <div class="quiz" data-quiz
+         data-explain-right="The wrapper is a probe: copy the sql string, then still send it. Django’s docs: call execute(sql, params, many, context) and return that result."
+         data-explain-wrong="If you skip execute, the database never runs the query. The request would break. Recording is extra; execute is the real call.">
+      <p class="quiz-q">Besides recording sql, the wrapper must…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">call execute and return it</button>
+        <button type="button" data-answer data-correct="0">skip execute and return it</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <h2>Do this on the restaurant app</h2>
+    <ol class="steps">
+      <li>
+        Import <code>connection</code> from <code>django.db</code>
+        at the top of your middleware.
+      </li>
+      <li>
+        Wrap the existing <code>get_response</code> line with
+        <code>execute_wrapper</code>. Append each query’s
+        <code>sql</code>, <code>params</code>, and
+        <code>duration_ms</code>.
+      </li>
+      <li>
+        Set <code>captured["sql"]</code> after the
+        <code>with</code> block. Hit
+        <code>GET /api/menuitem/經典原味鍋/</code>.
+      </li>
+      <li>
+        Paste the <code>sql</code> list here. We will inspect it
+        before marking P1.5 done.
+      </li>
+    </ol>
+
+    <h2>Ask me</h2>
+    <p>
+      If “wrapper around execute” or why this is not
+      <code>connection.queries</code> is muddy, ask before editing.
+      I will not add the wrapper to the middleware for you.
+    </p>
+
+    <footer class="foot">
+      <a href="0009-read-the-response-object.html">Lesson 0009</a>
+      <a href="0007-the-view-class-is-a-recipe-card.html">Lesson 0007</a>
+      <a href="0006-middleware-is-wrapping.html">Lesson 0006</a>
+      <a href="../reference/execute-wrapper.html">Wrapper card</a>
+      <a href="https://docs.djangoproject.com/en/5.2/topics/db/instrumentation/">Database instrumentation</a>
+      <a href="https://docs.djangoproject.com/en/5.2/faq/models/#how-can-i-see-the-raw-sql-queries-django-is-running">connection.queries (DEBUG)</a>
+    </footer>
+  </article>
+  <script src="../assets/quiz.js"></script>
+  <script src="../assets/gloss.js"></script>
+  <script src="../assets/sql-wrap.js"></script>
+</body>
+</html>

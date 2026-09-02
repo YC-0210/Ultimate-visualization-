@@ -2,6 +2,8 @@
 
 ## Why
 
+I refers to the user 
+
 I can write Django code, but I have only a vague picture of how the pieces collaborate. I know what a model, a view and a serializer *are* — what I cannot see is the path a single request takes through them, and that gets worse as the project grows and endpoints multiply. I especially cannot see what happens to my **data's type** as it crosses from the browser to the server to the database and back, which is the thing that actually determines how the code parses it.
 
 I am a heavy visual learner. Reading source tells me what each file contains; it does not show me the journey.

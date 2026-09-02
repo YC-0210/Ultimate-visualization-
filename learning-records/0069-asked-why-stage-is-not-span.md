@@ -1,0 +1,3 @@
+# Asked why a Stage is not called a span
+
+Following LR-0068, they asked which parts of the Trace shape OTel defines and why `Stage` is not just OTel's span. Established in lesson 0017 from OTel's own docs: a span is a timed unit of work (start/end timestamps), named by low-cardinality free text, classified by a five-value `SpanKind` about messaging role — so every Phase 1 Django stage would be `INTERNAL`. A Stage is a location holding a data shape. `trace_id` / `parent_id` are borrowed; `Stage` / `kind` / `label` are coined here. Also flagged that nothing in `middleware.py` imports `opentelemetry` yet and P1.9 does not need it — D6 bought context propagation for when stages nest.

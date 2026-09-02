@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The print is gone; the file stays</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Lesson 0018 · P1.9 · supervisualizer</p>
+      <h1>The print is gone; the file stays</h1>
+      <p class="lede">
+        You already turn the whole capture into JSON text.
+        You do not yet put it anywhere the panel can open.
+      </p>
+    </header>
+
+    <p class="fits">
+      <strong>Where this fits</strong>
+      Roadmap: Phase 1, P1.9 — second half.
+      <a href="0016-dump-is-not-a-trace.html">Lesson 0016</a>
+      was the reshape into stages.
+      Today the Trace lands on disk, one file per request.
+      P2.5 will load the newest one — so the filename has a job.
+    </p>
+
+    <h2>The problem</h2>
+    <p>
+      Your last <code>GET /menuitem/經典原味鍋/</code> produced
+      5342 bytes of response body inside one terminal line.
+      Scroll away and it is gone.
+      Nothing can open a print.
+    </p>
+
+    <div class="facts">
+      <div class="fact have">
+        <p class="tag">Already have · P1.1–P1.8</p>
+        <h3>JSON text on stdout</h3>
+        <p><code>json.dumps</code> already produces the whole string.</p>
+        <p class="example">print('[supervisualizer] …', json.dumps(captured, …))</p>
+      </div>
+      <div class="fact need">
+        <p class="tag">Missing · P1.9</p>
+        <h3>One named file per request</h3>
+        <p>Sortable, so “the most recent trace” is answerable.</p>
+        <p class="example">20260901T094048502368-3f9a1c02.json</p>
+      </div>
+    </div>
+
+    <p>
+      You know
+      <code>json.dumps</code>
+      already — write the object down as text.
+      The variant that takes a file is
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">json.dump</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> a function taking the object and
+            a file —
+            <a href="https://docs.python.org/3/library/json.html#json.dump"><code>json.dump(obj, fp)</code></a>.
+          </span>
+          <span class="gloss-line">
+            Python's docs: “Serialize <em>obj</em> as a JSON
+            formatted stream to <em>fp</em> (a
+            <code>.write()</code>-supporting file-like object).”
+            The tutorial: <code>dump()</code> “simply serializes
+            the object to a text file.”
+            Same keyword arguments as <code>dumps</code> —
+            including <code>ensure_ascii</code> and
+            <code>default</code>.
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://docs.python.org/3/library/json.html#json.dump">json.dump</a>
+            ·
+            <a href="https://docs.python.org/3/tutorial/inputoutput.html#saving-structured-data-with-json">Saving structured data with json</a>
+          </span>
+        </span>
+      </span>.
+      No <code>s</code>: no string comes back, the bytes go to the
+      file instead.
+    </p>
+
+    <figure class="typehop" data-typehop data-start="dumps">
+      <div class="typehop-moments">
+        <button type="button" data-moment="dumps"
+          data-caption="What you do now. dumps returns a str, print sends it to the terminal, nothing persists.">1 · dumps + print</button>
+        <button type="button" data-moment="dump"
+          data-caption="What P1.9 does. dump writes straight into an open file. The return value is None — the file is the result.">2 · dump to a file</button>
+      </div>
+      <table>
+        <thead>
+          <tr><th>question</th><th>answer</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th>call</th>
+            <td>
+              <span data-when="dumps"><code>json.dumps(obj)</code><span class="type-badge">returns str</span></span>
+              <span data-when="dump" hidden><code>json.dump(obj, f)</code><span class="type-badge">returns None</span></span>
+            </td>
+          </tr>
+          <tr>
+            <th>where it lands</th>
+            <td>
+              <span data-when="dumps"><code>stdout</code><span class="type-badge">scrollback</span></span>
+              <span data-when="dump" hidden><code>a .json file</code><span class="type-badge">disk</span></span>
+            </td>
+          </tr>
+          <tr>
+            <th>who can read it later</th>
+            <td>
+              <span data-when="dumps"><code>you, until you scroll</code><span class="type-badge">nobody</span></span>
+              <span data-when="dump" hidden><code>the panel, P2.5</code><span class="type-badge">anything</span></span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="typehop-caption" data-typehop-caption></p>
+    </figure>
+
+    <h2>The filename has a job</h2>
+    <p>
+      P2.5 is “load and render the most recent trace.”
+      If the name cannot be sorted, finding the newest means
+      opening every file and comparing a field inside it.
+      So put the clock in the name, most-significant first, and no
+      <code>:</code> — that character is trouble in macOS
+      filenames.
+    </p>
+    <p>
+      <code>strftime("%Y%m%dT%H%M%S%f")</code>
+      gives
+      <code>20260901T094048502368</code>
+      — sorts lexically, which for this format is the same as
+      sorting by time. Two requests in the same microsecond are
+      still possible, so append part of the
+      <code>trace_id</code>.
+    </p>
+
+    <h2>trace_id, for now</h2>
+    <p>
+      The schema's first field.
+      Generate it server-side with
+      <code>uuid.uuid4().hex</code>.
+      In P4.3 the browser generates it instead and sends it as a
+      header, and this middleware reads that value rather than
+      making one — which is what lets the client and server halves
+      join. Today nothing sends one, so you mint it.
+    </p>
+
+    <h2>Where sql goes</h2>
+    <p>
+      Your five queries are not five <code>query_data</code>
+      stages. Three are the view's reads
+      (<code>menuitem</code>, <code>meattype</code>,
+      <code>hotpotingredients</code>); two are the
+      <code>django_session</code> and <code>auth_user</code> rows,
+      fetched because something touched
+      <code>request.session</code> and <code>request.user</code>.
+    </p>
+    <div class="callout">
+      <strong>Do not invent attribution you did not capture.</strong>
+      <code>execute_wrapper</code> is handed the SQL, not the
+      caller. Nothing in Phase 1 records which stage caused a
+      query, so keep <code>sql</code> as one top-level list in
+      fire order — exactly as the schema in the roadmap has it.
+      Splitting SQL per stage needs the probe to know the current
+      stage, which is the context propagation
+      <a href="../../DECISIONS.md">D6</a> bought and P1.9 does not
+      wire in.
+    </div>
+
+    <h2>Shape of the code</h2>
+    <p>
+      Replace the final <code>print</code>.
+      <code>stages</code> is <em>your</em> list from lesson 0016 —
+      this shape does not build it for you.
+    </p>
+
+    <p class="snippet-label">Copy this</p>
+    <pre><code>import uuid
+from datetime import datetime, timezone
+from pathlib import Path
+from django.conf import settings
+
+TRACE_DIR = Path(settings.BASE_DIR) / "supervisualizer-traces"
+
+# top of __call__, before you capture anything
+started = datetime.now(timezone.utc)
+
+# end of __call__, replacing the print
+trace_id = uuid.uuid4().hex
+trace = {
+    "trace_id": trace_id,
+    "framework": "django",
+    "started_at": started.isoformat(),
+    "endpoint": {
+        "method": captured["method"],
+        "path": captured["path"],
+        "route_pattern": captured.get("route"),
+        "handler": captured.get("view"),
+    },
+    "stages": stages,
+    "sql": captured["sql"],
+    "notes": [],
+}
+
+TRACE_DIR.mkdir(parents=True, exist_ok=True)
+name = started.strftime("%Y%m%dT%H%M%S%f") + "-" + trace_id[:8] + ".json"
+with (TRACE_DIR / name).open("w", encoding="utf-8") as f:
+    json.dump(trace, f, ensure_ascii=False, indent=2, default=str)</code></pre>
+
+    <p class="snippet-label">Same, with a comment on each line</p>
+    <pre><code>import uuid
+# Makes the trace_id. uuid4 needs no input and does not repeat.
+from datetime import datetime, timezone
+# One clock read gives both started_at and the filename.
+from pathlib import Path
+# Path joins with / and can mkdir and open. No string concatenation.
+from django.conf import settings
+# BASE_DIR is the target project's root — the restaurant folder.
+
+TRACE_DIR = Path(settings.BASE_DIR) / "supervisualizer-traces"
+# Module level: computed once at import, not per request.
+
+# top of __call__, before you capture anything
+started = datetime.now(timezone.utc)
+# timezone.utc so two machines' files sort against each other.
+
+# end of __call__, replacing the print
+trace_id = uuid.uuid4().hex
+# .hex is the 32-character string. Without it you get a UUID object,
+# which json cannot write — same trap as match.func.
+trace = {
+    "trace_id": trace_id,
+    # Phase 1 mints it. P4.3 reads it from a request header instead.
+    "framework": "django",
+    # Which adapter produced this. The panel branches on nothing else.
+    "started_at": started.isoformat(),
+    # A string, because JSON has no date type.
+    "endpoint": {
+        "method": captured["method"],
+        "path": captured["path"],
+        "route_pattern": captured.get("route"),
+        # .get, not [ ]: a 404 may have no resolver_match.
+        "handler": captured.get("view"),
+    },
+    "stages": stages,
+    # Your list from lesson 0016. Omit a kind whose probe list is empty.
+    "sql": captured["sql"],
+    # One flat list in fire order. Two of these five are session/auth.
+    "notes": [],
+    # Stays empty all through Phase 1. The LLM writes here in Phase 5.
+}
+
+TRACE_DIR.mkdir(parents=True, exist_ok=True)
+# exist_ok: the second request must not crash on an existing folder.
+name = started.strftime("%Y%m%dT%H%M%S%f") + "-" + trace_id[:8] + ".json"
+# Clock first so lexical sort is time sort. No ":" — macOS dislikes it.
+with (TRACE_DIR / name).open("w", encoding="utf-8") as f:
+    # "w" truncates, but the name is unique so there is nothing to lose.
+    # encoding="utf-8": Python's docs require it for JSON files.
+    json.dump(trace, f, ensure_ascii=False, indent=2, default=str)
+    # dump, not dumps: no string returned, it goes into f.
+    # ensure_ascii=False keeps 經典原味鍋 readable. indent=2 for your eyes.
+    # default=str is the same safety net your print already uses.</code></pre>
+
+    <h2>Two things deliberately not done today</h2>
+    <table>
+      <thead><tr><th>Not yet</th><th>When</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Wrapping this in <code>try</code>/<code>except</code> so a
+            probe can never 500 the app</td>
+          <td>P1.10, the next task</td>
+        </tr>
+        <tr>
+          <td>Redacting <code>Cookie</code> — your captured headers
+            hold a live <code>sessionid</code>, and a file keeps it
+            after the terminal forgets</td>
+          <td>An open question in the roadmap. Decide before you
+            show this to anyone.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Check</h2>
+
+    <div class="quiz" data-quiz
+         data-explain-right="Python's docs: dump “serializes the object to a text file.” It returns None; the file is the result."
+         data-explain-wrong="That is dumps, with the s. You already use it in the print. dump takes a second argument, the open file.">
+      <p class="quiz-q">json.dump…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">writes a file</button>
+        <button type="button" data-answer data-correct="0">returns a string</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <div class="quiz" data-quiz
+         data-explain-right="execute_wrapper is handed the SQL, not the caller. Two of your five queries are session/auth machinery, and nothing you captured says which stage caused them."
+         data-explain-wrong="That would state a fact you never captured — D2. Per-stage SQL needs the probe to know the current stage, which arrives with the tree.">
+      <p class="quiz-q">In this Trace, sql should…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">stay one list</button>
+        <button type="button" data-answer data-correct="0">split per stage</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <h2>Do this on the restaurant app</h2>
+    <ol class="steps">
+      <li>
+        Build <code>stages</code> from lesson 0016's mapping.
+        Omit <code>validate_input</code> — your
+        <code>validations</code> is <code>[]</code>.
+      </li>
+      <li>
+        Replace the <code>print</code> with the file write.
+        Add <code>supervisualizer-traces/</code> to the restaurant
+        project's <code>.gitignore</code>.
+      </li>
+      <li>
+        Hit <code>GET /menuitem/經典原味鍋/</code>, then
+        <code>POST</code> the customize form. Two files.
+      </li>
+      <li>
+        Paste the smaller file's <code>stages</code> here — not the
+        response body. We check the kinds before marking P1.9 done.
+      </li>
+    </ol>
+
+    <h2>Ask me</h2>
+    <p>
+      If <code>Path</code>, <code>with</code> on a file, or why
+      <code>uuid4().hex</code> rather than the object is muddy,
+      ask before editing.
+    </p>
+
+    <footer class="foot">
+      <a href="0016-dump-is-not-a-trace.html">Lesson 0016</a>
+      <a href="0017-otel-trace-and-why-stage-is-not-span.html">Lesson 0017</a>
+      <a href="../reference/trace-schema.html">Trace schema card</a>
+      <a href="../../ROADMAP.md">P1.9 · P1.10</a>
+      <a href="https://docs.python.org/3/library/json.html#json.dump">json.dump</a>
+      <a href="https://docs.python.org/3/tutorial/inputoutput.html#saving-structured-data-with-json">Saving structured data</a>
+    </footer>
+  </article>
+  <script src="../assets/quiz.js"></script>
+  <script src="../assets/gloss.js"></script>
+  <script src="../assets/type-hop.js"></script>
+</body>
+</html>

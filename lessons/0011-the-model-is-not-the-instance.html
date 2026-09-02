@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The model is not the instance</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Lesson 0011 · P1.7 · supervisualizer</p>
+      <h1>The model is not the instance</h1>
+      <p class="lede">
+        You already know the JSON the browser posted.
+        You do not yet know which of four objects that string has to pass through.
+      </p>
+    </header>
+
+    <p class="fits">
+      <strong>Where this fits</strong>
+      Still P1.7. Lesson 0010 named
+      <code>SlugRelatedField</code>.
+      That field only makes sense once these four objects are distinct.
+      No middleware edit today.
+    </p>
+
+    <h2>The problem</h2>
+    <p>
+      Same real request:
+      <code>POST /api/cart/item/</code>
+      from the customize form on
+      <code>/menuitem/經典原味鍋/</code>.
+      <code>product</code> in the request body is a string.
+      Four different objects sit between that string and a live row.
+    </p>
+
+    <div class="facts">
+      <div class="fact have">
+        <p class="tag">Already have · P1.1</p>
+        <h3>The request body</h3>
+        <p><code>product</code> is still a string.</p>
+        <p class="example">"product": "經典原味鍋"</p>
+      </div>
+      <div class="fact need">
+        <p class="tag">Missing · this map</p>
+        <h3>Which object does what</h3>
+        <p>Four names, four jobs — not four labels for one thing.</p>
+        <p class="example">model · queryset · instance · serializer</p>
+      </div>
+    </div>
+
+    <p>
+      One short analogy for the new idea: the recipe on the kitchen
+      wall is not a dish; searching the stock is not a dish; the
+      waiter who reads the ticket is not the stock.
+      Django’s docs call these
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">model</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> a Python class —
+            <a href="https://docs.djangoproject.com/en/5.2/topics/db/models/"><code>django.db.models.Model</code></a>
+            subclass, here
+            <code>menuitem</code>.
+          </span>
+          <span class="gloss-line">
+            Django’s docs: “A model is the single, definitive source
+            of information about your data… Generally, each model
+            maps to a single database table.”
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://docs.djangoproject.com/en/5.2/topics/db/models/">Models</a>
+          </span>
+        </span>
+      </span>,
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">queryset</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> a
+            <a href="https://docs.djangoproject.com/en/5.2/ref/models/querysets/"><code>QuerySet</code></a>
+            — here
+            <code>menuitem.objects.all()</code>.
+          </span>
+          <span class="gloss-line">
+            Django’s docs: “A QuerySet represents a collection of
+            objects from your database.”
+            The Manager
+            <code>objects</code>
+            “is used to retrieve the instances from the database.”
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://docs.djangoproject.com/en/5.2/topics/db/queries/#retrieving-objects">Retrieving objects</a>
+          </span>
+        </span>
+      </span>,
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">instance</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> one Python object — an instance
+            of the model class, here
+            <code>menuitem(pk=…)</code>.
+          </span>
+          <span class="gloss-line">
+            Django’s making-queries page: the Manager retrieves
+            “the instances from the database.”
+            One row, not the class, not the queryset.
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://docs.djangoproject.com/en/5.2/topics/db/models/#managers">Managers</a>
+          </span>
+        </span>
+      </span>,
+      and
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">serializer</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> a DRF serializer —
+            <a href="https://www.django-rest-framework.org/api-guide/serializers/"><code>Serializer</code></a>,
+            here
+            <code>cartitemSerializer</code>.
+          </span>
+          <span class="gloss-line">
+            DRF’s docs: serializers convert “querysets and model
+            instances” to native Python types for JSON, and also
+            deserialize — “parsed data to be converted back into
+            complex types, after first validating the incoming data.”
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://www.django-rest-framework.org/api-guide/serializers/">Serializers</a>
+          </span>
+        </span>
+      </span>.
+      From here on, those names.
+    </p>
+
+    <div class="roles" data-roles data-start="model" data-match-slug="經典原味鍋">
+      <div class="roles-moments">
+        <button type="button" data-moment="model"
+          data-caption="class menuitem. The model maps to a table. It is not a row.">1 · model</button>
+        <button type="button" data-moment="queryset"
+          data-caption="menuitem.objects.all() is the collection. Both instances below are in it. Neither one is the queryset itself.">2 · queryset</button>
+        <button type="button" data-moment="instance"
+          data-caption="This POST needs one object from that collection: the instance whose slug is 經典原味鍋. The other instance stays in the queryset.">3 · instance</button>
+        <button type="button" data-moment="serializer"
+          data-caption="cartitemSerializer converts between JSON and those objects. is_valid is the inbound trip.">4 · serializer</button>
+      </div>
+      <div class="roles-grid">
+        <article class="roles-card" data-role="model">
+          <p class="tag">model</p>
+          <h3><code>class menuitem</code></h3>
+          <p>Maps to one table. Not a row.</p>
+        </article>
+        <article class="roles-card" data-role="queryset">
+          <p class="tag">queryset</p>
+          <h3><code>menuitem.objects.all()</code></h3>
+          <p>A collection of objects. Not a row.</p>
+        </article>
+        <article class="roles-card" data-role="instance">
+          <p class="tag">instance</p>
+          <h3><code>menuitem(pk=…)</code></h3>
+          <p>One live row. A Python object.</p>
+        </article>
+        <article class="roles-card" data-role="serializer">
+          <p class="tag">serializer</p>
+          <h3><code>cartitemSerializer</code></h3>
+          <p>JSON ↔ instances, after <code>is_valid</code>.</p>
+        </article>
+      </div>
+      <div class="qsbag">
+        <p class="urlwalk-label"><code>menuitem.objects.all()</code></p>
+        <ol>
+          <li data-slug="經典原味鍋">
+            <code>menuitem</code> instance · slug <code>經典原味鍋</code>
+            <span class="job">One object in the collection.</span>
+          </li>
+          <li data-slug="廣式沙茶鍋">
+            <code>menuitem</code> instance · slug <code>廣式沙茶鍋</code>
+            <span class="job">Another object in the same collection.</span>
+          </li>
+        </ol>
+      </div>
+      <p class="roles-caption" data-roles-caption></p>
+    </div>
+
+    <div class="callout">
+      <strong>Two querysets.</strong>
+      The view class
+      <code>cartitemList</code>
+      has
+      <code>cartitem.objects.all()</code>
+      — P1.4 read that model name.
+      The <code>product</code> field has
+      <code>menuitem.objects.all()</code>.
+      Those are different models.
+    </div>
+
+    <h2>The string becomes an instance</h2>
+    <p>
+      Step the inbound trip for
+      <code>product</code>
+      on this POST.
+    </p>
+
+    <div class="lookup" data-lookup data-start="body">
+      <div class="lookup-moments">
+        <button type="button" data-moment="body"
+          data-caption="The request body still has a str. is_valid has not run. No instance yet.">1 · request body</button>
+        <button type="button" data-moment="search"
+          data-caption="is_valid runs. The product field looks up that slug on menuitem.objects.">2 · queryset</button>
+        <button type="button" data-moment="row"
+          data-caption="The queryset returns one menuitem instance. That is what validated_data['product'] holds.">3 · instance</button>
+      </div>
+      <ol class="lookup-chain">
+        <li data-step="body">
+          <span class="who">request body · <code>"經典原味鍋"</code><span class="type-badge">str</span></span>
+          <span class="job">The value the form posted. Still a string.</span>
+        </li>
+        <li data-step="search">
+          <span class="who"><code>cartitemSerializer</code> · <code>menuitem.objects</code></span>
+          <span class="job">The serializer looks up that slug on the menuitem queryset.</span>
+        </li>
+        <li data-step="row">
+          <span class="who"><code>validated_data["product"]</code> · <code>menuitem(pk=…)</code><span class="type-badge">instance</span></span>
+          <span class="job">One menuitem instance. Not a cartitem. Not the string.</span>
+        </li>
+      </ol>
+      <p class="lookup-caption" data-lookup-caption></p>
+    </div>
+
+    <h2>Check</h2>
+
+    <div class="quiz" data-quiz
+         data-explain-right="product holds a menuitem instance. cartitemSerializer is the serializer for the cartitem model — that is a different object."
+         data-explain-wrong="cartitem is the model the serializer is for. The slug was looked up on menuitem.objects, so the value is a menuitem instance.">
+      <p class="quiz-q">After is_valid, product is…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">a menuitem instance</button>
+        <button type="button" data-answer data-correct="0">a cartitem instance</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <div class="quiz" data-quiz
+         data-explain-right="The field’s queryset is menuitem.objects.all(). The view class queryset is cartitem.objects.all() — a different model."
+         data-explain-wrong="cartitem.objects.all() is the view class queryset. Looking up 經典原味鍋 uses menuitem.objects.">
+      <p class="quiz-q">The product field searches…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">the menuitem queryset</button>
+        <button type="button" data-answer data-correct="0">the cartitem queryset</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <h2>Do this</h2>
+    <ol class="steps">
+      <li>Click all four role cards. On queryset, both instances light. On instance, only <code>經典原味鍋</code> lights.</li>
+      <li>Step the lookup. Watch the string become an instance.</li>
+      <li>
+        In chat, finish this sentence:
+        <code>product</code> searches the ______ queryset
+        and puts a ______ instance in
+        <code>validated_data</code>.
+      </li>
+    </ol>
+
+    <h2>Ask me</h2>
+    <p>
+      If “model versus instance” or why two querysets exist is muddy,
+      ask before we return to
+      <code>SlugRelatedField</code>.
+    </p>
+
+    <footer class="foot">
+      <a href="0010-validated-data-is-the-type-change.html">Lesson 0010</a>
+      <a href="0007-the-view-class-is-a-recipe-card.html">Lesson 0007</a>
+      <a href="../reference/four-objects.html">Four objects card</a>
+      <a href="https://docs.djangoproject.com/en/5.2/topics/db/models/">Django models</a>
+      <a href="https://docs.djangoproject.com/en/5.2/topics/db/queries/#retrieving-objects">Retrieving objects</a>
+      <a href="https://www.django-rest-framework.org/api-guide/serializers/">DRF serializers</a>
+    </footer>
+  </article>
+  <script src="../assets/quiz.js"></script>
+  <script src="../assets/gloss.js"></script>
+  <script src="../assets/roles.js"></script>
+</body>
+</html>

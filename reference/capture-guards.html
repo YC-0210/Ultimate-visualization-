@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Capture guards — probe safety card</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Reference · P1.10</p>
+      <h1>Capture guards</h1>
+      <p class="lede">
+        Every read in the middleware that can raise, what it raises, and the
+        guard. Check this card whenever you add a probe.
+      </p>
+    </header>
+
+    <h2>The rule</h2>
+    <div class="callout">
+      <strong>Call the original outside the guard. Guard only what you do with
+      the result.</strong>
+      Then: swallow with <code>except Exception</code>, and record the failure
+      so absence never has to mean two things.
+    </div>
+
+    <h2>Shape</h2>
+    <pre><code>result = original(...)          # outside — the app's work
+try:
+    ...our bookkeeping...       # inside
+except Exception as exc:        # not bare except
+    note_failure("where", exc)  # swallow AND record
+return result                   # always reachable</code></pre>
+
+    <h2>Every site, and what it raises</h2>
+    <table>
+      <thead>
+        <tr><th>Site</th><th>Can raise</th><th>Guard</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>request.body</code><br /><small>P1.1</small></td>
+          <td>
+            <a href="https://docs.djangoproject.com/en/5.2/ref/exceptions/"><code>RequestDataTooBig</code></a>
+            over
+            <a href="https://docs.djangoproject.com/en/5.2/ref/settings/#data-upload-max-memory-size"><code>DATA_UPLOAD_MAX_MEMORY_SIZE</code></a>
+            (2.5 MB default);
+            <code>RawPostDataException</code> if the stream was already read;
+            <code>UnreadablePostError</code> if the client cancels an upload;
+            <code>UnicodeDecodeError</code> on non-text bytes.
+          </td>
+          <td><code>except Exception</code>, not just
+            <code>UnicodeDecodeError</code>. Record
+            <code>"&lt;body not captured&gt;"</code>.</td>
+        </tr>
+        <tr>
+          <td><code>response.content</code><br /><small>P1.6</small></td>
+          <td>
+            <code>AttributeError</code> on any
+            <code>StreamingHttpResponse</code> — including
+            <code>FileResponse</code>, which is what
+            <code>django.views.static.serve</code> returns for
+            <code>/media/…</code>, and what Phase 3's own SSE endpoint will be.
+          </td>
+          <td>Branch on <code>response.streaming</code>
+            <em>before</em> touching <code>.content</code>. Never consume
+            <code>streaming_content</code>.</td>
+        </tr>
+        <tr>
+          <td><code>capture_sql</code> append<br /><small>P1.5</small></td>
+          <td>Anything from <code>list(params)</code> or the timing maths. The
+            danger is not the exception, it is losing
+            <code>return result</code> — the query's own return value.</td>
+          <td><code>result = execute(...)</code> first, guard the append,
+            <code>return result</code> last.</td>
+        </tr>
+        <tr>
+          <td><code>probed_is_valid</code> append<br /><small>P1.7</small></td>
+          <td><code>encode()</code> meeting a value whose <code>str()</code>
+            raises; <code>dict(self.validated_data)</code> on an unusual
+            serializer.</td>
+          <td>Guard the append only. Runs inside the view, so Django's
+            middleware-boundary conversion does not apply here.</td>
+        </tr>
+        <tr>
+          <td><code>probed_render</code> append<br /><small>P1.8</small></td>
+          <td>Same as above, plus <code>self.template.name</code> and
+            <code>dict(context)</code> when the context is not a plain dict.</td>
+          <td>Guard the append only. Same reason.</td>
+        </tr>
+        <tr>
+          <td>the trace file write<br /><small>P1.9</small></td>
+          <td><code>OSError</code> — no permission, disk full, read-only
+            volume. <code>AttributeError</code> on
+            <code>settings.BASE_DIR</code>: that name comes from the
+            <code>startproject</code> template, so a project that does not
+            define it has no such setting.</td>
+          <td>Guard the whole write. A trace that cannot be saved is not a
+            reason to fail the request.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2><code>Exception</code>, not <code>BaseException</code></h2>
+    <p>
+      Python's docs on
+      <a href="https://docs.python.org/3/library/exceptions.html#Exception"><code>Exception</code></a>:
+      “All built-in, non-system-exiting exceptions are derived from this
+      class.” <code>KeyboardInterrupt</code> and <code>SystemExit</code>
+      derive from
+      <a href="https://docs.python.org/3/library/exceptions.html#BaseException"><code>BaseException</code></a>,
+      so they are not caught — which is what you want in code that runs on
+      every request. A bare <code>except:</code> catches them and eats Ctrl-C.
+    </p>
+
+    <h2>What you do <em>not</em> guard</h2>
+    <table>
+      <thead><tr><th>Not this</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>self.get_response(request)</code></td>
+          <td>Django already converts view and inner-middleware exceptions
+            into responses before your code resumes, so “every middleware can
+            always rely on getting some kind of HTTP response back”
+            (<a href="https://docs.djangoproject.com/en/5.2/topics/http/middleware/#exception-handling">Exception
+            handling</a>). Guard it and a firing guard leaves you with no
+            <code>response</code> to return.</td>
+        </tr>
+        <tr>
+          <td><code>original_is_valid(...)</code>,
+            <code>original_render(...)</code></td>
+          <td>These are the app's work. Swallowing here turns a real
+            validation or template error into a silent success, and the view
+            carries on with a wrong result.</td>
+        </tr>
+        <tr>
+          <td>the <code>finally</code> restore</td>
+          <td>It must run, and it must not be skipped. Leave the probe
+            installed and the next request wraps the wrapper.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>The mark</h2>
+    <pre><code>"capture_errors": [
+  {
+    "where": "render",
+    "error": "TypeError: keys must be str, not tuple"
+  }
+]</code></pre>
+    <p>
+      Usually <code>[]</code>. It exists because an absent stage already means
+      “did not happen” — so a swallowed probe failure needs a different shape
+      in the file, or the panel states a fact nothing observed
+      (<a href="../../DECISIONS.md">D2</a>). Prior art: the Sentry SDK's
+      <a href="https://github.com/getsentry/sentry-python/blob/master/sentry_sdk/utils.py"><code>capture_internal_exceptions()</code></a>
+      swallows from the host app and logs for the tool's author.
+    </p>
+
+    <footer class="foot">
+      <a href="../lessons/0019-a-probe-must-fail-alone.html">Lesson 0019</a>
+      <a href="http-response.html">HttpResponse card</a>
+      <a href="execute-wrapper.html">execute_wrapper card</a>
+      <a href="../../ROADMAP.md">P1.10</a>
+      <a href="https://docs.djangoproject.com/en/5.2/topics/http/middleware/#exception-handling">Middleware: Exception handling</a>
+      <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#streaminghttpresponse-objects">StreamingHttpResponse</a>
+      <a href="https://docs.python.org/3/library/exceptions.html#Exception">Python: Exception</a>
+    </footer>
+  </article>
+</body>
+</html>

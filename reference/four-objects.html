@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Four objects — one lookup</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Reference · P1.7</p>
+      <h1>Four objects</h1>
+      <p class="lede">
+        model, queryset, instance, serializer.
+        Four jobs, not four labels for one thing.
+      </p>
+    </header>
+
+    <table>
+      <thead><tr><th>Object</th><th>On this POST</th><th>Is not</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>model</td>
+          <td><code>class menuitem</code></td>
+          <td>a row</td>
+        </tr>
+        <tr>
+          <td>queryset</td>
+          <td><code>menuitem.objects.all()</code></td>
+          <td>a row, or the class</td>
+        </tr>
+        <tr>
+          <td>instance</td>
+          <td><code>menuitem(pk=…)</code></td>
+          <td>the class, or the queryset</td>
+        </tr>
+        <tr>
+          <td>serializer</td>
+          <td><code>cartitemSerializer</code></td>
+          <td>the instance, or the queryset</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Docs</h2>
+    <ul>
+      <li>
+        <a href="https://docs.djangoproject.com/en/5.2/topics/db/models/">Model</a>:
+        “the single, definitive source of information about your data…
+        maps to a single database table.”
+      </li>
+      <li>
+        <a href="https://docs.djangoproject.com/en/5.2/topics/db/queries/#retrieving-objects">QuerySet</a>:
+        “a collection of objects from your database.”
+      </li>
+      <li>
+        <a href="https://docs.djangoproject.com/en/5.2/topics/db/models/#managers">Manager</a>
+        <code>objects</code>:
+        “retrieve the instances from the database.”
+      </li>
+      <li>
+        <a href="https://www.django-rest-framework.org/api-guide/serializers/">Serializer</a>:
+        convert querysets and instances to JSON types; deserialize
+        parsed data back into complex types after validating.
+      </li>
+    </ul>
+
+    <h2>The inbound trip</h2>
+    <pre><code>"經典原味鍋"  (str)
+        │
+        ▼
+cartitemSerializer.product
+  asks menuitem.objects  (queryset of model menuitem)
+        │
+        ▼
+menuitem(pk=…)  (instance)
+        │
+        ▼
+validated_data["product"]</code></pre>
+
+    <h2>Two querysets</h2>
+    <table>
+      <thead><tr><th>Whose</th><th>Queryset</th><th>Model</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>view class <code>cartitemList</code></td>
+          <td><code>cartitem.objects.all()</code></td>
+          <td><code>cartitem</code></td>
+        </tr>
+        <tr>
+          <td>field <code>product</code></td>
+          <td><code>menuitem.objects.all()</code></td>
+          <td><code>menuitem</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <footer class="foot">
+      <a href="../lessons/0011-the-model-is-not-the-instance.html">Lesson 0011</a>
+      <a href="../lessons/0010-validated-data-is-the-type-change.html">Lesson 0010</a>
+      <a href="https://docs.djangoproject.com/en/5.2/topics/db/models/">Models</a>
+      <a href="https://docs.djangoproject.com/en/5.2/topics/db/queries/#retrieving-objects">Retrieving objects</a>
+      <a href="https://www.django-rest-framework.org/api-guide/serializers/">Serializers</a>
+    </footer>
+  </article>
+</body>
+</html>

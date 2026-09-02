@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OTel span — pocket card</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Reference · P1.9</p>
+      <h1>OTel span anatomy</h1>
+      <p class="lede">
+        What the spec puts on a span, and which parts this repo
+        borrowed. Source:
+        <a href="https://opentelemetry.io/docs/concepts/signals/traces/">Traces</a>,
+        <a href="https://opentelemetry.io/docs/specs/otel/trace/api/#span">Trace API</a>.
+      </p>
+    </header>
+
+    <h2>Definitions, quoted</h2>
+    <table>
+      <thead><tr><th>Term</th><th>OTel's words</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Trace</td>
+          <td>“The path of a request through your application.”
+            “A trace is made of one or more spans.”</td>
+        </tr>
+        <tr>
+          <td>span</td>
+          <td>“A span represents a unit of work or operation.
+            Spans are the building blocks of Traces.”</td>
+        </tr>
+        <tr>
+          <td>root span</td>
+          <td>Has a <code>trace_id</code> “but has no
+            <code>parent_id</code>. That's how you know it's the
+            root span.”</td>
+        </tr>
+        <tr>
+          <td>context propagation</td>
+          <td>“the core concept that enables Distributed Tracing.”
+            The one thing D6 actually pays for.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>The eight things on a span</h2>
+    <table>
+      <thead><tr><th>Field</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td>name</td><td>Free text. Kept low-cardinality on purpose.</td></tr>
+        <tr><td>parent span ID</td><td>Empty for a root span. This is the tree.</td></tr>
+        <tr><td>start / end timestamps</td><td>A span is an interval. A Stage is not.</td></tr>
+        <tr><td><code>SpanContext</code></td><td>Immutable: <code>trace_id</code>, <code>span_id</code>, trace flags, trace state.</td></tr>
+        <tr><td>attributes</td><td>Flat scalars only — see the rule below.</td></tr>
+        <tr><td>events</td><td>“a structured log message… on a Span” at one point in time.</td></tr>
+        <tr><td>links</td><td>Associates spans across traces. Optional.</td></tr>
+        <tr><td>status</td><td><code>Unset</code> / <code>Error</code> / <code>Ok</code>. Default <code>Unset</code> means success.</td></tr>
+      </tbody>
+    </table>
+
+    <h2>The attribute rule</h2>
+    <p>
+      “Keys must be non-null string values. Values must be a
+      non-null string, boolean, floating point value, integer, or
+      an array of these values.”
+    </p>
+    <p>
+      No dicts. This is why P0.4a JSON-dumps the
+      <code>{type, value}</code> encoding into one string
+      attribute, and why a nested value is silently dropped with a
+      warning rather than raising.
+    </p>
+
+    <h2>SpanKind — five values, wrong subject</h2>
+    <table>
+      <thead><tr><th><code>SpanKind</code></th><th>Call direction</th><th>Style</th></tr></thead>
+      <tbody>
+        <tr><td><code>CLIENT</code></td><td>outgoing</td><td>request/response</td></tr>
+        <tr><td><code>SERVER</code></td><td>incoming</td><td>request/response</td></tr>
+        <tr><td><code>PRODUCER</code></td><td>outgoing</td><td>deferred execution</td></tr>
+        <tr><td><code>CONSUMER</code></td><td>incoming</td><td>deferred execution</td></tr>
+        <tr><td><code>INTERNAL</code></td><td>—</td><td>does not cross a process boundary (default)</td></tr>
+      </tbody>
+    </table>
+    <p>
+      Every Django stage in Phase 1 is <code>INTERNAL</code>.
+      That is the proof it cannot replace our <code>kind</code>.
+    </p>
+
+    <h2>Borrowed vs coined</h2>
+    <table>
+      <thead><tr><th>In our Trace</th><th>Origin</th></tr></thead>
+      <tbody>
+        <tr><td><code>trace_id</code></td><td>OTel (tier 2)</td></tr>
+        <tr><td><code>parent_id</code></td><td>OTel, via D5 (tier 2)</td></tr>
+        <tr><td><code>kind</code></td><td>this repo; prior art LSP <code>SymbolKind</code> (tier 3)</td></tr>
+        <tr><td><code>label</code></td><td>this repo, D7 (tier 3)</td></tr>
+        <tr><td><code>Stage</code></td><td>this repo, CONTEXT.md (tier 3)</td></tr>
+      </tbody>
+    </table>
+
+    <footer class="foot">
+      <a href="../lessons/0017-otel-trace-and-why-stage-is-not-span.html">Lesson 0017</a>
+      <a href="trace-schema.html">Trace schema card</a>
+      <a href="../CONTEXT.md">CONTEXT — Stage</a>
+      <a href="https://opentelemetry.io/docs/concepts/signals/traces/">OTel — Traces</a>
+      <a href="https://opentelemetry.io/docs/specs/otel/trace/api/#span">Trace API — Span</a>
+    </footer>
+  </article>
+</body>
+</html>

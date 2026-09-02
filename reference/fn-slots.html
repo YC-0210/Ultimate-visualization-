@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>self, *args, **kwargs — slots card</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Reference · Python</p>
+      <h1>Function slots</h1>
+      <p class="lede">
+        Three extra forms on a <code>def</code> line.
+        Examples from the
+        <a href="https://docs.python.org/3/tutorial/">Python tutorial</a>.
+      </p>
+    </header>
+
+    <table>
+      <thead><tr><th>Form</th><th>Holds</th><th>Docs example</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>self</code></td>
+          <td>the instance, first argument</td>
+          <td><code>x.f()</code> ≡ <code>MyClass.f(x)</code></td>
+        </tr>
+        <tr>
+          <td><code>*args</code></td>
+          <td>a <code>tuple</code> of leftover positionals</td>
+          <td><code>concat("earth", "mars", "venus")</code></td>
+        </tr>
+        <tr>
+          <td><code>**kwargs</code></td>
+          <td>a <code>dict</code> of leftover keywords</td>
+          <td><code>cheeseshop(..., shopkeeper="…")</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>concat</h2>
+    <pre><code>def concat(*args, sep="/"):
+    return sep.join(args)
+
+concat("earth", "mars", "venus")
+# args = ("earth", "mars", "venus")  sep = "/"
+# returns "earth/mars/venus"</code></pre>
+
+    <h2>cheeseshop</h2>
+    <pre><code>def cheeseshop(kind, *arguments, **keywords):
+    ...
+
+# kind        → "Limburger"
+# *arguments  → the two positional strings
+# **keywords  → shopkeeper, client, sketch</code></pre>
+    <p>
+      <code>*name</code> before <code>**name</code>.
+      The names <code>args</code> / <code>kwargs</code> are convention.
+    </p>
+
+    <footer class="foot">
+      <a href="../lessons/0012-self-args-kwargs.html">Lesson 0012</a>
+      <a href="https://docs.python.org/3/tutorial/classes.html#method-objects">Method objects</a>
+      <a href="https://docs.python.org/3/tutorial/controlflow.html#arbitrary-argument-lists">Arbitrary argument lists</a>
+      <a href="https://docs.python.org/3/tutorial/controlflow.html#keyword-arguments">Keyword arguments</a>
+    </footer>
+  </article>
+</body>
+</html>

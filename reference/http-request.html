@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HttpRequest — pocket card</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Reference · request</p>
+      <h1>HttpRequest pocket card</h1>
+      <p class="lede">
+        One Python object for one visit. Source:
+        <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#httprequest-objects">HttpRequest</a>.
+      </p>
+    </header>
+
+    <p>
+      Django’s docs: “When a page is requested, Django creates an
+      HttpRequest object that contains metadata about the request.
+      Then Django loads the appropriate view, passing the HttpRequest
+      as the first argument.”
+    </p>
+
+    <h2>Already there when your middleware starts</h2>
+    <table>
+      <thead><tr><th>Pocket</th><th>What it is</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>method</code></td>
+          <td>Uppercase string: <code>GET</code>, <code>POST</code>, …</td>
+        </tr>
+        <tr>
+          <td><code>path</code></td>
+          <td>Path string, no query. Example: <code>/api/menuitem/經典原味鍋/</code>.</td>
+        </tr>
+        <tr>
+          <td><code>COOKIES</code></td>
+          <td>Dict of cookie names → strings. <code>sessionid</code> is one key. Parsed from the Cookie header.</td>
+        </tr>
+        <tr>
+          <td><code>headers</code> / <code>META</code></td>
+          <td>The raw headers. You dump <code>dict(request.headers)</code>. Cookie here is one string, not a dict.</td>
+        </tr>
+        <tr>
+          <td><code>body</code></td>
+          <td>Raw bytes. Empty on a typical GET.</td>
+        </tr>
+        <tr>
+          <td><code>GET</code> / <code>POST</code></td>
+          <td>Query-string / form fields. Not the JSON body — that is <code>body</code>.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Stamped later (inside <code>get_response</code>)</h2>
+    <table>
+      <thead><tr><th>Pocket</th><th>Who fills it</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>session</code></td>
+          <td>SessionMiddleware. Dict-like, on the server, found by <code>sessionid</code>.</td>
+        </tr>
+        <tr>
+          <td><code>user</code></td>
+          <td>AuthenticationMiddleware. <code>User</code> or <code>AnonymousUser</code>.</td>
+        </tr>
+        <tr>
+          <td><code>resolver_match</code></td>
+          <td>The menu walk. Missing on a 404.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Docs split these as
+      <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#attributes-set-by-middleware">attributes set by middleware</a>
+      vs the attributes that arrive with the HTTP message.
+    </p>
+
+    <footer class="foot">
+      <a href="../lessons/0005-ticket-is-not-the-diner.html">Lesson 0005</a>
+      <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#httprequest-objects">HttpRequest</a>
+    </footer>
+  </article>
+</body>
+</html>

@@ -42,7 +42,7 @@
         <tr>
           <td>pattern</td>
           <td><code>route</code></td>
-          <td>The matching <code>path()</code> string, including include prefixes. Example: <code>api/menuitem/&lt;str:slug&gt;/</code>.</td>
+          <td>The matching <code>path()</code> string, including include prefixes. On this project a hit of <code>/api/menuitem/經典原味鍋/</code> gives <code>api/menuitem/&lt;str:slug&gt;/</code>.</td>
         </tr>
         <tr>
           <td>url_name</td>
@@ -64,11 +64,20 @@
 
     <h2>Naming <code>func</code></h2>
     <pre><code>func = match.func
-cls = getattr(func, "view_class", None)
-if cls is not None:
-    view = f"{cls.__module__}.{cls.__qualname__}"
+view_class = getattr(func, "view_class", None)
+if view_class is not None:
+    view = view_class.__module__ + "." + view_class.__qualname__
 else:
-    view = f"{func.__module__}.{func.__qualname__}"</code></pre>
+    view = func.__module__ + "." + func.__qualname__</code></pre>
+    <p>
+      Then dump four keys, not the match:
+    </p>
+    <pre><code>print(json.dumps({
+    "route": match.route,
+    "url_name": match.url_name,
+    "view": view,
+    "kwargs": match.kwargs,
+}, ensure_ascii=False))</code></pre>
     <p>
       <code>view_class</code> is what
       <a href="https://docs.djangoproject.com/en/5.2/ref/class-based-views/base/#django.views.generic.base.View.as_view">View.as_view()</a>
@@ -86,7 +95,9 @@ else:
     </p>
 
     <footer class="foot">
-      <a href="../lessons/0001-when-resolver-match-appears.html">Lesson 0001</a>
+      <a href="../lessons/0001-when-resolver-match-appears.html">Lesson 0001: the path vs Django’s choice</a>
+      <a href="../lessons/0002-json-from-resolver-match.html">Lesson 0002: four fields</a>
+      <a href="../lessons/0003-func-is-not-the-print.html">Lesson 0003: the print vs func</a>
       <a href="https://docs.djangoproject.com/en/5.2/ref/urlresolvers/#django.urls.ResolverMatch">ResolverMatch</a>
     </footer>
   </article>

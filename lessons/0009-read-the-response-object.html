@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Read the object get_response returned</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Lesson 0009 · P1.6 · supervisualizer</p>
+      <h1>Read the object get_response returned</h1>
+      <p class="lede">
+        You already know what the request contained.
+        You do not yet know what the view returned.
+      </p>
+    </header>
+
+    <p class="fits">
+      <strong>Where this fits</strong>
+      Roadmap: Phase 1, P1.6 — capture the response:
+      status, headers, body, size.
+      You already dump the request, the route, user, and SQL.
+      Today you copy four facts off the object
+      <code>get_response</code> already returns.
+    </p>
+
+    <h2>The problem</h2>
+    <p>
+      Same real request:
+      <code>GET /api/menuitem/經典原味鍋/</code>.
+      Your print already says
+      <code>response captured</code>.
+      That line is <em>when</em>. It is not the object.
+    </p>
+
+    <div class="facts">
+      <div class="fact have">
+        <p class="tag">Already have · P1.1–P1.5</p>
+        <h3>Facts from the request</h3>
+        <p>Method, path, route, user, SQL. All read off <code>request</code>, or copied while the view ran.</p>
+        <p class="example">GET · /api/menuitem/經典原味鍋/ · menuitem_detail</p>
+      </div>
+      <div class="fact need">
+        <p class="tag">Missing · P1.6</p>
+        <h3>What the view returned</h3>
+        <p>Status, headers, body bytes, byte size. These live on a different object.</p>
+        <p class="example">200 · application/json · {"slug": "經典原味鍋", …} · N bytes</p>
+      </div>
+    </div>
+
+    <h2>Two objects after get_response</h2>
+    <p>
+      Django’s docs: Django builds an
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">HttpRequest</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> an instance of
+            <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#httprequest-objects"><code>django.http.HttpRequest</code></a>.
+          </span>
+          <span class="gloss-line">
+            You already dump this object. Django creates it
+            automatically for each visit.
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#httprequest-objects">HttpRequest</a>
+          </span>
+        </span>
+      </span>
+      automatically. The view is responsible for returning an
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">HttpResponse</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> an instance of
+            <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#httpresponse-objects"><code>django.http.HttpResponse</code></a>
+            (or a subclass).
+          </span>
+          <span class="gloss-line">
+            Django’s docs: “In contrast to HttpRequest objects, which
+            are created automatically by Django, HttpResponse objects
+            are your responsibility. Each view you write is responsible
+            for instantiating, populating, and returning an
+            HttpResponse.”
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#httpresponse-objects">HttpResponse</a>
+          </span>
+        </span>
+      </span>.
+      <code>get_response(request)</code> is that return value,
+      after inner middleware on the way out.
+    </p>
+
+    <figure class="twobox" data-twobox data-start="before">
+      <div class="twobox-moments">
+        <button type="button" data-moment="before">1 · before get_response</button>
+        <button type="button" data-moment="after">2 · after get_response</button>
+      </div>
+      <div class="twobox-pair">
+        <div class="twobox-obj" data-obj="request" data-state="live">
+          <p class="twobox-name"><span>already dumping</span>request</p>
+          <dl>
+            <dt>method</dt>
+            <dd>GET</dd>
+            <dt>path</dt>
+            <dd>/api/menuitem/經典原味鍋/</dd>
+          </dl>
+        </div>
+        <div class="twobox-obj" data-obj="response" data-state="empty">
+          <p class="twobox-name"><span>missing · P1.6</span>response</p>
+          <dl>
+            <dt>status_code</dt>
+            <dd data-fact="status"></dd>
+            <dt>headers</dt>
+            <dd data-fact="headers"></dd>
+            <dt>content</dt>
+            <dd data-fact="content"></dd>
+            <dt>size</dt>
+            <dd data-fact="size"></dd>
+          </dl>
+        </div>
+      </div>
+      <p class="twobox-caption" data-twobox-caption></p>
+    </figure>
+
+    <div class="callout">
+      <strong>A 404 still has a response.</strong>
+      Missing route means no <code>resolver_match</code>.
+      It does not mean no <code>HttpResponse</code>. Do not nest
+      these four fields inside <code>if match</code>.
+    </div>
+
+    <h2>Four fields</h2>
+    <p>
+      Same as P1.2: do not dump the whole object.
+      <code>json.dumps(response)</code> fails. Copy four JSON-safe
+      pieces.
+    </p>
+
+    <figure class="urlwalk">
+      <p class="urlwalk-in">
+        Returned object:
+        <code>response = self.get_response(request)</code>
+      </p>
+      <p class="urlwalk-label">django.http.HttpResponse · four fields</p>
+      <ol>
+        <li class="hit">
+          <code>status_code</code>
+          <span class="why">The HTTP status. 200 on this GET when the slug exists.</span>
+        </li>
+        <li class="hit">
+          <code>headers</code>
+          <span class="why"><code>dict(response.headers)</code>, same shape as request headers.</span>
+        </li>
+        <li class="hit">
+          <code>content</code>
+          <span class="why">The body, as
+            <span class="gloss" data-gloss>
+              <button type="button" class="gloss-term" title="Show the type">bytes</button>
+              <span class="gloss-pop" hidden role="note">
+                <span class="gloss-line gloss-type">
+                  <strong>Type:</strong> a
+                  <code>bytes</code> object — Django’s docs: “A
+                  bytestring representing the content, encoded from
+                  a string if necessary.”
+                </span>
+                <span class="gloss-line">
+                  Same type as <code>request.body</code>. Decode it
+                  the same way. Size is <code>len(response.content)</code>,
+                  a byte count, not a character count.
+                </span>
+                <span class="gloss-line gloss-cite">
+                  <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#django.http.HttpResponse.content">HttpResponse.content</a>
+                </span>
+              </span>
+            </span>.
+          </span>
+        </li>
+        <li class="hit">
+          <code>len(content)</code>
+          <span class="why">Byte size of that body. 經典原味鍋 is more bytes than characters.</span>
+        </li>
+      </ol>
+    </figure>
+
+    <p>
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">headers</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> a case-insensitive dict-like
+            object —
+            <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#django.http.HttpResponse.headers"><code>HttpResponse.headers</code></a>.
+          </span>
+          <span class="gloss-line">
+            Django’s docs: “an interface to all HTTP headers on the
+            response, except a Set-Cookie header.” Cookies on the
+            response live on <code>response.cookies</code>.
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#django.http.HttpResponse.headers">HttpResponse.headers</a>
+          </span>
+        </span>
+      </span>
+      does not include <code>Set-Cookie</code>.
+      That header is on <code>response.cookies</code> — you already
+      know cookies from lesson 0004. P1.6 dumps
+      <code>dict(response.headers)</code>. Leave cookies for later
+      if they are missing from that dict.
+    </p>
+    <p>
+      Nest the four fields under
+      <code>captured["response"]</code>.
+      You already used <code>headers</code> and <code>body</code>
+      for the request. Do not overwrite them.
+    </p>
+
+    <h2>Shape of the code</h2>
+    <p>
+      You already have <code>response = self.get_response(request)</code>
+      inside the <code>with</code>. Read the four fields after
+      that block — same place you already read
+      <code>request.user</code>. This is a copyable shape; wiring
+      it into <code>middleware.py</code> is yours.
+    </p>
+
+    <pre><code># Decode the body the same way you already decode request.body.
+# content is bytes. decode turns those bytes into text.
+try:
+    response_body = response.content.decode("utf-8")
+except UnicodeDecodeError:
+    # Not text (an image, etc.). Record the byte length instead of crashing.
+    response_body = f"&lt;binary {len(response.content)} bytes&gt;"
+
+# A nested dict so these names do not overwrite request headers/body.
+captured["response"] = {
+    # The HTTP status. An int, JSON-safe as a number.
+    "status": response.status_code,
+    # Response headers. dict() makes it JSON-safe.
+    "headers": dict(response.headers),
+    # The body, now a string (or the binary placeholder above).
+    "body": response_body,
+    # Byte length of content. Count the bytes, not the decoded string.
+    "size": len(response.content),
+}</code></pre>
+
+    <p>
+      If <code>response.streaming</code> is
+      <code>True</code>, there is no
+      <code>.content</code> — Django’s docs say do not consume a
+      streaming body in middleware. This restaurant GET is not
+      that. Skip the body on a streaming response; still copy
+      status and headers.
+      <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#streaminghttpresponse-objects">StreamingHttpResponse</a>
+    </p>
+
+    <h2>Expected result</h2>
+    <p>
+      For <code>GET /api/menuitem/經典原味鍋/</code>,
+      <code>captured["response"]</code> has this shape.
+      Do not invent the exact <code>size</code> — copy yours.
+    </p>
+
+    <pre><code>"response": {
+  "status": 200,
+  "headers": {
+    "Content-Type": "application/json",
+    ...
+  },
+  "body": "{\"slug\": \"經典原味鍋\", \"product\": \"...\", ...}",
+  "size": 123
+}</code></pre>
+
+    <h2>Check</h2>
+
+    <div class="quiz" data-quiz
+         data-explain-right="get_response returns a new HttpResponse. Status and body live on that object. The request is still the object you already dump."
+         data-explain-wrong="The request still has method and path. The view’s return value is a different object — what get_response returned.">
+      <p class="quiz-q">Which object holds status and body?</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">the returned response</button>
+        <button type="button" data-answer data-correct="0">the original request</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <div class="quiz" data-quiz
+         data-explain-right="Django’s docs: content is a bytestring. Same type as request.body. Decode it; size is len of those bytes."
+         data-explain-wrong="path is a str on the request. content is the response body, stored as bytes until you decode it.">
+      <p class="quiz-q">What type is response.content?</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">bytes, like request.body</button>
+        <button type="button" data-answer data-correct="0">a str, like request.path</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <h2>Do this on the restaurant app</h2>
+    <ol class="steps">
+      <li>
+        After the <code>with</code> block, you already have
+        <code>response</code>. Copy <code>status_code</code>,
+        <code>headers</code>, decoded <code>content</code>, and
+        <code>len(response.content)</code>.
+      </li>
+      <li>
+        Store them under <code>captured["response"]</code>.
+        Do not nest this inside <code>if match</code>.
+      </li>
+      <li>
+        Hit <code>GET /api/menuitem/經典原味鍋/</code>.
+      </li>
+      <li>
+        Paste the <code>response</code> dict here. We will inspect
+        it before marking P1.6 done.
+      </li>
+    </ol>
+
+    <h2>Ask me</h2>
+    <p>
+      If “two objects after get_response” or why size is a byte
+      count is muddy, ask before editing.
+      I will not add the four fields to the middleware for you.
+    </p>
+
+    <footer class="foot">
+      <a href="0008-queryset-model-is-not-the-sql.html">Lesson 0008</a>
+      <a href="0010-validated-data-is-the-type-change.html">Lesson 0010</a>
+      <a href="0005-ticket-is-not-the-diner.html">Lesson 0005</a>
+      <a href="../reference/http-response.html">Response card</a>
+      <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#httpresponse-objects">HttpResponse</a>
+      <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#streaminghttpresponse-objects">StreamingHttpResponse</a>
+    </footer>
+  </article>
+  <script src="../assets/quiz.js"></script>
+  <script src="../assets/gloss.js"></script>
+  <script src="../assets/two-obj.js"></script>
+</body>
+</html>

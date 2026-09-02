@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>validated_data — type-change card</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Reference · P1.7</p>
+      <h1>validated_data</h1>
+      <p class="lede">
+        The dict
+        <code>is_valid</code> leaves on the serializer.
+        Source:
+        <a href="https://www.django-rest-framework.org/api-guide/serializers/#validation">DRF validation</a>.
+      </p>
+    </header>
+
+    <h2>What it is</h2>
+    <p>
+      DRF’s docs: “When deserializing data, you always need to call
+      <code>is_valid()</code> before attempting to access the validated
+      data.”
+      <code>.is_valid()</code> “Deserializes and validates incoming data.”
+      <code>.validated_data</code> “Returns the validated incoming data.”
+    </p>
+
+    <h2>The type change on this project</h2>
+    <table>
+      <thead><tr><th>Key</th><th>In request.body</th><th>In validated_data</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>product</code></td>
+          <td><code>str</code> slug</td>
+          <td><code>menuitem</code> instance</td>
+        </tr>
+        <tr>
+          <td><code>meattype</code></td>
+          <td><code>str</code> slug</td>
+          <td><code>meattype</code> instance</td>
+        </tr>
+        <tr>
+          <td><code>hotpotingredients</code></td>
+          <td>list of <code>str</code></td>
+          <td>list of <code>hotpotingredients</code> instances</td>
+        </tr>
+        <tr>
+          <td><code>quantity</code></td>
+          <td>JSON number</td>
+          <td><code>int</code></td>
+        </tr>
+        <tr>
+          <td><code>doublemeat</code></td>
+          <td>JSON boolean</td>
+          <td><code>bool</code></td>
+        </tr>
+        <tr>
+          <td><code>notes</code></td>
+          <td><code>str</code></td>
+          <td><code>str</code></td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      The lookup is
+      <a href="https://www.django-rest-framework.org/api-guide/relations/#slugrelatedfield"><code>SlugRelatedField</code></a>.
+      Docs: <code>queryset</code> is “used for model instance lookups
+      when validating the field input.”
+    </p>
+
+    <h2>Where P1.7 copies it</h2>
+    <pre><code>original = Serializer.is_valid
+Serializer.is_valid = probed
+try:
+    response = self.get_response(request)
+finally:
+    Serializer.is_valid = original</code></pre>
+    <p>
+      Inside <code>probed</code>: call <code>original</code>, then if it
+      returned <code>True</code>, <code>encode(dict(self.validated_data))</code>.
+      Same timing as <code>execute_wrapper</code>: during
+      <code>get_response</code>, not after. DRF has no
+      <code>execute_wrapper</code> for serializers — you replace the method.
+    </p>
+
+    <h2>Not this</h2>
+    <table>
+      <thead><tr><th>Thing</th><th>Why not P1.7</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>serializer_class</code></td>
+          <td>P1.4. A class name on the view class. Not the live values.</td>
+        </tr>
+        <tr>
+          <td><code>request.body</code></td>
+          <td>P1.1. Still JSON text. Types have not changed yet.</td>
+        </tr>
+        <tr>
+          <td><code>captured["response"]["body"]</code></td>
+          <td>P1.6. JSON on the way out. Instances already became strings again.</td>
+        </tr>
+        <tr>
+          <td><code>GET /menuitem/經典原味鍋/</code></td>
+          <td>HTML page (<code>menuitem_page</code>). Does not call
+            <code>is_valid</code> on input. Use
+            <code>POST /api/cart/item/</code>.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>JSON shape</h2>
+    <pre><code>"validated_data": [
+  {
+    "serializer": "restaurantAPI.serializers.cartitemSerializer",
+    "data": {
+      "type": "dict",
+      "value": {
+        "product": {"type": "menuitem instance", "value": "pk=…"},
+        "quantity": {"type": "int", "value": 1}
+      }
+    }
+  }
+]</code></pre>
+    <p>
+      A list, like <code>sql</code>. Empty on
+      <code>GET /menuitem/經典原味鍋/</code>. Do not invent the
+      <code>pk</code> — copy yours.
+    </p>
+
+    <footer class="foot">
+      <a href="../lessons/0011-the-model-is-not-the-instance.html">Lesson 0011</a>
+      <a href="../lessons/0010-validated-data-is-the-type-change.html">Lesson 0010</a>
+      <a href="https://www.django-rest-framework.org/api-guide/serializers/#validation">DRF validation</a>
+      <a href="https://www.django-rest-framework.org/api-guide/relations/#slugrelatedfield">SlugRelatedField</a>
+    </footer>
+  </article>
+</body>
+</html>

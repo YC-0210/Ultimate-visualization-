@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Post-middleware state — field card</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Reference · P1.3</p>
+      <h1>Post-middleware state</h1>
+      <p class="lede">
+        What other middleware attached from a cookie. Not what the
+        browser put in the URL. Source:
+        <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#attributes-set-by-middleware">Attributes set by middleware</a>.
+      </p>
+    </header>
+
+    <h2>When it exists</h2>
+    <table>
+      <thead><tr><th>Moment</th><th><code>user</code> / <code>session</code>?</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Your middleware, before <code>get_response</code></td>
+          <td>No — you sit first in <code>MIDDLEWARE</code>. Session and auth have not run.</td>
+        </tr>
+        <tr>
+          <td>Inside <code>get_response</code>, after SessionMiddleware then AuthenticationMiddleware</td>
+          <td>Yes — attached on the way in.</td>
+        </tr>
+        <tr>
+          <td>The view</td>
+          <td>Yes</td>
+        </tr>
+        <tr>
+          <td>Your middleware, after <code>get_response</code></td>
+          <td>Yes. Same place as the route fields.</td>
+        </tr>
+        <tr>
+          <td>404, no URL pattern matched</td>
+          <td>Still yes. Unlike <code>resolver_match</code>, a miss does not skip these.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Docs:
+      <a href="https://docs.djangoproject.com/en/5.2/ref/middleware/#module-django.contrib.auth.middleware">AuthenticationMiddleware</a>
+      (after SessionMiddleware),
+      <a href="https://docs.djangoproject.com/en/5.2/topics/auth/default/#authentication-in-web-requests">Authentication in web requests</a>.
+    </p>
+
+    <h2>Fields P1.3 needs</h2>
+    <table>
+      <thead><tr><th>Want</th><th>Read</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>auth</td>
+          <td><code>user.is_authenticated</code></td>
+          <td>A bool. <code>False</code> on <a href="https://docs.djangoproject.com/en/5.2/ref/contrib/auth/#anonymoususer-object"><code>AnonymousUser</code></a>, <code>True</code> on a logged-in <code>User</code>. Do not use “user is None” — logged out is still an object.</td>
+        </tr>
+        <tr>
+          <td>who</td>
+          <td><code>user.get_username()</code></td>
+          <td>A string. Empty string when anonymous. Do not dump the user object.</td>
+        </tr>
+        <tr>
+          <td>session keys</td>
+          <td><code>list(session.keys())</code></td>
+          <td>Names of slots only. This app writes <code>table_number</code> from <code>?table_number=</code>. Login adds <code>_auth_user_id</code>, <code>_auth_user_backend</code>, <code>_auth_user_hash</code>. Do not dump values.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Peel, then dump</h2>
+    <pre><code>user = getattr(request, "user", None)
+if user is not None:
+    captured["is_authenticated"] = user.is_authenticated
+    captured["username"] = user.get_username()
+session = getattr(request, "session", None)
+if session is not None:
+    captured["session_keys"] = list(session.keys())</code></pre>
+    <p>
+      Sit this <em>next to</em> the route block, not inside
+      <code>if match is not None</code>.
+      <code>json.dumps(request.user)</code> fails the same way
+      <code>json.dumps(match.func)</code> did.
+    </p>
+    <p>
+      <code>request.user</code> is assigned as a
+      <code>SimpleLazyObject</code> that loads
+      <code>User</code> or <code>AnonymousUser</code> on first access.
+      Reading <code>is_authenticated</code> is that access.
+      Docs still name the result as User or AnonymousUser:
+      <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#django.http.HttpRequest.user"><code>HttpRequest.user</code></a>.
+    </p>
+
+    <h2>Leave for later</h2>
+    <p>
+      Session <em>values</em>, password hashes, token auth headers,
+      <code>permission_classes</code> (P1.4).
+    </p>
+
+    <footer class="foot">
+      <a href="../lessons/0004-what-a-cookie-is.html">Lesson 0004: what a cookie is</a>
+      <a href="../lessons/0005-ticket-is-not-the-diner.html">Lesson 0005: the ticket is not the diner</a>
+      <a href="../lessons/0006-middleware-is-wrapping.html">Lesson 0006: wrapping, not a to-do list</a>
+      <a href="https://docs.djangoproject.com/en/5.2/topics/auth/default/#authentication-in-web-requests">Authentication in web requests</a>
+      <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#django.http.HttpRequest.user">HttpRequest.user</a>
+      <a href="https://docs.djangoproject.com/en/5.2/topics/http/sessions/">How to use sessions</a>
+    </footer>
+  </article>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cookie — ticket card</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Reference · cookie</p>
+      <h1>Cookie — ticket card</h1>
+      <p class="lede">
+        The number on the ticket the diner keeps and brings back.
+        Not the diner’s name. Sources:
+        <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Cookies">MDN: Using HTTP cookies</a>,
+        <a href="https://docs.djangoproject.com/en/5.2/topics/http/sessions/">Django sessions</a>.
+      </p>
+    </header>
+
+    <h2>Two headers, two directions</h2>
+    <table>
+      <thead><tr><th>Header</th><th>Who sends it</th><th>On this project</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>Set-Cookie</code></td>
+          <td>Server → browser (the response)</td>
+          <td>Waiter hands the diner a ticket. You do not print this yet (P1.6).</td>
+        </tr>
+        <tr>
+          <td><code>Cookie</code></td>
+          <td>Browser → server (the next request)</td>
+          <td>Diner puts the ticket on the table. You already dump this in <code>headers</code>.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      MDN: a cookie is “a small piece of data a server sends to a user’s
+      web browser. The browser may store cookies … and send them back to
+      the same server with later requests.” HTTP is stateless by default
+      — each request is a stranger unless that ticket comes back.
+    </p>
+
+    <h2>What Django puts on the ticket</h2>
+    <p>
+      Django’s session docs: “Cookies contain a session ID – not the data
+      itself.” The default name is <code>sessionid</code>. The session
+      dictionary stays on the server. The ticket only has the lookup number.
+    </p>
+    <p>
+      You may also see <code>csrftoken=</code> in the same
+      <code>Cookie</code> header. That is a different ticket for a
+      different job. P1.3 cares about <code>sessionid</code>.
+    </p>
+
+    <h2>What you can see today</h2>
+    <p>
+      P1.1 already prints request <code>headers</code>. Look for
+      <code>Cookie</code>. First visit: often missing. After the homepage
+      writes <code>table_number</code> into the session, the
+      <em>next</em> request in the same browser should show
+      <code>sessionid=…</code>.
+    </p>
+
+    <footer class="foot">
+      <a href="../lessons/0004-what-a-cookie-is.html">Lesson 0004: what a cookie is</a>
+      <a href="../lessons/0005-ticket-is-not-the-diner.html">Lesson 0005: P1.3</a>
+      <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Cookies">MDN cookies</a>
+      <a href="https://docs.djangoproject.com/en/5.2/topics/http/sessions/">Django sessions</a>
+    </footer>
+  </article>
+</body>
+</html>

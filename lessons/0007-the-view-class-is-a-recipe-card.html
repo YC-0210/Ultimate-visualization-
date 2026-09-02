@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Read DRF configuration from the view class</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Lesson 0007 · P1.4 · supervisualizer</p>
+      <h1>Read DRF configuration from the view class</h1>
+      <p class="lede">
+        You already capture which view class Django selected. You do
+        not yet capture the DRF configuration declared on that class.
+      </p>
+    </header>
+
+    <p class="fits">
+      <strong>Where this fits</strong>
+      Roadmap: Phase 1, P1.4 — capture the view class,
+      <code>permission_classes</code>, <code>serializer_class</code>,
+      and queryset model. P1.2 already found the class. Today you read
+      three more facts from that same class.
+    </p>
+
+    <h2>The problem</h2>
+    <p>
+      Same real request:
+      <code>GET /api/menuitem/經典原味鍋/</code>.
+      One route choice, two levels of knowledge.
+    </p>
+
+    <div class="facts">
+      <div class="fact have">
+        <p class="tag">Already have · P1.2</p>
+        <h3>The selected view class</h3>
+        <p>The resolved route points to this class.</p>
+        <p class="example">restaurantAPI.views.menuitemDetail</p>
+      </div>
+      <div class="fact need">
+        <p class="tag">Missing · P1.4</p>
+        <h3>The class’s DRF configuration</h3>
+        <p>Its permission policy, serializer class, and queryset model.</p>
+        <p class="example">AllowAny · menuitemSerializer · menuitem</p>
+      </div>
+    </div>
+
+    <p>
+      One short analogy for the new idea: the view class is like a
+      recipe with its access rule, data translator, and ingredient type
+      written on it. P1.4 reads those declarations. From here on, we
+      will use their real names.
+    </p>
+
+    <figure class="urlwalk">
+      <p class="urlwalk-in">
+        Selected card: <code>restaurantAPI.views.menuitemDetail</code>
+      </p>
+      <p class="urlwalk-label">restaurantAPI/views.py · declared attributes</p>
+      <ol>
+        <li class="hit">
+          <code>permission_classes = [AllowAny]</code>
+          <span class="why">Permission policy: this view does not require an authenticated user.</span>
+        </li>
+        <li class="hit">
+          <code>serializer_class = menuitemSerializer</code>
+          <span class="why">Serializer class: converts menuitem objects to and from primitive data.</span>
+        </li>
+        <li class="hit">
+          <code>queryset = menuitem.objects.all()</code>
+          <span class="why">Queryset model: this queryset contains menuitem model objects.</span>
+        </li>
+      </ol>
+    </figure>
+
+    <div class="callout">
+      <strong>Capture names, not live Python objects.</strong>
+      The permission, serializer, and model are Python classes.
+      The queryset is a Python object. None can go directly into JSON.
+      Store each class as its module plus qualified name.
+    </div>
+
+    <h2>Where the three facts live</h2>
+    <p>
+      P1.2 gave you <code>view_class</code>. DRF’s generic-view docs
+      call <code>queryset</code> and <code>serializer_class</code>
+      class attributes. Its permission docs say
+      <code>permission_classes</code> sets the policy per view.
+    </p>
+
+    <div class="facts">
+      <div class="fact have">
+        <p class="tag">Read from view_class</p>
+        <h3><code>permission_classes</code></h3>
+        <p>A list of permission classes, not the result of a permission check.</p>
+        <p class="example">[rest_framework.permissions.AllowAny]</p>
+      </div>
+      <div class="fact have">
+        <p class="tag">Read from view_class</p>
+        <h3><code>serializer_class</code></h3>
+        <p>The class DRF uses to serialize and deserialize data.</p>
+        <p class="example">restaurantAPI.serializers.menuitemSerializer</p>
+      </div>
+    </div>
+
+    <p>
+      The third fact takes one extra peel:
+      <code>view_class.queryset</code> is the
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">queryset</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> an instance of
+            <a href="https://docs.djangoproject.com/en/5.2/ref/models/querysets/"><code>django.db.models.query.QuerySet</code></a>.
+          </span>
+          <span class="gloss-line">
+            Django describes a QuerySet as a collection of database
+            objects. Here, read only its <code>model</code> attribute.
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://docs.djangoproject.com/en/5.2/ref/models/querysets/">QuerySet API reference</a>
+          </span>
+        </span>
+      </span>.
+      Its <code>.model</code> is the <code>menuitem</code> class.
+    </p>
+
+    <pre><code>view_class
+  ├── permission_classes  → list of classes
+  ├── serializer_class    → class
+  └── queryset            → QuerySet object
+         └── model        → class</code></pre>
+
+    <h2>Do not run the queryset</h2>
+    <p>
+      <code>cartitemList</code> has both a class-level
+      <code>queryset</code> and a <code>get_queryset()</code> method
+      that filters rows using the current user or session.
+      P1.4 asks only which model the view works with:
+      <code>cartitem</code>.
+    </p>
+    <p>
+      Do not call <code>get_queryset()</code>, loop over the queryset,
+      or turn it into a list. Those actions can run application logic
+      or SQL. Reading <code>queryset.model</code> returns the model
+      class without evaluating the queryset.
+    </p>
+
+    <h2>Shape of the code</h2>
+    <p>
+      Put the helper above the middleware class. Put the capture inside
+      your existing <code>if view_class is not None:</code> branch.
+      This is a copyable shape; wiring it into
+      <code>middleware.py</code> is yours.
+    </p>
+
+    <pre><code>def class_name(value):
+    if value is None:
+        return None
+    return value.__module__ + "." + value.__qualname__
+
+
+# Inside: if view_class is not None:
+captured["permission_classes"] = [
+    class_name(permission)
+    for permission in getattr(view_class, "permission_classes", [])
+]
+
+serializer_class = getattr(view_class, "serializer_class", None)
+captured["serializer_class"] = class_name(serializer_class)
+
+queryset = getattr(view_class, "queryset", None)
+model = getattr(queryset, "model", None)
+captured["queryset_model"] = class_name(model)</code></pre>
+
+    <p>
+      <code>getattr(..., None)</code> matters because plain Django
+      function views do not promise these DRF attributes. A missing
+      serializer or queryset becomes JSON <code>null</code>, not a
+      server crash.
+    </p>
+
+    <h2>Expected result</h2>
+    <p>
+      For <code>GET /api/menuitem/經典原味鍋/</code>, the new part of
+      the JSON should have this shape:
+    </p>
+
+    <pre><code>{
+  "permission_classes": [
+    "rest_framework.permissions.AllowAny"
+  ],
+  "serializer_class": "restaurantAPI.serializers.menuitemSerializer",
+  "queryset_model": "restaurantAPI.models.menuitem"
+}</code></pre>
+
+    <h2>Check</h2>
+
+    <div class="quiz" data-quiz
+         data-explain-right="P1.2 already recovered the original class from the as_view wrapper. P1.4 reads DRF’s declared attributes from that class."
+         data-explain-wrong="The response contains the finished output. These configuration facts are declared on the selected view class.">
+      <p class="quiz-q">Where should P1.4 read these three attributes?</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">the selected view class</button>
+        <button type="button" data-answer data-correct="0">the response body</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <div class="quiz" data-quiz
+         data-explain-right="The queryset object is not JSON-safe and evaluating it may issue SQL. Its model attribute gives the class P1.4 needs."
+         data-explain-wrong="Turning a queryset into a list asks Django for rows. P1.4 needs only the model class printed on the queryset.">
+      <p class="quiz-q">To capture the queryset model, read…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1"><code>queryset.model</code></button>
+        <button type="button" data-answer data-correct="0"><code>list(queryset)</code></button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <h2>Do this on the restaurant app</h2>
+    <ol class="steps">
+      <li>
+        Add <code>class_name</code> above your middleware class.
+      </li>
+      <li>
+        In the existing class-view branch, capture the permission
+        class names, serializer class name, and queryset model name.
+      </li>
+      <li>
+        Hit <code>GET /api/menuitem/經典原味鍋/</code>.
+        Then hit <code>GET /login/</code> to confirm a function view
+        still does not crash.
+      </li>
+      <li>
+        Paste both JSON lines here. We will inspect the values before
+        marking P1.4 done.
+      </li>
+    </ol>
+
+    <h2>Ask me</h2>
+    <p>
+      If “class name versus live Python object” or
+      <code>queryset.model</code> is muddy, ask before editing.
+      I will not add the P1.4 fields to the middleware for you.
+    </p>
+
+    <footer class="foot">
+      <a href="0006-middleware-is-wrapping.html">Lesson 0006</a>
+      <a href="0008-queryset-model-is-not-the-sql.html">Lesson 0008</a>
+      <a href="0003-func-is-not-the-print.html">Lesson 0003</a>
+      <a href="https://www.django-rest-framework.org/api-guide/generic-views/#attributes">DRF generic-view attributes</a>
+      <a href="https://www.django-rest-framework.org/api-guide/permissions/#setting-the-permission-policy">DRF permission policy</a>
+      <a href="https://docs.djangoproject.com/en/5.2/ref/models/querysets/">Django QuerySet reference</a>
+    </footer>
+  </article>
+  <script src="../assets/quiz.js"></script>
+  <script src="../assets/gloss.js"></script>
+</body>
+</html>

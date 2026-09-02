@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The ticket the diner brings back</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Lesson 0004 · before P1.3 · supervisualizer</p>
+      <h1>The ticket the diner brings back</h1>
+      <p class="lede">
+        You already print the path the customer typed. You do not yet
+        have a way to tell whether this visit is the same diner as last time.
+      </p>
+    </header>
+
+    <p class="fits">
+      <strong>Where this fits</strong>
+      Roadmap: Phase 1, P1.3 needs “who is asking.” That fact is not in
+      the URL. It only comes back if the browser sends a small string
+      from last time. This lesson is that string. No code change today.
+      Mission: see the type — a header string, not a name.
+    </p>
+
+    <h2>The problem</h2>
+    <p>
+      Same request as always:
+      <code>GET /api/menuitem/經典原味鍋/</code>.
+      One visit. Two facts.
+    </p>
+
+    <div class="facts">
+      <div class="fact have">
+        <p class="tag">Already captured · P1.1</p>
+        <h3>What the customer typed</h3>
+        <p>The path. You print this. It is the same whether this diner has been here before or not.</p>
+        <p class="example">/api/menuitem/經典原味鍋/</p>
+      </div>
+      <div class="fact need">
+        <p class="tag">Missing · this lesson</p>
+        <h3>Whether they have been here before</h3>
+        <p>A number on a ticket they kept. You already dump headers — look for Cookie.</p>
+        <p class="example">Cookie: (none)  →  Cookie: sessionid=…</p>
+      </div>
+    </div>
+
+    <p>
+      Same request. Different information. The path is what the customer
+      typed. The ticket is how the waiter knows this is not a brand-new
+      stranger. The waiter still looks the path up on the
+      <a href="0001-when-resolver-match-appears.html">menu</a> either way.
+    </p>
+    <div class="callout">
+      <strong>A cookie is that ticket — a number, not a name.</strong>
+      The diner keeps it and puts it on the table next time.
+      It is not who they are. It is how Django finds a dictionary of
+      facts it stored on the server for this diner. Django’s docs call
+      that dictionary a session.
+    </div>
+
+    <h2>Why a ticket exists at all</h2>
+    <p>
+      Each new order arrives as if the waiter has never seen you.
+      Nothing in HTTP remembers the last visit by itself.
+      MDN’s word for that is <strong>stateless</strong>: by default the
+      protocol does not remember.
+    </p>
+    <p>
+      So the waiter writes a number on a ticket and hands it to the diner
+      (the response header
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">Set-Cookie</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> an HTTP response header. Value is a
+            name=value string, e.g. <code>sessionid=abc…</code>.
+          </span>
+          <span class="gloss-line">
+            MDN: after a request, “a server can send one or more
+            Set-Cookie headers with the response.” The browser may
+            store that pair and send it back later.
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Cookies">MDN: Using HTTP cookies</a>
+          </span>
+        </span>
+      </span>).
+      Next visit, the diner puts the same ticket on the table (the
+      request header
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">Cookie</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> an HTTP request header. Value is a
+            string of name=value pairs the browser is sending back.
+          </span>
+          <span class="gloss-line">
+            MDN: the browser may “send them back to the same server
+            with later requests.” That string is what you already
+            print inside <code>captured["headers"]</code>.
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Cookies">MDN: Using HTTP cookies</a>
+          </span>
+        </span>
+      </span>).
+    </p>
+    <p>
+      Django’s session docs say the same thing:
+      “Cookies contain a session ID – not the data itself.”
+      After you hit <code>/?table_number=3</code>, Django stores
+      <code>table_number</code> in a dictionary on the server.
+      The next page’s URL has no <code>3</code> in it. Django still
+      knows <code>3</code> because the ticket number finds that
+      dictionary. The ticket only has the lookup number, usually named
+      <code>sessionid</code>.
+    </p>
+    <div class="sidenote">
+      Primary sources:
+      <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Cookies">MDN: Using HTTP cookies</a>
+      (what a cookie is, Set-Cookie vs Cookie, why HTTP needs this),
+      <a href="https://docs.djangoproject.com/en/5.2/topics/http/sessions/">How to use sessions</a>
+      (the ticket holds an id, not the stored facts). Card:
+      <a href="../reference/cookie.html">cookie.html</a>.
+    </div>
+
+    <h2>Press each moment</h2>
+    <p>
+      Two visits in the same browser. Watch the ticket appear.
+    </p>
+
+    <figure class="onion" data-cookie-trip data-start="first">
+      <div class="onion-moments">
+        <button type="button" data-moment="first">First visit</button>
+        <button type="button" data-moment="back">Waiter hands the ticket back</button>
+        <button type="button" data-moment="return">Second visit</button>
+      </div>
+      <div class="onion-diagram" data-cookie-diagram data-phase="before">
+        <div class="onion-layer onion-outer">
+          <span class="onion-edge onion-in">diner → waiter · Cookie header (you print this)</span>
+          <div class="onion-layer onion-mid">
+            <span class="onion-edge">the restaurant (server)</span>
+            <div class="onion-layer onion-core">session dictionary on the server, found by the ticket number</div>
+            <span class="onion-edge">the restaurant (server)</span>
+          </div>
+          <span class="onion-edge onion-out">waiter → diner · Set-Cookie (you do not print this yet)</span>
+        </div>
+      </div>
+      <figcaption class="onion-caption" data-cookie-caption></figcaption>
+      <dl class="onion-facts">
+        <dt>Cookie header</dt>
+        <dd data-fact="cookie"></dd>
+        <dt>waiter knows</dt>
+        <dd data-fact="knows"></dd>
+      </dl>
+    </figure>
+
+    <p>
+      You may also see <code>csrftoken=</code> in the same Cookie string.
+      Different ticket, different job. The session lookup name is
+      <code>sessionid</code>.
+    </p>
+
+    <h2>Check</h2>
+
+    <div class="quiz" data-quiz
+         data-explain-right="The ticket is a lookup number the diner keeps. table_number and the signed-in user live in a dictionary on the server (the session), not on the ticket. Django: cookies contain a session ID, not the data itself."
+         data-explain-wrong="If the cookie were the name, dumping headers would already print who is logged in. It prints sessionid=… — a number.">
+      <p class="quiz-q">A cookie is…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">not your name, a number</button>
+        <button type="button" data-answer data-correct="0">your name, not a number</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <div class="quiz" data-quiz
+         data-explain-right="Each HTTP request starts as a stranger. The ticket is how Django finds the same session dictionary as last time. Walking the menu (P1.2) only picks the dish."
+         data-explain-wrong="The path is already in P1.1. The cookie is not for looking up urlpatterns.">
+      <p class="quiz-q">This project needs that ticket…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">so Django can load a session</button>
+        <button type="button" data-answer data-correct="0">so Django can walk the menu</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <h2>Do this on the restaurant app</h2>
+    <p>
+      No edit to <code>middleware.py</code>. You already print
+      <code>headers</code>. Use the same browser for every step.
+    </p>
+    <ol class="steps">
+      <li>
+        Hit <code>GET /api/menuitem/經典原味鍋/</code>.
+        In the print, look at <code>headers</code>.
+        Is there a <code>Cookie</code> line? (Often none on a first hit.)
+      </li>
+      <li>
+        In that same browser, hit <code>GET /?table_number=3</code>
+        (the homepage). That view writes <code>table_number</code> into
+        the session dictionary. Django then hands
+        back a ticket (<code>Set-Cookie</code>) — you will not see that
+        header in today’s print.
+      </li>
+      <li>
+        Hit the API URL again. The <code>Cookie</code> header should now
+        contain <code>sessionid=</code> plus a string.
+      </li>
+      <li>
+        Tell me whether Cookie was missing, then present.
+        Then we go to P1.3: what the waiter reads off that ticket.
+      </li>
+    </ol>
+
+    <h2>Ask me</h2>
+    <p>
+      I am your teacher for this. If “number, not a name” is muddy, or
+      the second hit still has no Cookie, ask. Do not start the P1.3
+      code until this round-trip is visible.
+    </p>
+
+    <footer class="foot">
+      <a href="0001-when-resolver-match-appears.html">Lesson 0001</a>
+      <a href="0002-json-from-resolver-match.html">Lesson 0002</a>
+      <a href="0005-ticket-is-not-the-diner.html">Lesson 0005</a>
+      <a href="../reference/cookie.html">Ticket card</a>
+      <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Cookies">MDN: cookies</a>
+      <a href="https://docs.djangoproject.com/en/5.2/topics/http/sessions/">Django sessions</a>
+    </footer>
+  </article>
+  <script src="../assets/quiz.js"></script>
+  <script src="../assets/gloss.js"></script>
+  <script src="../assets/cookie-trip.js"></script>
+</body>
+</html>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Trace schema — pocket card</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Reference · P1.9</p>
+      <h1>Trace schema</h1>
+      <p class="lede">
+        The dump’s keys are this adapter’s.
+        The Trace’s stages are the closed list.
+        Source:
+        <a href="../../DECISIONS.md">D7</a>,
+        <a href="../../ROADMAP.md">P0.4 kind table</a>.
+      </p>
+    </header>
+
+    <h2>Two fields on every stage</h2>
+    <table>
+      <thead><tr><th>Field</th><th>Who reads it</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>kind</code></td>
+          <td>The panel. Closed list. Never free text.</td>
+        </tr>
+        <tr>
+          <td><code>label</code></td>
+          <td>This adapter. Django’s word. Not used to style.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>captured key → kind</h2>
+    <table>
+      <thead><tr><th>On captured</th><th>kind</th><th>Omit when</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>method</code>, <code>path</code>, <code>query</code>, <code>body</code>, <code>headers</code></td>
+          <td><code>receive_input</code></td>
+          <td>never (every request has these)</td>
+        </tr>
+        <tr>
+          <td><code>route</code>, <code>url_name</code>, <code>view</code>, <code>kwargs</code></td>
+          <td><code>route</code></td>
+          <td>no <code>resolver_match</code> (404 before resolve is rare; you still usually have a match)</td>
+        </tr>
+        <tr>
+          <td><code>permission_classes</code>, <code>serializer_class</code>, <code>queryset_model</code></td>
+          <td>not a kind — <code>data</code> on <code>route</code></td>
+          <td>function view (no <code>view_class</code>)</td>
+        </tr>
+        <tr>
+          <td><code>is_authenticated</code>, <code>username</code>, <code>session_keys</code></td>
+          <td><code>attach_context</code></td>
+          <td>those attributes missing</td>
+        </tr>
+        <tr>
+          <td><code>validations</code></td>
+          <td><code>validate_input</code></td>
+          <td>list is <code>[]</code></td>
+        </tr>
+        <tr>
+          <td><code>sql</code></td>
+          <td>top-level <code>sql</code> list — see below</td>
+          <td>list is <code>[]</code></td>
+        </tr>
+        <tr>
+          <td><code>templates</code></td>
+          <td><code>render_output</code></td>
+          <td>list is <code>[]</code></td>
+        </tr>
+        <tr>
+          <td><code>response</code></td>
+          <td><code>send_response</code></td>
+          <td>never</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Not a stage (yet)</h2>
+    <table>
+      <thead><tr><th>kind</th><th>Why it is missing in Phase 1</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>authorize</code></td>
+          <td>You copied <code>permission_classes</code> (a list of names), not the check running.</td>
+        </tr>
+        <tr>
+          <td>client kinds</td>
+          <td>Phase 4. No browser probe yet.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Why sql is not simply query_data</h2>
+    <p>
+      On a real <code>GET /menuitem/經典原味鍋/</code> the wrapper
+      caught five queries. Only three are the view's data reads
+      (<code>menuitem</code>, <code>meattype</code>,
+      <code>hotpotingredients</code>).
+      The other two are machinery: the
+      <code>django_session</code> row and the
+      <code>auth_user</code> row, fetched because something
+      touched <code>request.session</code> and
+      <code>request.user</code>.
+    </p>
+    <p>
+      <code>execute_wrapper</code> is told the SQL, not the caller.
+      Nothing in Phase 1 records which stage caused a query, so
+      claiming per-stage attribution would be inventing a fact
+      (D2). Keep <code>sql</code> as one top-level list in the
+      order it fired. Attribution needs the SQL probe to know the
+      current stage — the context propagation D6 bought, wired in
+      when stages nest.
+    </p>
+
+    <h2>Rule</h2>
+    <p>
+      CONTEXT: which stages exist is a property of the endpoint.
+      An empty probe list means omit that kind.
+      Do not keep a Django key with
+      <code>[]</code>
+      so a second adapter would have to invent the same key.
+    </p>
+
+    <footer class="foot">
+      <a href="../lessons/0016-dump-is-not-a-trace.html">Lesson 0016</a>
+      <a href="../../DECISIONS.md">D7</a>
+      <a href="../../ROADMAP.md">kind table</a>
+    </footer>
+  </article>
+</body>
+</html>

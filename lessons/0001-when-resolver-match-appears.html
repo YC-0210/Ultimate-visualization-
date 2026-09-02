@@ -3,146 +3,261 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>When resolver_match appears</title>
+  <title>The path vs Django’s choice</title>
   <link rel="stylesheet" href="../assets/lesson.css" />
 </head>
 <body>
   <article class="page">
     <header class="mast">
       <p class="kicker">Lesson 0001 · P1.2 · supervisualizer</p>
-      <h1>When <code>resolver_match</code> appears</h1>
+      <h1>The path vs Django’s choice</h1>
       <p class="lede">
-        P1.1 already prints method, path, headers, and body. P1.2 needs the
-        <em>resolved route</em> — and that fact is not on the request yet
-        at the line where you currently print.
+        You already know the URL the browser sent. You do not yet know
+        which of your routes Django picked.
       </p>
     </header>
 
-    <h2>Why this is the next capture</h2>
-    <p>
-      <code>request.path</code> is what the browser sent:
-      <code>/api/menuitem/classic-original/</code>.
-      The URL Router stage in the lab needs what Django <em>decided</em>:
-      which pattern matched, what it is named, which view will run, and
-      which kwargs came out of the path. Those live on
-      <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#django.http.HttpRequest.resolver_match"><code>request.resolver_match</code></a>,
-      a <a href="https://docs.djangoproject.com/en/5.2/ref/urlresolvers/#django.urls.ResolverMatch"><code>ResolverMatch</code></a>.
-    </p>
-    <p>
-      If you put that read next to <code>method</code> and <code>path</code>,
-      you will capture <code>None</code> (or hit <code>AttributeError</code>).
-      That is not a bug in your dict. Django has not resolved the URL yet.
+    <p class="fits">
+      <strong>Where this fits</strong>
+      Roadmap:
+      <a href="../supervisualizer/ROADMAP.md">Phase 1, P1.2</a>
+      — capture the resolved route. Mission: the URL Router stage is
+      Django’s <em>decision</em>, not the string in the address bar.
+      Today’s win is seeing that those are two different facts, and that
+      the decision does not exist yet at your current print.
     </p>
 
-    <h2>The one timing rule</h2>
+    <h2>The problem</h2>
     <p>
-      From the docs, almost verbatim: the attribute is set
-      <strong>after URL resolving took place</strong>. It is available in
-      views, and in middleware <code>process_view()</code>. It is
-      <em>not</em> available in middleware that runs
-      <em>before</em> resolving.
+      Hit the restaurant app at
+      <code>/api/menuitem/經典原味鍋/</code>
+      (the JSON API for that pot, not the HTML page).
+      One request. Two facts.
+    </p>
+
+    <div class="facts">
+      <div class="fact have">
+        <p class="tag">Already captured · P1.1</p>
+        <h3>What the browser sent</h3>
+        <p>The string that arrived. You print this today as <code>path</code>.</p>
+        <p class="example">/api/menuitem/經典原味鍋/</p>
+      </div>
+      <div class="fact need">
+        <p class="tag">Missing · P1.2</p>
+        <h3>What Django decided</h3>
+        <p>Which pattern matched, what it is named, which view will run, which pieces came out of the path.</p>
+        <p class="example">api/menuitem/&lt;str:slug&gt;/ · slug = 經典原味鍋 · view menuitemDetail</p>
+      </div>
+    </div>
+
+    <p>
+      Same request. Different information. The first is what the customer
+      typed. The second is the waiter looking at the menu and saying
+      “that’s 經典原味鍋.”
+    </p>
+    <div class="callout">
+      <strong>P1.2 is capturing the waiter’s answer.</strong>
+      Not adding more keys next to <code>path</code> on the same line.
+      That line runs before Django has looked the path up, so the answer
+      does not exist yet.
+    </div>
+
+    <h2>What “resolving a URL” means</h2>
+    <p>
+      Django’s docs say the waiter’s answer appears
+      <em>after URL resolving took place</em>.
+      That phrase is not a special kind of URL. It is Django doing a
+      lookup.
+    </p>
+    <p>
+      You already wrote the menu: a list of patterns in
+      <code>urls.py</code>. Each pattern says “if the path looks like
+      this, run that view.”
+      <a href="https://docs.djangoproject.com/en/5.2/topics/http/urls/#how-django-processes-a-request">How Django processes a request</a>
+      is the algorithm: load that list, walk it <strong>in order</strong>,
+      stop at the first pattern that matches the incoming path, then call
+      that view. If nothing matches, it is a 404.
+    </p>
+    <p>
+      <strong>Resolving</strong> is that walk. Incoming string in, “this
+      pattern, this view, these leftover pieces” out.
+    </p>
+
+    <figure class="urlwalk">
+      <p class="urlwalk-in">
+        Incoming path (what the browser sent):
+        <code>/api/menuitem/經典原味鍋/</code>
+      </p>
+      <p class="urlwalk-label">restaurant/urls.py (the root list)</p>
+      <ol>
+        <li class="miss">
+          <code>admin/</code>
+          <span class="why">No — this path is not the admin.</span>
+        </li>
+        <li class="hit">
+          <code>api/</code> → include <code>restaurantAPI.urls</code>
+          <span class="why">Prefix matches. Leftover to look up inside: <code>menuitem/經典原味鍋/</code>.</span>
+        </li>
+        <li class="skip">
+          <code>menuitem/&lt;str:slug&gt;/</code> (the HTML page)
+          <span class="why">Never reached at the root. The walk already went into <code>api/</code>.</span>
+        </li>
+      </ol>
+      <p class="urlwalk-label">restaurantAPI/urls.py (inside the include)</p>
+      <ol>
+        <li class="miss">
+          <code>menuitem/</code>
+          <span class="why">No — that pattern is only the list endpoint, with nothing after the slash.</span>
+        </li>
+        <li class="hit">
+          <code>menuitem/&lt;str:slug&gt;/</code>
+          <span class="why">Yes — first match in this list. View: <code>menuitemDetail</code>. Leftover piece: <code>slug = "經典原味鍋"</code>. Name: <code>menuitem_detail</code>.</span>
+        </li>
+        <li class="skip">
+          <code>cart/</code>
+          <span class="why">Never reached. The walk already stopped.</span>
+        </li>
+      </ol>
+    </figure>
+
+    <p>
+      Those leftover pieces are how
+      <code>經典原味鍋</code> becomes an argument the view can use.
+      The path string does not know that; only the walk does.
+      Django stores the
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">result</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> an instance of
+            <a href="https://docs.djangoproject.com/en/5.2/ref/urlresolvers/#django.urls.ResolverMatch"><code>ResolverMatch</code></a>.
+          </span>
+          <span class="gloss-line">
+            Django’s docs: “An instance of ResolverMatch representing
+            the resolved URL.” That is the object for “this pattern,
+            this view, these leftover pieces.”
+          </span>
+          <span class="gloss-line">
+            Stored on
+            <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#django.http.HttpRequest.resolver_match"><code>request.resolver_match</code></a>.
+            Set only after URL resolving. On a 404 with no matching
+            pattern the attribute is missing — read with
+            <code>getattr(..., None)</code>.
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://docs.djangoproject.com/en/5.2/ref/urlresolvers/#django.urls.ResolverMatch">ResolverMatch</a>
+            ·
+            <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#django.http.HttpRequest.resolver_match">HttpRequest.resolver_match</a>
+          </span>
+        </span>
+      </span>
+      of the walk on the request as
+      <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#django.http.HttpRequest.resolver_match"><code>request.resolver_match</code></a>.
     </p>
     <div class="sidenote">
-      Primary source:
-      <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#django.http.HttpRequest.resolver_match">HttpRequest.resolver_match</a>
-      (Django 5.2; 6.1 says the same). Read that paragraph before you edit code.
+      Two different “menuitem” URLs in this project. Do not mix them.
+      <code>/api/menuitem/經典原味鍋/</code> is the JSON API
+      (<code>menuitemDetail</code>, name <code>menuitem_detail</code>).
+      <code>/menuitem/經典原味鍋/</code> is the HTML page
+      (<code>menuitem_detail</code> the function, name <code>menuitem_page</code>).
+      This lesson uses the API one. Slugs come from the live database:
+      <code>經典原味鍋</code>, <code>廣式沙茶鍋</code> — not from the prototype.
     </div>
+
+    <h2>When that result exists</h2>
     <p>
-      Your middleware is a class with <code>__call__</code>. The
-      <a href="https://docs.djangoproject.com/en/5.2/topics/http/middleware/">middleware docs</a>
-      split that method at <code>get_response(request)</code>:
+      The walk does not happen the instant the request arrives. Your
+      current print sits <em>above</em>
+      <code>response = self.get_response(request)</code>.
+      The walk happens <em>inside</em> that call. When it returns, the
+      result is sitting on the same request. Read it then.
     </p>
-    <pre><code>def __call__(self, request):
-    # BEFORE — request phase. Path is here. Match is not.
-    response = self.get_response(request)
-    # AFTER  — response phase. Match is on the request now.
-    return response</code></pre>
     <p>
-      URL resolving happens <em>inside</em> <code>get_response</code>,
-      after every middleware has had its inward (request-phase) turn.
-      That is why P1.1's print cannot grow a <code>route</code> key in place.
+      That is what the docs mean by
+      <strong>after URL resolving took place</strong>: after the walk,
+      not after the browser sent the path.
+      The result is available in views, and in middleware
+      <a href="https://docs.djangoproject.com/en/5.2/topics/http/middleware/#process-view"><code>process_view()</code></a>.
+      It is not available in middleware that runs before the walk.
     </p>
+    <div class="sidenote">
+      Primary sources:
+      <a href="https://docs.djangoproject.com/en/5.2/topics/http/urls/#how-django-processes-a-request">How Django processes a request</a>
+      (what the walk is),
+      <a href="https://docs.djangoproject.com/en/5.2/ref/urlresolvers/#django.urls.ResolverMatch"><code>ResolverMatch</code></a>
+      (the object the walk returns), and
+      <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#django.http.HttpRequest.resolver_match"><code>request.resolver_match</code></a>
+      (where that instance is stored). Django’s handler does the walk in
+      <a href="https://github.com/django/django/blob/stable/5.2.x/django/core/handlers/base.py"><code>BaseHandler.resolve_request</code></a>.
+    </div>
 
     <h2>Press each moment</h2>
     <p>
-      Same request: <code>GET /api/menuitem/classic-original/</code>.
-      Click through the three moments. Notice what exists when.
+      Same request: <code>GET /api/menuitem/經典原味鍋/</code>.
+      Watch which layer is live, and whether Django has chosen a route yet.
     </p>
-    <div class="lifecycle" data-lifecycle data-start="before">
-      <div class="lifecycle-moments">
+
+    <figure class="onion" data-onion data-start="before">
+      <div class="onion-moments">
         <button type="button" data-moment="before">Before get_response</button>
-        <button type="button" data-moment="resolve">URL resolving</button>
+        <button type="button" data-moment="resolve">Looking the path up</button>
         <button type="button" data-moment="after">After get_response</button>
       </div>
-      <pre class="lifecycle-out"></pre>
-    </div>
-    <p>
-      The smallest change to your P1.1 code: keep the request-basics print
-      where it is, and read <code>resolver_match</code>
-      <em>after</em> <code>get_response</code> returns.
-      <code>process_view()</code> is the docs' named hook if you later want
-      the match <em>before</em> the view runs. You do not need it for P1.2.
-    </p>
+      <div class="onion-diagram" data-onion-diagram data-phase="before">
+        <div class="onion-layer onion-outer">
+          <span class="onion-edge onion-in">your middleware · inward (P1.1 lives here)</span>
+          <div class="onion-layer onion-mid">
+            <span class="onion-edge">other middleware</span>
+            <div class="onion-layer onion-core">walk urlpatterns, then run the view</div>
+            <span class="onion-edge">other middleware</span>
+          </div>
+          <span class="onion-edge onion-out">your middleware · outward</span>
+        </div>
+      </div>
+      <figcaption class="onion-caption" data-onion-caption></figcaption>
+      <dl class="onion-facts">
+        <dt>request.path</dt>
+        <dd data-fact="path"></dd>
+        <dt>request.resolver_match</dt>
+        <dd data-fact="match"></dd>
+      </dl>
+    </figure>
 
-    <h2>Four fields, all JSON-safe</h2>
     <p>
-      <code>ResolverMatch</code> itself is not JSON. <code>func</code> is a
-      live callable. Pull strings (and a dict of scalars) off it.
-      Cheat sheet: <a href="../reference/resolver-match.html">resolver-match.html</a>.
-    </p>
-    <table>
-      <thead>
-        <tr><th>P1.2 wants</th><th>Read</th></tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>pattern</td>
-          <td><code>match.route</code> — e.g. <code>api/menuitem/&lt;str:slug&gt;/</code></td>
-        </tr>
-        <tr>
-          <td>url_name</td>
-          <td><code>match.url_name</code> — e.g. <code>menuitem_detail</code></td>
-        </tr>
-        <tr>
-          <td>view class</td>
-          <td>not <code>func</code> itself — see below</td>
-        </tr>
-        <tr>
-          <td>kwargs</td>
-          <td><code>match.kwargs</code> — e.g. <code>{"slug": "classic-original"}</code></td>
-        </tr>
-      </tbody>
-    </table>
-
-    <h3>The class-based view trap</h3>
-    <p>
-      For a CBV, <code>path(..., Menu.as_view())</code> stores the
-      <em>wrapper function</em> <code>as_view</code> returned, not the class.
-      <code>match.func.__name__</code> is usually <code>"view"</code> — useless.
-      Django documents that the wrapper carries
-      <a href="https://docs.djangoproject.com/en/5.2/ref/class-based-views/base/#django.views.generic.base.View.as_view"><code>view_class</code></a>.
-      Django Debug Toolbar names a view the same way:
-      if <code>func.view_class</code> exists, use that class's
-      module + <code>__qualname__</code>; otherwise use the function.
-    </p>
-    <div class="callout">
-      <strong>Do not copy <code>func.cls</code> from the prototype.</strong>
-      <code>extract_all.py</code> uses <code>.cls</code>, which DRF sets as an extra.
-      Django's own name is <code>view_class</code>. DRF wrappers have both;
-      a plain Django CBV has only <code>view_class</code>. Function views have neither.
-    </div>
-    <p>
-      Unmatched 404s never resolve, so the attribute may be missing.
-      Read it with <code>getattr(request, "resolver_match", None)</code>
-      and skip the route block when that is <code>None</code>.
+      A 404 that matched no pattern means Django never made a choice, so
+      the answer may be missing. Read it with
+      <code>getattr(request, "resolver_match", None)</code>
+      so a miss does not crash the app.
     </p>
 
     <h2>Check</h2>
 
     <div class="quiz" data-quiz
-         data-explain-right="Yes. Resolving runs inside get_response, after the inward middleware pass."
-         data-explain-wrong="Body is already readable in P1.1, before resolving. The match is the thing that arrives later.">
-      <p class="quiz-q">Django fills in <code>request.resolver_match</code>…</p>
+         data-explain-right="Resolving is the walk through urlpatterns. The path string is already there; the walk is what turns it into a view plus leftover pieces."
+         data-explain-wrong="Printing the path is P1.1. Resolving is looking that path up in urls.py until a pattern fits.">
+      <p class="quiz-q">“URL resolving” is Django…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">matching a path to a view</button>
+        <button type="button" data-answer data-correct="0">printing a path to a file</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <div class="quiz" data-quiz
+         data-explain-right="The path is already in P1.1. P1.2 is Django’s choice of which pattern that path belongs to."
+         data-explain-wrong="You already print the path. The missing fact is which of your urlpatterns Django matched it to.">
+      <p class="quiz-q">P1.2 is asking for…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">a Django route choice</button>
+        <button type="button" data-answer data-correct="0">a browser path string</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <div class="quiz" data-quiz
+         data-explain-right="Yes. Django looks the path up inside get_response, after the inward middleware pass."
+         data-explain-wrong="The body is already readable in P1.1. The route choice is the thing that arrives later.">
+      <p class="quiz-q">Django fills in that choice…</p>
       <div class="quiz-choices">
         <button type="button" data-answer data-correct="1">after it matches the URL</button>
         <button type="button" data-answer data-correct="0">before it reads the body</button>
@@ -150,74 +265,50 @@
       <p class="quiz-feedback" hidden></p>
     </div>
 
-    <div class="quiz" data-quiz
-         data-explain-right="Correct. as_view() hung a view_class attribute on that wrapper; read that."
-         data-explain-wrong="That wrapper is what the URLconf stored. The class you wrote is view_class on it.">
-      <p class="quiz-q">For a class-based view, <code>match.func</code> is…</p>
-      <div class="quiz-choices">
-        <button type="button" data-answer data-correct="1">a wrapper, not the class</button>
-        <button type="button" data-answer data-correct="0">the class, not a wrapper</button>
-      </div>
-      <p class="quiz-feedback" hidden></p>
-    </div>
-
-    <div class="quiz" data-quiz
-         data-explain-right="If no pattern matches, resolve() never succeeds and the attribute is never set."
-         data-explain-wrong="Only a successful resolve stamps the request. Guard with getattr(..., None).">
-      <p class="quiz-q">On a 404 that matched no pattern, <code>resolver_match</code> is…</p>
-      <div class="quiz-choices">
-        <button type="button" data-answer data-correct="1">unset if no pattern hit</button>
-        <button type="button" data-answer data-correct="0">filled even if none hit</button>
-      </div>
-      <p class="quiz-feedback" hidden></p>
-    </div>
-
     <h2>Do this on the restaurant app</h2>
     <p>
-      Do not paste a finished dict from this page. Write it. The win is a
-      JSON line you can see in the runserver terminal.
+      Do not write the four P1.2 fields yet. Today is only: see that the
+      result is missing, then present. Click
+      <em>result</em> above for the type. Field names live on the
+      <a href="../reference/resolver-match.html">ResolverMatch card</a>
+      for the next lesson.
     </p>
     <ol class="steps">
       <li>
         In <code>__call__</code>, <em>before</em> <code>get_response</code>,
         print <code>getattr(request, "resolver_match", None)</code>.
-        Hit <code>/api/menuitem/classic-original/</code>. Confirm it is empty.
-        Then delete that print — it was only to see the trap.
+        Hit <code>/api/menuitem/經典原味鍋/</code>. Confirm it is empty.
       </li>
       <li>
-        After <code>get_response</code> returns, read the match with
-        <code>getattr</code>. If it exists, print a JSON object with
-        <code>route</code>, <code>url_name</code>, <code>view</code>, and
-        <code>kwargs</code>. <code>view</code> must be a string: CBV via
-        <code>func.view_class</code>, function view via module + qualname.
+        After <code>get_response</code> returns, print the same
+        <code>getattr</code>. Hit the same URL. Confirm it is no longer empty.
+        Then hit a path that 404s and confirm the app does not crash.
       </li>
       <li>
-        Hit two URLs and compare:
-        <code>GET /api/menuitem/classic-original/</code>
-        (CBV, kwargs has <code>slug</code>) and
-        <code>GET /login/</code>
-        (function view, empty kwargs). Then a path that 404s.
+        Delete the “before” print — it was only to see the trap. Leave the
+        “after” read in place. Paste both terminal lines here before we
+        pull fields off the match.
       </li>
     </ol>
-    <p>
-      P1.2 is done when those four fields print for a real restaurant
-      request, and a 404 does not crash the app.
-    </p>
 
     <h2>Ask me</h2>
     <p>
-      I am your teacher for this. If the timing, the CBV wrapper, or the
-      JSON shape is unclear, ask. If the print looks right, paste it here
-      and we will mark P1.2 off the roadmap.
+      I am your teacher for this. If “resolving” still means nothing, or
+      “what the browser sent” vs “what Django decided” is muddy, or a
+      print looks wrong, ask.
+      Do not implement the four-field JSON until we have seen the
+      empty-then-present pair.
     </p>
 
     <footer class="foot">
-      <a href="../reference/resolver-match.html">Reference: ResolverMatch fields</a>
-      <a href="https://docs.djangoproject.com/en/5.2/ref/request-response/#django.http.HttpRequest.resolver_match">Primary source</a>
+      <a href="0002-json-from-resolver-match.html">Lesson 0002: four fields</a>
+      <a href="https://docs.djangoproject.com/en/5.2/topics/http/urls/#how-django-processes-a-request">How Django processes a request</a>
+      <a href="https://docs.djangoproject.com/en/5.2/ref/urlresolvers/#django.urls.ResolverMatch">ResolverMatch</a>
       <a href="../RESOURCES.md">RESOURCES.md</a>
     </footer>
   </article>
   <script src="../assets/quiz.js"></script>
-  <script src="../assets/lifecycle.js"></script>
+  <script src="../assets/onion.js"></script>
+  <script src="../assets/gloss.js"></script>
 </body>
 </html>
