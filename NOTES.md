@@ -4,7 +4,7 @@
 
 - **Logic over syntax.** Why the system behaves this way. Punctuation and style only when they change the observed behaviour.
 - **Copyable shape in the lesson, not in their file.** If they must type something and the shape is not obvious, put **two** code blocks: (1) a clean copyable snippet, (2) the same snippet with a comment on each line in concrete language (what that line does). Do not paste either into `middleware.py` until they have done the practice.
-- **What lives where.** NOTES: preferences, lesson style, workspace facts, target-app examples. `learning-records/`: understandings and corrections. Progress: [`../ROADMAP.md`](../ROADMAP.md) Status block — never “P1.x is done” here.
+- **What lives where.** NOTES: preferences, lesson style, workspace facts, target-app examples. `learning-records/`: understandings and corrections. Progress: [`ROADMAP.md`](ROADMAP.md) Status block — never “P1.x is done” here.
 - **Plain first, one idea.** Confirmed 2026-09-02 after a P1.10 explanation was too dense and they asked for the rewrite. Same bar for chat replies **and** lesson/reference HTML.
   - Lead with the answer (yes / no / the one sentence they can repeat).
   - Short sentences. Everyday words first; one technical name after the plain sentence, not instead of it.

@@ -24,10 +24,10 @@ So I am building the tool I want to learn with — and building it myself, in Cu
 - **Teach the logic, not the syntax.** Why the system behaves this way, when a fact exists on the request, how the pieces actually collaborate. Punctuation and style only matter when they change the behaviour being observed.
 - **Visual first.** Seeing the mechanism beats reading about it. Explanations should reach for a diagram or a worked example before prose.
 - **One idea at a time.** One concept per exchange, one reference per concept, with a stated reason why it matters to this project.
-- **Capture stays deterministic.** No LLM in the path that produces a displayed fact. See `supervisualizer/DECISIONS.md` D2.
+- **Capture stays deterministic.** No LLM in the path that produces a displayed fact. See [`DECISIONS.md`](DECISIONS.md) D2.
 - **Work against the live restaurant project**, not a toy app.
-- **Phases build on each other.** Do not skip ahead — the current phase and task are in [`supervisualizer/ROADMAP.md`](supervisualizer/ROADMAP.md), which is the single source of truth for progress.
-- **Teaching files live at this repository root** (`MISSION.md`, `NOTES.md`, `RESOURCES.md`, `lessons/`, `assets/`, `reference/`, `learning-records/`) — **never** inside `supervisualizer/`, which is the installable Python package other people will `pip install`.
+- **Phases build on each other.** Do not skip ahead — the current phase and task are in [`ROADMAP.md`](ROADMAP.md), which is the single source of truth for progress.
+- **Teaching files live at this repository root** (`MISSION.md`, `NOTES.md`, `RESOURCES.md`, `ROADMAP.md`, `DECISIONS.md`, `lessons/`, `assets/`, `reference/`, `learning-records/`) — **never** inside `supervisualizer/`, which is the installable Python package other people will `pip install`.
 - **Django first**, because I know it best. Other frameworks only once Django works end to end.
 - Unfamiliar languages and tools are fine — that is part of the point.
 
@@ -35,9 +35,9 @@ So I am building the tool I want to learn with — and building it myself, in Cu
 
 - Later phases, until their turn: live SSE (Phase 3), the browser probe (Phase 4), LLM explanations (Phase 5), a second framework (Phase 6).
 - Production monitoring and APM. This is a dev-time learning tool; the moment it needs auth, sampling and PII handling it has become a different product.
-- Shareable recordings — the `prototype/` path, where a trace is captured and sent to someone else. Real, but a different product; parked deliberately (see `supervisualizer/DECISIONS.md` D1).
+- Shareable recordings — the `prototype/` path, where a trace is captured and sent to someone else. Real, but a different product; parked deliberately (see [`DECISIONS.md`](DECISIONS.md) D1).
 - Making the prototype nicer. It has done its job.
 
 ---
 
-*Format follows [`.claude/skills/teach/MISSION-FORMAT.md`](.claude/skills/teach/MISSION-FORMAT.md). This is the durable **why**, not the current task — for what is being learned right now, read the Status block in [`supervisualizer/ROADMAP.md`](supervisualizer/ROADMAP.md); for standing teaching preferences, [`NOTES.md`](NOTES.md). Every decision in `supervisualizer/DECISIONS.md` and every phase in the roadmap should trace back to something above. When this stops being true, change it here first.*
+*Format follows [`.claude/skills/teach/MISSION-FORMAT.md`](.claude/skills/teach/MISSION-FORMAT.md). This is the durable **why**, not the current task — for what is being learned right now, read the Status block in [`ROADMAP.md`](ROADMAP.md); for standing teaching preferences, [`NOTES.md`](NOTES.md). Every decision in [`DECISIONS.md`](DECISIONS.md) and every phase in the roadmap should trace back to something above. When this stops being true, change it here first.*

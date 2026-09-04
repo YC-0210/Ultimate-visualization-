@@ -25,7 +25,7 @@ Which Stages exist is a property of the endpoint, not a fixed list: a DRF endpoi
 _Avoid_: node, step, layer
 
 **Kind / Label**:
-Every Stage carries both. **Kind** is the job it does — a small, closed, framework-neutral vocabulary (`validate_input`, `route`, `query_data`…). **Label** is what this particular framework calls it ("Serializer (in)", "Pydantic model"). The Panel reads only Kind; Adapters write Label. See D7/D8 in [`supervisualizer/DECISIONS.md`](supervisualizer/DECISIONS.md).
+Every Stage carries both. **Kind** is the job it does — a small, closed, framework-neutral vocabulary (`validate_input`, `route`, `query_data`…). **Label** is what this particular framework calls it ("Serializer (in)", "Pydantic model"). The Panel reads only Kind; Adapters write Label. See D7/D8 in [`DECISIONS.md`](DECISIONS.md).
 _Avoid_: type, category, stage name
 
 **Packet**:
@@ -48,7 +48,7 @@ _Avoid_: the inspector, the detail pane
 
 ## supervisualizer language
 
-The live tool. See [`supervisualizer/ROADMAP.md`](supervisualizer/ROADMAP.md).
+The live tool. See [`ROADMAP.md`](ROADMAP.md).
 
 **Probe**:
 A small piece of code slipped in beside real code to watch it run, without changing what it does. The **browser probe** is JavaScript injected into outgoing HTML that wraps `fetch`; **server probes** are the monkeypatched `Serializer.is_valid` / `.save`. The defining rule: **remove a Probe and the app behaves identically.** If it changes an answer it is a bug, not a Probe.

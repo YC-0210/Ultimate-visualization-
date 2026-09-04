@@ -78,7 +78,7 @@
   Sent when the *test system* renders a template. “This signal is not emitted during normal operation of a Django server – it is only available during testing.” Use for: why P1.8 does not connect a signal — same class of trap as `connection.queries` needing `DEBUG`.
 - [Django Debug Toolbar — `TemplatesPanel`](https://github.com/django-commons/django-debug-toolbar/blob/main/debug_toolbar/panels/templates/panel.py)
   Prior art: monkeypatches `Template._render` so the test-only `template_rendered` signal fires in development, then listens. Use for: a shipped tool also wraps render rather than reading the response HTML; P1.8 wraps the common-API `render` instead, so the copied dict is the one the view passed.
-- [D7 — `kind` and `label`](../DECISIONS.md)
+- [D7 — `kind` and `label`](DECISIONS.md)
   First-party: the panel reads only `kind`; adapters write `label`. Closed, agreed, stable, nearest-fit. Use for: P1.9 reshape. Primary source for lesson 0016.
 - [FastAPI](https://fastapi.tiangolo.com/)
   Official: “a modern, fast (high-performance), web framework for building APIs with Python.” Use for: what the name in D7 / P6.4 / lesson 0016 refers to. Not a Phase 1 install. Not the restaurant app.
@@ -88,7 +88,7 @@
   “A trace is made of one or more spans. The first span represents the root span.” Use for: the plainest statement of trace-vs-span before the spec.
 - [OpenTelemetry: Trace API — `Span` and `SpanKind`](https://opentelemetry.io/docs/specs/otel/trace/api/#spankind)
   Span name “SHOULD be the most general string that identifies a (statistically) interesting class of Spans” — `get_user` good, `get_user/314159` bad (cardinality). `SpanKind` is five values describing call direction and communication style; `INTERNAL` is “operations which do not cross a process boundary.” Use for: why neither the name nor `SpanKind` can replace our `kind` (D7).
-- [Roadmap — stage vocabulary, v0](../ROADMAP.md)
+- [Roadmap — stage vocabulary, v0](ROADMAP.md)
   The fourteen `kind` strings. Server half used in P1.9; client kinds wait for Phase 4. Use for: which string to write on each stage.
 - [Python tutorial: Saving structured data with json](https://docs.python.org/3/tutorial/inputoutput.html#saving-structured-data-with-json)
   `dumps` → a string; `dump` → a text file. “This process is called serializing.” JSON files must be UTF-8. Use for: P1.9 file write (next lesson). They already know `dumps` (LR-0012).
