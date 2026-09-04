@@ -6,7 +6,7 @@ I can write Django code. What I cannot see is the path a single request takes th
 
 So this is the tool I want to learn with, built to learn by building it.
 
-**→ [`MISSION.md`](MISSION.md)** — the reason, what success looks like, and what is deliberately out of scope. Every decision here should trace back to it. **[`NOTES.md`](NOTES.md)** carries the standing teaching preferences; the current task is the Status block in [`ROADMAP.md`](ROADMAP.md).
+**→ [`MISSION.md`](MISSION.md)** — the reason, the two principles, what success looks like, and what is deliberately out of scope. **[`MAP.html`](MAP.html)** is the whole project on one page. Every decision here should trace back to it. **[`NOTES.md`](NOTES.md)** carries the standing teaching preferences; the current task is the Status block in [`ROADMAP.md`](ROADMAP.md).
 
 ---
 
@@ -43,7 +43,8 @@ Its core move: it does not guess and it does not re-implement. It **runs the rea
 
 | File | Role |
 |---|---|
-| [`MISSION.md`](MISSION.md) | **Why this exists.** Read first. |
+| [`MISSION.md`](MISSION.md) | **Why this exists**, and the two principles. Read first. |
+| [`MAP.html`](MAP.html) | **The whole thing at once** — the journey a request takes, what is captured today, what is being built now, and where every lesson hangs. Open it in a browser. |
 | [`NOTES.md`](NOTES.md) | Teaching preferences and workspace rules |
 | [`CONTEXT.md`](CONTEXT.md) | The glossary — the words this project uses and what they mean |
 | [`RESOURCES.md`](RESOURCES.md) | Trusted sources for the current topic, annotated with when to reach for them |

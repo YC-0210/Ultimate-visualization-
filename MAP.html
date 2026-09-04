@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Map — Ultimate Visualization</title>
+<link rel="stylesheet" href="assets/lesson.css">
+<link rel="stylesheet" href="assets/timeline.css">
+<style>
+  .page { max-width: 52rem; }
+
+  .principles {
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--accent);
+    background: var(--paper);
+    padding: 1.1rem 1.3rem;
+    margin: 1.8rem 0 2.4rem;
+  }
+  .principles p { margin: 0 0 0.7rem; font-size: 1.02rem; }
+  .principles p:last-of-type { margin-bottom: 0; }
+  .principles .why {
+    font-family: var(--sans);
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-top: 0.35rem;
+    line-height: 1.5;
+  }
+
+  .sot {
+    font-family: var(--sans);
+    font-size: 0.74rem;
+    color: var(--muted);
+    background: var(--accent-soft);
+    border: 1px solid var(--rule);
+    padding: 0.6rem 0.85rem;
+    border-radius: 3px;
+    margin: 1rem 0 1.8rem;
+    line-height: 1.55;
+  }
+
+  .spine {
+    font-family: var(--code);
+    font-size: 0.68rem;
+    line-height: 1.5;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 1rem 1.1rem;
+    overflow-x: auto;
+    white-space: pre;
+    margin: 1.2rem 0 1.6rem;
+  }
+
+  table.hangs { width: 100%; border-collapse: collapse; font-size: 0.76rem; margin: 1rem 0 2rem; }
+  table.hangs th, table.hangs td {
+    text-align: left; vertical-align: top;
+    padding: 0.42rem 0.6rem 0.42rem 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  table.hangs th {
+    font-family: var(--sans); font-size: 0.64rem;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+  }
+  table.hangs code { font-family: var(--code); font-size: 0.72rem; color: var(--accent); }
+  table.hangs a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--rule); }
+  table.hangs a:hover { border-bottom-color: var(--accent); }
+  table.hangs .none { color: var(--muted); font-style: italic; }
+
+  .gap {
+    border: 1px dashed var(--rule);
+    padding: 0.85rem 1.05rem;
+    margin: 1rem 0 1.6rem;
+    font-size: 0.8rem;
+    line-height: 1.6;
+  }
+  .gap h3 {
+    font-family: var(--sans); font-size: 0.64rem;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--accent); margin: 0 0 0.5rem;
+  }
+  .gap ul { margin: 0; padding-left: 1.1rem; }
+  .gap li { margin-bottom: 0.4rem; }
+
+  .foot {
+    margin-top: 3.5rem; padding-top: 1.2rem;
+    border-top: 1px solid var(--rule);
+    font-family: var(--sans); font-size: 0.74rem; color: var(--muted); line-height: 1.7;
+  }
+  .foot a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header class="mast">
+  <p class="kicker">Ultimate Visualization</p>
+  <h1>The map</h1>
+  <p class="lede">Everything at once: the journey one request takes, what is captured today,
+  what is being built now, and what has not been observed yet — with every lesson and
+  reference card hung off the stage it explains.</p>
+</header>
+
+<div class="principles">
+  <p><strong>Capture is deterministic. The LLM explains; it never observes.</strong></p>
+  <p class="why">The value is that the numbers are real, because real code produced them.
+  Unplug the model and the tool must still capture and display everything correctly —
+  just without prose.</p>
+
+  <p style="margin-top:1rem"><strong>If I can't see it all at once, I don't understand it yet.</strong></p>
+  <p class="why">A part understood in isolation is a part you will lose. Anything that can
+  only be read one moment at a time — a step debugger, a directory of twenty-one lessons —
+  moves the assembly work into your head, which is where the understanding was supposed
+  to end up. This page exists because of this principle, and is the first test of it.</p>
+</div>
+
+<div class="sot">
+  <strong>This page is a mirror, not a source.</strong>
+  <a href="ROADMAP.md">ROADMAP.md</a> is the single source of truth for
+  phase and task status; <a href="DECISIONS.md">DECISIONS.md</a> for why
+  anything is shaped the way it is; <a href="MISSION.md">MISSION.md</a> for why any of it
+  exists. When they disagree with this page, they are right and this page is stale —
+  fix it here after fixing it there.
+  <br><br>
+  The tenses below are derived from what
+  <code>supervisualizer/src/supervisualizer/middleware.py</code> actually emits today,
+  read against the roadmap's task list. As of the roadmap's Status block
+  (2026-09-02): <strong>Phase 1 is complete</strong> — capture is safe — and
+  <strong>P2.1 is the open task</strong>, serving the panel at
+  <code>/__supervisualizer__/</code>.
+</div>
+
+<h2>1 · The journey</h2>
+
+<p>The fourteen <code>kind</code> values are the closed, framework-neutral vocabulary from
+P0.4 — the job a stage does, independent of what Django calls it. Scrub across them.
+<strong>Past</strong> means the stage is emitted into a Trace today and the values shown were
+really produced. <strong>Future</strong> means nothing has observed it yet — so the panel
+shows no data rather than a plausible guess (D2).</p>
+
+<p style="font-size:0.8rem;color:var(--muted)">Values below are from the real
+<code>POST /api/cart/item/</code> trace recorded at P1.9. Tick <em>All at once</em> to stop
+scrubbing and see the whole journey open at the same time.</p>
+
+<div data-timeline>
+<script type="application/json" data-timeline-config>
+{
+  "axis": "stage",
+  "start": 3,
+  "moments": [
+    {
+      "id": "read_ui_state",
+      "label": "read_ui_state",
+      "sub": "Pull values out of the live UI. Browser-side; only the browser probe can witness it.",
+      "tense": "future",
+      "when": "P4.4",
+      "note": "This is where quantity is still the string \"2\", because the DOM has no numbers. Django never learns this stage existed — by the time the request arrives, Number() has already run.",
+      "links": [{ "href": "ROADMAP.md", "text": "Phase 4" }]
+    },
+    {
+      "id": "build_payload",
+      "label": "build_payload",
+      "sub": "Assemble the object to send.",
+      "tense": "future",
+      "when": "P4.4",
+      "note": "The first type hop of the whole journey, and one of the two the mission names by hand. Invisible to the server: Django receives 2 and cannot know it was ever \"2\"."
+    },
+    {
+      "id": "send_request",
+      "label": "send_request",
+      "sub": "Hand it to the network. Django's fetch wrapper.",
+      "tense": "future",
+      "when": "P4.2 – P4.3",
+      "note": "Also where the trace id is minted and sent as a header. P4.3 is marked risky: everything downstream of the client/server join depends on this correlation working."
+    },
+    {
+      "id": "receive_input",
+      "label": "receive_input",
+      "sub": "Parse the incoming request. Django's request parsing.",
+      "tense": "past",
+      "when": "P1.1 ✓",
+      "data": [
+        { "key": "method", "type": "str", "value": "POST" },
+        { "key": "path", "type": "str", "value": "/api/cart/item/" },
+        { "key": "body", "type": "str", "value": "{\"product\": \"經典原味鍋\", …}" },
+        { "key": "headers", "type": "dict", "value": "Cookie: sessionid=…" }
+      ],
+      "note": "request.body is bytes; the decode to str is the first thing the middleware does, and the first place it can crash on a real request.",
+      "links": [
+        { "href": "lessons/0006-middleware-is-wrapping.html", "text": "Lesson 0006 — middleware is wrapping" },
+        { "href": "reference/http-request.html", "text": "ref · http-request" }
+      ]
+    },
+    {
+      "id": "route",
+      "label": "route",
+      "sub": "Match a path to a handler. Django's urlconf.",
+      "tense": "past",
+      "when": "P1.2, P1.4 ✓",
+      "data": [
+        { "key": "route", "type": "str", "value": "api/cart/item/" },
+        { "key": "url_name", "type": "str", "value": "cartitem_list" },
+        { "key": "view", "type": "str", "value": "restaurantAPI.views.cartitemList" },
+        { "key": "serializer_class", "type": "str", "value": "cartitemSerializer" },
+        { "key": "queryset_model", "type": "str", "value": "cartitem" }
+      ],
+      "note": "resolver_match does not exist on the way in — Django sets it inside get_response. Reading it after that call returns is the smallest change to the P1.1 middleware.",
+      "links": [
+        { "href": "lessons/0001-when-resolver-match-appears.html", "text": "Lesson 0001 — when resolver_match appears" },
+        { "href": "lessons/0003-func-is-not-the-print.html", "text": "Lesson 0003 — func is not the print" },
+        { "href": "lessons/0007-the-view-class-is-a-recipe-card.html", "text": "Lesson 0007 — the view class" },
+        { "href": "reference/resolver-match.html", "text": "ref · resolver-match" }
+      ]
+    },
+    {
+      "id": "attach_context",
+      "label": "attach_context",
+      "sub": "Populate session and user. Django's Session + Auth middleware.",
+      "tense": "past",
+      "when": "P1.3 ✓",
+      "data": [
+        { "key": "is_authenticated", "type": "bool", "value": "False" },
+        { "key": "username", "type": "str", "value": "\"\"" },
+        { "key": "session_keys", "type": "list", "value": "[\"table_number\"]" }
+      ],
+      "note": "The cookie carries only a lookup number. The session dictionary lives on the server and request.user is built from it — which is why this stage is a hop, not a copy. Recorded outside the route branch on purpose: a 404 still has a user and a session.",
+      "links": [
+        { "href": "lessons/0004-what-a-cookie-is.html", "text": "Lesson 0004 — what a cookie is" },
+        { "href": "lessons/0005-ticket-is-not-the-diner.html", "text": "Lesson 0005 — request.user" },
+        { "href": "reference/cookie.html", "text": "ref · cookie" },
+        { "href": "reference/request-user.html", "text": "ref · request-user" },
+        { "href": "reference/middleware-order.html", "text": "ref · middleware-order" }
+      ]
+    },
+    {
+      "id": "authorize",
+      "label": "authorize",
+      "sub": "Decide if this caller may proceed. DRF's permission_classes.",
+      "tense": "present",
+      "when": "facts captured, stage not emitted",
+      "data": [
+        { "key": "permission_classes", "type": "list", "value": "captured — but folded into the route stage" }
+      ],
+      "note": "A structural gap the lessons never surface, because no single lesson is about the shape of the stage list. permission_classes is read off the view class and written into route.data, so the vocabulary has an authorize kind that no Trace has ever carried. Either emit it as its own stage or record why it belongs to route."
+    },
+    {
+      "id": "validate_input",
+      "label": "validate_input",
+      "sub": "Untrusted input becomes typed objects. DRF's serializer.",
+      "tense": "past",
+      "when": "P1.7 ✓ 🔴",
+      "data": [
+        { "key": "product", "type": "menuitem instance", "was": "str", "value": "\"經典原味鍋\" → pk=1" },
+        { "key": "meattype", "type": "meattype instance", "was": "str", "value": "\"牛肉\" → pk=2" },
+        { "key": "quantity", "type": "int", "value": "2" }
+      ],
+      "note": "The single most valuable thing the tool shows, and the reason the middleware monkeypatches Serializer.is_valid rather than reading anything after the fact: the serializer instance only exists inside get_response.",
+      "links": [
+        { "href": "lessons/0010-validated-data-is-the-type-change.html", "text": "Lesson 0010 — validated_data" },
+        { "href": "lessons/0011-the-model-is-not-the-instance.html", "text": "Lesson 0011 — model vs instance" },
+        { "href": "reference/validated-data.html", "text": "ref · validated-data" },
+        { "href": "reference/four-objects.html", "text": "ref · four-objects" }
+      ]
+    },
+    {
+      "id": "query_data",
+      "label": "query_data",
+      "sub": "Read persisted data. The ORM read.",
+      "tense": "present",
+      "when": "P1.5 ✓ captured, not staged",
+      "data": [
+        { "key": "sql", "type": "list", "value": "captured — but sits at the top of the Trace, not in stages" }
+      ],
+      "note": "connection.execute_wrapper collects every query with its duration, and the Trace carries them as one flat sql list. The vocabulary has query_data and mutate_data; the Trace has neither. D5 says the SlugRelatedField lookups happen inside serializer validation, so the truthful shape is SQL stages nested under validate_input by parent_id — which is exactly what the tree was chosen for.",
+      "links": [
+        { "href": "lessons/0008-queryset-model-is-not-the-sql.html", "text": "Lesson 0008 — queryset is not the SQL" },
+        { "href": "reference/execute-wrapper.html", "text": "ref · execute-wrapper" }
+      ]
+    },
+    {
+      "id": "mutate_data",
+      "label": "mutate_data",
+      "sub": "Write persisted data. The ORM write.",
+      "tense": "present",
+      "when": "same gap as query_data",
+      "note": "The INSERT that creates the cartitem row is in the sql list too, undistinguished from the reads. Splitting read from write is the whole point of having two kinds."
+    },
+    {
+      "id": "render_output",
+      "label": "render_output",
+      "sub": "Typed objects become wire format. Template, or serializer on the way out.",
+      "tense": "past",
+      "when": "P1.8 ✓",
+      "data": [
+        { "key": "template", "type": "str", "value": "menuitem_detail.html" },
+        { "key": "context", "type": "dict", "value": "{\"menuitem\": menuitem instance, …}" }
+      ],
+      "note": "Correctly absent from the POST /api/cart/item/ trace: a JSON API never calls Template.render, and an omitted stage means \"did not happen\". That absence was the prediction lesson 0016's widget made, and P1.9 confirmed it.",
+      "links": [
+        { "href": "lessons/0013-template-is-not-the-html.html", "text": "Lesson 0013 — template is not the HTML" },
+        { "href": "reference/template-context.html", "text": "ref · template-context" }
+      ]
+    },
+    {
+      "id": "send_response",
+      "label": "send_response",
+      "sub": "Hand it back to the network.",
+      "tense": "past",
+      "when": "P1.6 ✓",
+      "data": [
+        { "key": "status", "type": "int", "value": "201" },
+        { "key": "price", "type": "str", "value": "\"250.00\" — never posted, computed server-side" },
+        { "key": "size", "type": "int", "value": "len(response.content)" }
+      ],
+      "note": "The response is a different object from the request, not a modified one. price is the second type hop the mission names: a Decimal computed in create(), serialised out as a string. Since P1.10 the body read branches on response.streaming first — a FileResponse has no .content, and reading it turned a working image into a 500.",
+      "links": [
+        { "href": "lessons/0009-read-the-response-object.html", "text": "Lesson 0009 — the response object" },
+        { "href": "reference/http-response.html", "text": "ref · http-response" }
+      ]
+    },
+    {
+      "id": "receive_response",
+      "label": "receive_response",
+      "sub": "Parse what came back. res.json() in the browser.",
+      "tense": "future",
+      "when": "P4.4",
+      "note": "Happens after Django has responded and moved on, so no server probe can ever see it. This is half of why the browser probe posts a separate report instead of riding the response."
+    },
+    {
+      "id": "update_ui",
+      "label": "update_ui",
+      "sub": "Reflect the result on screen.",
+      "tense": "future",
+      "when": "P4.4",
+      "note": "The end of the journey, and where price is still a string in the DOM. A client-only interaction — ticking a topping — produces this stage and read_ui_state and nothing in between, which is how the network boundary becomes visible (P4.7)."
+    }
+  ]
+}
+</script>
+</div>
+
+<div class="gap">
+  <h3>What the journey shows that no single lesson does</h3>
+  <ul>
+    <li><strong>Three kinds in the vocabulary have never appeared in a Trace.</strong>
+      <code>authorize</code>, <code>query_data</code> and <code>mutate_data</code> all have
+      their facts captured, but none is emitted as a stage — the SQL sits in a flat list at
+      the top of the Trace and <code>permission_classes</code> is folded into
+      <code>route</code>.</li>
+    <li><strong>Every stage in today's Trace has <code>parent_id: None</code>.</strong>
+      D5 chose a tree over a flat list specifically so the <code>SlugRelatedField</code>
+      SQL could nest inside <code>validate_input</code>. The tree exists in the schema and
+      not yet in the data.</li>
+    <li><strong>The server half is five of fourteen kinds.</strong> Nine-fourteenths of the
+      journey the mission describes is Phase 4, and it is the half that carries both type
+      hops the mission names by hand.</li>
+  </ul>
+</div>
+
+<h2>2 · The build</h2>
+
+<p>Same component, broader granularity: the axis is phases rather than stages. Each phase
+ends in something visible — that is the test of whether it was scoped right.</p>
+
+<div data-timeline>
+<script type="application/json" data-timeline-config>
+{
+  "axis": "phase",
+  "moments": [
+    {
+      "id": "p0",
+      "label": "0 · Decide",
+      "sub": "Close the questions that change everything downstream.",
+      "tense": "past",
+      "when": "P0.1 – P0.7 ✓",
+      "data": [
+        { "key": "delivery", "type": "D3", "value": "an installable Django app, panel at /__supervisualizer__/" },
+        { "key": "transport", "type": "D4", "value": "SSE — the panel only ever receives" },
+        { "key": "trace shape", "type": "D5", "value": "a tree; each stage carries parent_id" },
+        { "key": "otel bet", "type": "D6", "value": "PASS — for context propagation, not free instrumentation" },
+        { "key": "vocabulary", "type": "D7/D8", "value": "kind (the job) + label (what this framework calls it)" }
+      ],
+      "note": "Done when: runserver printed a line from your own middleware on every request. The P0.4a spike is the reason D6 survived — it also killed two claims D6 made before it ran.",
+      "links": [
+        { "href": "DECISIONS.md", "text": "DECISIONS.md · D1–D8" },
+        { "href": "supervisualizer/spikes/P0.4a-otel-nested-values.md", "text": "spike P0.4a" },
+        { "href": "lessons/0017-otel-trace-and-why-stage-is-not-span.html", "text": "Lesson 0017 — why Stage is not span" }
+      ]
+    },
+    {
+      "id": "p1",
+      "label": "1 · Capture the server half",
+      "sub": "Pure Python. No UI. Output is a JSON file you read in a terminal.",
+      "tense": "past",
+      "when": "P1.1 – P1.10 ✓ complete",
+      "data": [
+        { "key": "P1.1 – P1.9", "type": "done", "value": "request, route, session/user, view facts, SQL, response, serializer, template, Trace file" },
+        { "key": "P1.10", "type": "done", "value": "capture is safe — streaming branch, guards, capture_errors" }
+      ],
+      "note": "Done when: POST /api/cart/item/ produces a Trace containing validated_data with real model instances and the SQL Django emitted. Met at P1.9; P1.10 then made the reads that build it unable to take the app down. Proof: /media/menu/images.jpeg is 200 (it is a FileResponse, so the body read now branches on response.streaming), and a forced ValueError inside encode leaves the page at 200 and writes capture_errors instead of a 500. Two threads left open on purpose — Cookie is unredacted, and nothing emits mutate_data even on a writing request.",
+      "links": [
+        { "href": "lessons/0018-the-print-is-gone-the-file-stays.html", "text": "Lesson 0018 — the file stays" },
+        { "href": "lessons/0019-a-probe-must-fail-alone.html", "text": "Lesson 0019 — a probe must fail alone" },
+        { "href": "reference/capture-guards.html", "text": "ref · capture-guards" },
+        { "href": "reference/trace-schema.html", "text": "ref · trace-schema" }
+      ]
+    },
+    {
+      "id": "p2",
+      "label": "2 · Panel renders one trace",
+      "sub": "First visual payoff. Static — you refresh manually.",
+      "tense": "present",
+      "when": "P2.1 open · P2.2 – P2.6 after",
+      "data": [
+        { "key": "P2.1", "type": "open", "value": "serve the panel at /__supervisualizer__/, DEBUG-only" },
+        { "key": "the Trace", "type": "exists", "value": "written to disk on every request" },
+        { "key": "the page", "type": "404", "value": "no URL is wired yet" }
+      ],
+      "note": "The file exists; the page does not. P2.1 is one include() in the project's root urls.py, guarded on DEBUG — the panel is extra paths on the same URLconf, not a second process, exactly as Debug Toolbar does it. After that: port stages_for() and the renderers from the prototype, deriving stages from Trace facts rather than hardcoding them. LR-0078 added a requirement here — LSP makes graceful handling of unknown kinds a client guarantee, so the panel must render an unrecognised kind in a default way or a future vocabulary bump breaks every older panel.",
+      "links": [
+        { "href": "lessons/0020-the-panel-is-a-second-request.html", "text": "Lesson 0020 — the panel is a second request" },
+        { "href": "lessons/0021-the-404-is-a-missing-pattern.html", "text": "Lesson 0021 — the 404 is a missing pattern" },
+        { "href": "reference/include-prefix.html", "text": "ref · include-prefix" },
+        { "href": "reference/panel-reader.html", "text": "ref · panel-reader" },
+        { "href": "prototype/HOW-IT-WORKS.md", "text": "prototype · what carries over" }
+      ]
+    },
+    {
+      "id": "p3",
+      "label": "3 · Live",
+      "sub": "Ring buffer, SSE, arrivals with no refresh.",
+      "tense": "future",
+      "when": "P3.1 – P3.5",
+      "note": "Done when: the panel is open in one tab, the app in another, and clicking around makes pipelines appear live."
+    },
+    {
+      "id": "p4",
+      "label": "4 · The client half, stitched",
+      "sub": "The phase that makes it the tool you actually wanted.",
+      "tense": "future",
+      "when": "P4.1 – P4.8",
+      "note": "Until here it is a nicer Debug Toolbar. This phase carries nine of the fourteen kinds, both type hops the mission names, and the client/server boundary — which only becomes visible because the browser reports independently (P4.7). P4.3, the trace-id correlation, is the risky one."
+    },
+    {
+      "id": "p5",
+      "label": "5 · Explanation",
+      "sub": "The LLM, and only on top of data that is already correct.",
+      "tense": "future",
+      "when": "P5.1 – P5.6",
+      "note": "Cache by content hash or it is slow and expensive and gets turned off. Pull the key out and nothing breaks but the prose — that is the test the first principle sets."
+    },
+    {
+      "id": "p6",
+      "label": "6 · Beyond Django",
+      "sub": "A second adapter, and zero panel changes.",
+      "tense": "future",
+      "when": "P6.1 – P6.6",
+      "note": "The M+N bet from D7 comes due here. P6.4 is also where the kind vocabulary stops being provisional: the Express and FastAPI columns of the P0.4 table are reasoned, not verified, and a vocabulary that only fits Django is worthless."
+    }
+  ]
+}
+</script>
+</div>
+
+<h2>3 · The spine</h2>
+
+<p>Where the pieces sit, and the one seam that decides whether Phase 6 is easy or a rewrite.</p>
+
+<pre class="spine">  YOUR BROWSER                            YOUR DJANGO APP
+┌──────────────────────────┐            ┌──────────────────────────┐
+│  your app page           │            │  your views/serializers  │
+│  ┌────────────────────┐  │ request +  │  ┌────────────────────┐  │
+│  │ injected probe     │──┼─ trace-id ►│  │ capture middleware │  │
+│  │ script    (Ph 4)   │  │            │  │  + serializer probe│  │
+│  └────────────────────┘  │            │  │  + SQL probe  (Ph 1)│ │
+│   captures DOM,          │            │  └─────────┬──────────┘  │
+│   payload, timing        │            │            │             │
+└──────────────────────────┘            │       Trace (JSON)       │
+                                        │            │             │
+┌──────────────────────────┐            │            ▼             │
+│  the panel      (Ph 2/3) │◄─ SSE ─────┼──── trace buffer  (Ph 3) │
+│  /__supervisualizer__/   │            └──────────────────────────┘
+│  (renderer ported        │
+│   from prototype)        │            ┌──────────────────────────┐
+│         │                │            │  explain service  (Ph 5) │
+│         └────────────────┼─ on demand►│  (LLM, cached, optional) │
+└──────────────────────────┘            └──────────────────────────┘</pre>
+
+<p style="font-size:0.82rem"><strong>The seam:</strong> everything right of the panel talks to
+it only through the Trace schema. Django is one <em>Adapter</em> producing that schema.
+Framework #2 is a new adapter, not a new tool. Get the schema right in Phase 1 and Phase 6
+is easy; get it wrong and Phase 6 is a rewrite.</p>
+
+<p style="font-size:0.82rem"><strong>Why the browser reports separately:</strong> Django only
+ever sees the middle of the story. The <code>"2"</code> → <code>2</code> hop happened before
+the request left; <code>res.json()</code> happens after the response was sent; a client-only
+interaction produces no request at all. None of those can ride on the response, so the probe
+posts its own half and the server joins the two by trace id.</p>
+
+<h2>4 · Where everything hangs</h2>
+
+<p>Every lesson and reference card, filed under the thing it explains. Nineteen lessons is
+past the point where a directory listing is a map.</p>
+
+<table class="hangs">
+  <thead>
+    <tr><th>Explains</th><th>Lessons</th><th>Reference cards</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>receive_input</code><br>the onion</td>
+      <td><a href="lessons/0006-middleware-is-wrapping.html">0006 middleware is wrapping</a></td>
+      <td><a href="reference/http-request.html">http-request</a></td>
+    </tr>
+    <tr>
+      <td><code>route</code></td>
+      <td><a href="lessons/0001-when-resolver-match-appears.html">0001 when resolver_match appears</a><br>
+          <a href="lessons/0002-json-from-resolver-match.html">0002 JSON from resolver_match</a><br>
+          <a href="lessons/0003-func-is-not-the-print.html">0003 func is not the print</a><br>
+          <a href="lessons/0007-the-view-class-is-a-recipe-card.html">0007 the view class</a></td>
+      <td><a href="reference/resolver-match.html">resolver-match</a></td>
+    </tr>
+    <tr>
+      <td><code>attach_context</code></td>
+      <td><a href="lessons/0004-what-a-cookie-is.html">0004 what a cookie is</a><br>
+          <a href="lessons/0005-ticket-is-not-the-diner.html">0005 request.user</a></td>
+      <td><a href="reference/cookie.html">cookie</a><br>
+          <a href="reference/request-user.html">request-user</a><br>
+          <a href="reference/middleware-order.html">middleware-order</a></td>
+    </tr>
+    <tr>
+      <td><code>authorize</code></td>
+      <td class="none">none — and the stage is not emitted either</td>
+      <td class="none">none</td>
+    </tr>
+    <tr>
+      <td><code>validate_input</code></td>
+      <td><a href="lessons/0010-validated-data-is-the-type-change.html">0010 validated_data</a><br>
+          <a href="lessons/0011-the-model-is-not-the-instance.html">0011 model vs instance</a></td>
+      <td><a href="reference/validated-data.html">validated-data</a><br>
+          <a href="reference/four-objects.html">four-objects</a></td>
+    </tr>
+    <tr>
+      <td><code>query_data</code> · <code>mutate_data</code></td>
+      <td><a href="lessons/0008-queryset-model-is-not-the-sql.html">0008 queryset is not the SQL</a></td>
+      <td><a href="reference/execute-wrapper.html">execute-wrapper</a></td>
+    </tr>
+    <tr>
+      <td><code>render_output</code></td>
+      <td><a href="lessons/0013-template-is-not-the-html.html">0013 template is not the HTML</a></td>
+      <td><a href="reference/template-context.html">template-context</a></td>
+    </tr>
+    <tr>
+      <td><code>send_response</code></td>
+      <td><a href="lessons/0009-read-the-response-object.html">0009 the response object</a></td>
+      <td><a href="reference/http-response.html">http-response</a></td>
+    </tr>
+    <tr>
+      <td>How a probe works<br><span style="color:var(--muted);font-size:0.72rem">Python mechanics, not Django</span></td>
+      <td><a href="lessons/0012-self-args-kwargs.html">0012 self, *args, **kwargs</a><br>
+          <a href="lessons/0014-two-names-one-function.html">0014 two names, one function</a><br>
+          <a href="lessons/0015-function-vs-method-object.html">0015 function vs method object</a></td>
+      <td><a href="reference/fn-slots.html">fn-slots</a><br>
+          <a href="reference/names-bind.html">names-bind</a></td>
+    </tr>
+    <tr>
+      <td>The Trace itself<br><span style="color:var(--muted);font-size:0.72rem">the schema, and why it is ours</span></td>
+      <td><a href="lessons/0016-dump-is-not-a-trace.html">0016 a dump is not a Trace</a><br>
+          <a href="lessons/0017-otel-trace-and-why-stage-is-not-span.html">0017 why Stage is not span</a><br>
+          <a href="lessons/0018-the-print-is-gone-the-file-stays.html">0018 the file stays</a></td>
+      <td><a href="reference/trace-schema.html">trace-schema</a><br>
+          <a href="reference/otel-span.html">otel-span</a></td>
+    </tr>
+    <tr>
+      <td>Capture safety<br><span style="color:var(--muted);font-size:0.72rem">P1.10 — done</span></td>
+      <td><a href="lessons/0019-a-probe-must-fail-alone.html">0019 a probe must fail alone</a></td>
+      <td><a href="reference/capture-guards.html">capture-guards</a></td>
+    </tr>
+    <tr>
+      <td>The Panel<br><span style="color:var(--muted);font-size:0.72rem">P2.1 — the open task</span></td>
+      <td><a href="lessons/0020-the-panel-is-a-second-request.html">0020 the panel is a second request</a><br>
+          <a href="lessons/0021-the-404-is-a-missing-pattern.html">0021 the 404 is a missing pattern</a></td>
+      <td><a href="reference/include-prefix.html">include-prefix</a><br>
+          <a href="reference/panel-reader.html">panel-reader</a></td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>5 · The words</h2>
+
+<p>Three tiers, and knowing which tier a word belongs to is the difference between finding
+docs and searching for docs that do not exist.</p>
+
+<table class="hangs">
+  <tbody>
+    <tr>
+      <td style="width:11rem"><strong>Framework words</strong><br>
+        <span style="color:var(--muted);font-size:0.72rem">official docs exist — quote them</span></td>
+      <td><code>resolver_match</code> <code>get_response</code> <code>request.user</code>
+        <code>session</code> <code>permission_classes</code> <code>serializer_class</code>
+        <code>queryset</code> <code>is_valid</code> <code>validated_data</code>
+        <code>execute_wrapper</code> <code>template</code> <code>context</code> <code>render</code></td>
+    </tr>
+    <tr>
+      <td><strong>Borrowed spec words</strong><br>
+        <span style="color:var(--muted);font-size:0.72rem">someone else's docs, used deliberately</span></td>
+      <td>OTel <code>span</code> · LSP <code>DocumentSymbol</code> / <code>SymbolKind</code></td>
+    </tr>
+    <tr>
+      <td><strong>This repo's words</strong><br>
+        <span style="color:var(--muted);font-size:0.72rem">no docs anywhere — see <a href="CONTEXT.md">CONTEXT.md</a></span></td>
+      <td><code>Stage</code> <code>Packet</code> <code>Trace</code> <code>Probe</code>
+        <code>Panel</code> <code>Adapter</code> <code>Kind</code>/<code>Label</code>
+        <code>Pipeline</code> <code>Network Boundary</code> <code>Data Panel</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="foot">
+  <strong>Keeping this page true.</strong> It is a mirror. When a roadmap task lands, update
+  <a href="ROADMAP.md">ROADMAP.md</a> first — its Status block and its
+  checkbox — then move the moment's <code>tense</code> here from
+  <code>future</code> → <code>present</code> → <code>past</code> and hang the new lesson off
+  the stage it explains. A stage moves to <code>past</code> only when a real Trace carries
+  it, never because a lesson explained it.
+  <br><br>
+  <strong>Read next:</strong>
+  <a href="MISSION.md">MISSION.md</a> ·
+  <a href="NOTES.md">NOTES.md</a> ·
+  <a href="CONTEXT.md">CONTEXT.md</a> ·
+  <a href="RESOURCES.md">RESOURCES.md</a> ·
+  <a href="ROADMAP.md">ROADMAP.md</a> ·
+  <a href="DECISIONS.md">DECISIONS.md</a>
+  <br><br>
+  Something here unclear or wrong? Ask — that is what the agent is for, and a wrong map is
+  worse than no map.
+</div>
+
+</div>
+<script src="assets/timeline.js"></script>
+</body>
+</html>

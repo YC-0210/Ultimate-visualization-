@@ -1,3 +1,5 @@
+Altitude: mechanical
+
 # The view field is a name string, not something to call
 
 P1.2 copies four JSON-safe pieces off `ResolverMatch`. The user has: the match is a Python object; Django already called the view; the Trace only needs to record *which* handler ran.

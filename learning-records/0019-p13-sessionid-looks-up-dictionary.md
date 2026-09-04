@@ -1,3 +1,5 @@
+Altitude: structural
+
 # Cookie is the lookup number; session is the dictionary
 
 They finished P1.3 and stated the lookup correctly: the request’s Cookie header has `sessionid`, Django uses it to find a dictionary on the server. They saw live keys `table_number`, `cart_id`, `_auth_user_id`, `_auth_user_backend`, `_auth_user_hash`. On this restaurant app `cart_id` in the session is how later add-to-cart finds the cart (`models.py`).

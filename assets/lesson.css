@@ -1738,3 +1738,16 @@ blockquote .quote-cite {
   }
   .gloss-term { border-bottom-color: #000; }
 }
+
+/* Route back up to the whole. Every lesson carries one, because a lesson read
+   without the map is a part you will lose. See MAP.html. */
+.fits-map {
+  display: block;
+  margin-top: 0.55rem;
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+  color: var(--accent);
+  text-decoration: none;
+}
+.fits-map:hover { text-decoration: underline; }

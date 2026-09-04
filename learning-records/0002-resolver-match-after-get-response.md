@@ -1,3 +1,5 @@
+Altitude: structural
+
 # After get_response, resolver_match is a ResolverMatch
 
 The user printed `getattr(request, "resolver_match", None)` after `get_response` on `GET /api/menuitem/經典原味鍋/` and got a real `ResolverMatch`: `url_name='menuitem_detail'`, `route='api/menuitem/<str:slug>/'`, `kwargs={'slug': '經典原味鍋'}`. Before the walk it is `None`. That is now the floor.

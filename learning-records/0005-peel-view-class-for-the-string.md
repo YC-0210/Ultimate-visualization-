@@ -1,3 +1,5 @@
+Altitude: mechanical
+
 # Trace view string is rebuilt from view_class, not from the print or from func
 
 The user can now state the CBV peel: `match.func` is a function so it cannot go in the Trace; the string `"restaurantAPI.views.menuitemDetail"` is `view_class.__module__ + '.' + view_class.__qualname__`. Floor for the class-based API view.

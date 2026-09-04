@@ -1,4 +1,5 @@
 Status: superseded by LR-0047
+Altitude: mechanical
 
 # Analogies do not carry into later lessons
 

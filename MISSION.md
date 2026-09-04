@@ -18,16 +18,25 @@ So I am building the tool I want to learn with — and building it myself, in Cu
 - I understand Django's request lifecycle well enough to have *instrumented* it — middleware, routing, serializers, the ORM — not just used it.
 - The tool works on a backend I did not write, which is the proof it captures something general rather than something I memorised about my own project.
 
+## Principles
+
+Two, and they decide arguments rather than describe them.
+
+1. **Capture is deterministic. The LLM explains; it never observes.** The value is that the numbers are real, because real code produced them. The test: unplug the model and the tool must still capture and display everything correctly — just without prose. If removing it breaks the *data*, it is in the wrong place. ([`ROADMAP.md`](ROADMAP.md), and D2 in [`DECISIONS.md`](DECISIONS.md).)
+
+2. **If I can't see it all at once, I don't understand it yet.** A part understood in isolation is a part I will lose. Anything readable only one moment at a time — a step debugger, a directory of nineteen lessons — moves the assembly work into my head, which is where the understanding was supposed to end up. This is the principle behind the tool itself (a Pipeline shown whole, not a stack trace stepped through) and behind [`MAP.html`](MAP.html), which applies it to learning the project. When either stops being visible as a whole, that is the bug — not my memory.
+
+*The second comes from Bret Victor's [*Inventing on Principle*](https://worrydream.com/InventingOnPrinciple/) and [*Learnable Programming*](https://worrydream.com/LearnableProgramming/) — see the Design section of [`RESOURCES.md`](RESOURCES.md).*
+
 ## Constraints
 
 - **Learn by building.** The code in `supervisualizer/` is written by me. AI plans, explains, reviews and spikes; it does not hand me a finished tool. (`prototype/` was the deliberate exception — an AI-built proof that the idea was worth pursuing.)
 - **Teach the logic, not the syntax.** Why the system behaves this way, when a fact exists on the request, how the pieces actually collaborate. Punctuation and style only matter when they change the behaviour being observed.
-- **Visual first.** Seeing the mechanism beats reading about it. Explanations should reach for a diagram or a worked example before prose.
-- **One idea at a time.** One concept per exchange, one reference per concept, with a stated reason why it matters to this project.
-- **Capture stays deterministic.** No LLM in the path that produces a displayed fact. See [`DECISIONS.md`](DECISIONS.md) D2.
+- **Visual first.** Seeing the mechanism beats reading about it. Reach for a diagram, a scrubber, or a worked example on a real request before prose — and never substitute an analogy for either (`NOTES.md`).
+- **One idea at a time — with the whole one click away.** One concept per exchange, one reference per concept, with a stated reason why it matters to this project. Principle 2 is what keeps that from fragmenting: every lesson links back to [`MAP.html`](MAP.html) and updates it.
 - **Work against the live restaurant project**, not a toy app.
 - **Phases build on each other.** Do not skip ahead — the current phase and task are in [`ROADMAP.md`](ROADMAP.md), which is the single source of truth for progress.
-- **Teaching files live at this repository root** (`MISSION.md`, `NOTES.md`, `RESOURCES.md`, `ROADMAP.md`, `DECISIONS.md`, `lessons/`, `assets/`, `reference/`, `learning-records/`) — **never** inside `supervisualizer/`, which is the installable Python package other people will `pip install`.
+- **Teaching files live at this repository root** (`MISSION.md`, `MAP.html`, `NOTES.md`, `RESOURCES.md`, `ROADMAP.md`, `DECISIONS.md`, `lessons/`, `assets/`, `reference/`, `learning-records/`) — **never** inside `supervisualizer/`, which is the installable Python package other people will `pip install`.
 - **Django first**, because I know it best. Other frameworks only once Django works end to end.
 - Unfamiliar languages and tools are fine — that is part of the point.
 
