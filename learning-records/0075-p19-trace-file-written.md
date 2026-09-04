@@ -1,5 +1,0 @@
-Altitude: mechanical
-
-# P1.9 done — the Trace file lands, with the right stages omitted
-
-`POST /api/cart/item/` writes a Trace to `BASE_DIR/supervisualizer-traces/`. Five stages: `receive_input`, `route`, `attach_context`, `validate_input`, `send_response` — `render_output` correctly absent because a JSON API never calls `Template.render`, which is the prediction lesson 0016's second widget made. The `route` stage carries `permission_classes` / `serializer_class` / `queryset_model` because `cartitemList` is a class-based view, so the extras loop fired. `validated_data` shows the full type hop: `product` `"經典原味鍋"` (str in the body) → `menuitem instance pk=1`, and `price` `"250.00"` appears in the response having never been posted. Phase 1's "Done when" is met; P1.10 (safety) is next.

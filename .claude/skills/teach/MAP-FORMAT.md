@@ -11,7 +11,7 @@ It exists because of one principle:
 
 A part understood in isolation is a part the learner will lose. Every other artifact in
 this workspace is either *purpose* (`MISSION.md`) or *detail* (`lessons/`, `reference/`,
-`learning-records/`). Without a map, assembling those into a whole happens in the learner's
+`assets/`). Without a map, assembling those into a whole happens in the learner's
 head — which is where the understanding was supposed to end up, not where the filing should
 happen.
 

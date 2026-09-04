@@ -36,7 +36,8 @@ Two, and they decide arguments rather than describe them.
 - **One idea at a time — with the whole one click away.** One concept per exchange, one reference per concept, with a stated reason why it matters to this project. Principle 2 is what keeps that from fragmenting: every lesson links back to [`MAP.html`](MAP.html) and updates it.
 - **Work against the live restaurant project**, not a toy app.
 - **Phases build on each other.** Do not skip ahead — the current phase and task are in [`ROADMAP.md`](ROADMAP.md), which is the single source of truth for progress.
-- **Teaching files live at this repository root** (`MISSION.md`, `MAP.html`, `NOTES.md`, `RESOURCES.md`, `ROADMAP.md`, `DECISIONS.md`, `lessons/`, `assets/`, `reference/`, `learning-records/`) — **never** inside `supervisualizer/`, which is the installable Python package other people will `pip install`.
+- **Where I am is read, never stored.** What I have learned lives in my **Daylog** — the dated entries I write myself on the personal website. The teaching agent caches it with `bin/pull-daylog.py` and reads it at the start of a session; it keeps no notes of its own about what I understand. Evidence is code that works, or something I wrote. See D9 in [`DECISIONS.md`](DECISIONS.md).
+- **Teaching files live at this repository root** (`MISSION.md`, `MAP.html`, `NOTES.md`, `RESOURCES.md`, `ROADMAP.md`, `DECISIONS.md`, `lessons/`, `assets/`, `reference/`) — **never** inside `supervisualizer/`, which is the installable Python package other people will `pip install`.
 - **Django first**, because I know it best. Other frameworks only once Django works end to end.
 - Unfamiliar languages and tools are fine — that is part of the point.
 

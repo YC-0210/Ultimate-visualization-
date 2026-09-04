@@ -414,7 +414,7 @@ ends in something visible — that is the test of whether it was scoped right.</
         { "key": "the Trace", "type": "exists", "value": "written to disk on every request" },
         { "key": "the page", "type": "404", "value": "no URL is wired yet" }
       ],
-      "note": "The file exists; the page does not. P2.1 is one include() in the project's root urls.py, guarded on DEBUG — the panel is extra paths on the same URLconf, not a second process, exactly as Debug Toolbar does it. After that: port stages_for() and the renderers from the prototype, deriving stages from Trace facts rather than hardcoding them. LR-0078 added a requirement here — LSP makes graceful handling of unknown kinds a client guarantee, so the panel must render an unrecognised kind in a default way or a future vocabulary bump breaks every older panel.",
+      "note": "The file exists; the page does not. P2.1 is one include() in the project's root urls.py, guarded on DEBUG — the panel is extra paths on the same URLconf, not a second process, exactly as Debug Toolbar does it. After that: port stages_for() and the renderers from the prototype, deriving stages from Trace facts rather than hardcoding them. LSP adds a requirement here — it makes graceful handling of unknown kinds a client guarantee, so the panel must render an unrecognised kind in a default way or a future vocabulary bump breaks every older panel.",
       "links": [
         { "href": "lessons/0020-the-panel-is-a-second-request.html", "text": "Lesson 0020 — the panel is a second request" },
         { "href": "lessons/0021-the-404-is-a-missing-pattern.html", "text": "Lesson 0021 — the 404 is a missing pattern" },
