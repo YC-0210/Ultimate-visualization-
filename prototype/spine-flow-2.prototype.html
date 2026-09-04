@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PROTOTYPE 2 — the grid, with zones and the story</title>
+<!--
+  THROWAWAY PROTOTYPE, round 2. Delete once a variant wins.
+
+  What round 1 settled:
+    · B's grid stays — every value's whole life on screen at once.
+    · C's zones come in — Browser / the wire / Django / Database, showing
+      which one the work is happening in right now.
+    · The person is missing from round 1 and has to be visible: which page
+      they are on, which button they pressed.
+    · An event is a TRIGGER, not a keystroke. Something a person did, or a
+      function returning a value. That is what moves the data forward.
+
+  So the event stream is rebuilt. Round 1 had "read the quantity input";
+  this has "you click 加入訂單" and "create() returns a cartitem".
+
+  Three arrangements of the same ingredients, on ?variant=D|E|F:
+    D · Zone bands   — the grid, with columns tinted by zone and a zone
+                       strip above it. Closest to round 1's B.
+    E · Story ledger — transposed. Each event is a row you read down the
+                       page like a script; values sit beside the sentence.
+    F · Zone homes   — the grid, with value rows grouped by the zone that
+                       owns them. Shows where each value lives.
+
+  Honesty rule (D2): the browser half is not captured by the real Trace yet
+  (Phase 4). Those events are dashed and marked "not captured". Everything
+  else is from the real POST /api/cart/item/ trace at P1.9.
+-->
+<style>
+  :root {
+    --bg:#f4f1ea; --paper:#fbf9f4; --ink:#1c1917; --muted:#57534e;
+    --rule:#d6d3cd; --accent:#9f1239; --accent-soft:#fff1f2;
+    --ok:#166534; --ok-bg:#dcfce7; --ghost:#a8a29e;
+    --hop:#b45309; --hop-bg:#fef3c7;
+    --z-browser:#0369a1; --z-browser-bg:#e0f2fe;
+    --z-wire:#57534e;    --z-wire-bg:#eae7df;
+    --z-django:#9f1239;  --z-django-bg:#fff1f2;
+    --z-db:#6d28d9;      --z-db-bg:#ede9fe;
+    --user:#047857; --user-bg:#d1fae5;
+    --mono:"Iowan Old Style",Palatino,Georgia,serif;
+    --sans:"Avenir Next","Segoe UI",Helvetica,sans-serif;
+    --code:"IBM Plex Mono","Source Code Pro",ui-monospace,Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5;padding-bottom:5.5rem}
+  .wrap{max-width:1280px;margin:0 auto;padding:1.5rem 1.3rem 0}
+  .head{border-bottom:1px solid var(--rule);padding-bottom:.8rem;margin-bottom:.9rem}
+  .kicker{font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin:0 0 .3rem}
+  h1{font-family:var(--mono);font-size:1.45rem;font-weight:600;margin:0 0 .25rem}
+  .sub{color:var(--muted);font-size:.8rem;margin:0}
+  .vname{color:var(--accent);font-weight:600}
+
+  /* the scenario — who is doing what, always on screen */
+  .scenario{
+    display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;
+    background:var(--user-bg);border:1px solid #a7f3d0;border-radius:4px;
+    padding:.5rem .75rem;margin:.9rem 0;font-size:.78rem;
+  }
+  .scenario .tag{font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;color:var(--user);font-weight:700}
+  .scenario code{font-family:var(--code);font-size:.74rem;background:#fff;padding:.06rem .3rem;border-radius:2px}
+
+  .scrub{display:flex;align-items:center;gap:.7rem;margin:.8rem 0 .4rem}
+  .scrub button{border:1px solid var(--rule);background:var(--paper);border-radius:4px;padding:.2rem .55rem;cursor:pointer;font-size:.8rem;color:var(--ink)}
+  .scrub button:disabled{opacity:.3;cursor:default}
+  .scrub input[type=range]{flex:1;accent-color:var(--accent)}
+  .readout{font-size:.66rem;color:var(--muted);white-space:nowrap;min-width:9rem;text-align:right}
+
+  /* zone strip — which zone the work is in right now */
+  .zones{display:grid;grid-template-columns:repeat(4,1fr);gap:.45rem;margin:.7rem 0 1rem}
+  .zone{border:1px solid var(--rule);border-radius:4px;padding:.4rem .6rem;background:var(--paper);opacity:.5;transition:none}
+  .zone .zn{font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .zone .zw{font-size:.66rem;color:var(--muted);font-family:var(--code)}
+  .zone.on{opacity:1;border-width:2px;padding:calc(.4rem - 1px) calc(.6rem - 1px)}
+  .zone.on[data-z=browser]{border-color:var(--z-browser);background:var(--z-browser-bg)}
+  .zone.on[data-z=browser] .zn{color:var(--z-browser)}
+  .zone.on[data-z=wire]{border-color:var(--z-wire);background:var(--z-wire-bg)}
+  .zone.on[data-z=django]{border-color:var(--z-django);background:var(--z-django-bg)}
+  .zone.on[data-z=django] .zn{color:var(--z-django)}
+  .zone.on[data-z=db]{border-color:var(--z-db);background:var(--z-db-bg)}
+  .zone.on[data-z=db] .zn{color:var(--z-db)}
+  .zone.unobs{border-style:dashed}
+
+  /* the trigger line — what just happened, and who caused it */
+  .trigger{display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap;margin-bottom:.7rem;font-size:.85rem}
+  .by{font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;padding:.12rem .4rem;border-radius:2px;font-weight:700;white-space:nowrap}
+  .by.user{background:var(--user-bg);color:var(--user)}
+  .by.code{background:#eae7df;color:var(--muted)}
+  .trigger .what{font-weight:600}
+  .trigger .fn{font-family:var(--code);font-size:.76rem;color:var(--accent)}
+  .trigger .ret{font-family:var(--code);font-size:.72rem;color:var(--muted)}
+
+  .ty{font-family:var(--code);font-size:.62rem;padding:.04rem .3rem;border-radius:2px;background:var(--accent-soft);color:var(--accent);white-space:nowrap}
+  .ty.was{background:transparent;color:var(--muted);border:1px solid var(--rule)}
+  .lit{font-family:var(--code);font-size:.72rem}
+  .arr{color:var(--muted)}
+  .stage{background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:1rem}
+  .note{font-size:.76rem;color:var(--muted);margin-top:.8rem;line-height:1.6}
+  .badge{font-size:.55rem;letter-spacing:.09em;text-transform:uppercase;padding:.1rem .35rem;border-radius:2px}
+  .badge.fut{background:transparent;color:var(--muted);border:1px dashed var(--rule)}
+  .badge.hop{background:var(--hop-bg);color:var(--hop)}
+
+  /* ---------- the grid, shared by D and F ---------- */
+  .grid{overflow:auto;max-height:56vh}
+  .grid table{border-collapse:separate;border-spacing:0;font-size:.66rem}
+  .grid th,.grid td{border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);padding:.16rem .28rem;text-align:center;white-space:nowrap}
+  .grid th.name{text-align:left;font-family:var(--code);font-size:.64rem;position:sticky;left:0;background:var(--paper);z-index:3;min-width:7.5rem;border-left:1px solid var(--rule)}
+  .grid thead th{position:sticky;top:0;background:var(--paper);z-index:5;font-weight:500;font-size:.54rem;color:var(--muted);border-top:1px solid var(--rule)}
+  .grid thead th.name{z-index:4}
+  .grid thead tr.zonerow th{font-size:.52rem;letter-spacing:.08em;text-transform:uppercase;top:0}
+  .grid thead tr.numrow th{top:0}
+  .grid table.banded thead tr.numrow th{top:1.35rem}
+  .zh-browser{background:var(--z-browser-bg)!important;color:var(--z-browser)!important}
+  .zh-wire{background:var(--z-wire-bg)!important;color:var(--z-wire)!important}
+  .zh-django{background:var(--z-django-bg)!important;color:var(--z-django)!important}
+  .zh-db{background:var(--z-db-bg)!important;color:var(--z-db)!important}
+  .grid td.zt-browser{background:rgba(224,242,254,.35)}
+  .grid td.zt-wire{background:rgba(234,231,223,.4)}
+  .grid td.zt-django{background:rgba(255,241,242,.45)}
+  .grid td.zt-db{background:rgba(237,233,254,.4)}
+  .grid td.after{opacity:.18}
+  .grid td.void{background:repeating-linear-gradient(45deg,transparent,transparent 3px,#e8e5de 3px,#e8e5de 4px)}
+  .grid td.hold{color:#b9b4ab}
+  .grid td.change{background:var(--hop-bg)!important;color:var(--hop);font-weight:700}
+  .grid td.born{background:var(--ok-bg)!important;color:var(--ok);font-weight:700}
+  .grid td.nowcol,.grid th.nowcol{box-shadow:inset 2px 0 0 var(--accent),inset -2px 0 0 var(--accent)}
+  .grid tr.zonegroup th{z-index:1;background:#eee9e0;text-align:left;font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);position:sticky;left:0}
+  .cv{font-family:var(--code);font-size:.62rem}
+  .userflag{color:var(--user);font-weight:700}
+
+  /* ---------- E · story ledger ---------- */
+  .ledger{overflow:auto;max-height:60vh}
+  .ledger table{border-collapse:collapse;width:100%;font-size:.72rem}
+  .ledger th,.ledger td{border-bottom:1px solid var(--rule);padding:.4rem .5rem;text-align:left;vertical-align:top}
+  .ledger thead th{position:sticky;top:0;background:var(--paper);font-size:.54rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);z-index:2}
+  .ledger tr.ev.after{opacity:.22}
+  .ledger tr.ev.now{background:var(--accent-soft)}
+  .ledger tr.ev.now td{border-color:var(--accent)}
+  .ledger td.zc{width:6.5rem;font-size:.56rem;letter-spacing:.08em;text-transform:uppercase}
+  .ledger td.zc[data-z=browser]{color:var(--z-browser)}
+  .ledger td.zc[data-z=wire]{color:var(--z-wire)}
+  .ledger td.zc[data-z=django]{color:var(--z-django)}
+  .ledger td.zc[data-z=db]{color:var(--z-db)}
+  .ledger td.what{width:32%}
+  .ledger td.what .fn{font-family:var(--code);font-size:.7rem;color:var(--accent);display:block}
+  .ledger tr.ev.userrow td.what{border-left:3px solid var(--user);padding-left:.4rem}
+  .ledger td.vals .chip{display:inline-flex;align-items:baseline;gap:.25rem;margin:0 .4rem .2rem 0}
+  .ledger .nowdot{color:var(--accent);font-weight:700}
+
+  .switcher{position:fixed;bottom:1.1rem;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:.4rem;z-index:50;background:#1c1917;color:#fafaf9;border-radius:999px;padding:.35rem .5rem;box-shadow:0 6px 24px rgba(0,0,0,.28);font-size:.74rem}
+  .switcher button{background:#44403c;color:#fafaf9;border:0;border-radius:999px;width:1.7rem;height:1.7rem;cursor:pointer}
+  .switcher .label{padding:0 .6rem;white-space:nowrap}
+  .switcher .hint{opacity:.5;font-size:.62rem;padding-right:.4rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <p class="kicker">Throwaway prototype · round 2 · pick one, or steal parts</p>
+    <h1>The spine, as triggers moving data</h1>
+    <p class="sub">Variant <span class="vname" id="vname">D</span>. <strong>← →</strong> flips variants; the slider or <strong>↑ ↓</strong> steps events.</p>
+  </div>
+
+  <div class="scenario">
+    <span class="tag">You are doing this</span>
+    <span>On <code>/menuitem/經典原味鍋/</code> — you set the quantity to 2, pick 牛肉, and press <strong>加入訂單</strong> (add to order).</span>
+  </div>
+
+  <div class="scrub">
+    <button id="prev" type="button">◀</button>
+    <input id="slider" type="range" min="0" step="1" aria-label="Step events">
+    <button id="next" type="button">▶</button>
+    <span class="readout" id="readout"></span>
+  </div>
+
+  <div class="zones" id="zones"></div>
+  <div class="trigger" id="trigger"></div>
+  <div id="stage" class="stage"></div>
+  <p class="note" id="note"></p>
+</div>
+
+<div class="switcher">
+  <button id="vprev" type="button" aria-label="Previous variant">◀</button>
+  <span class="label" id="vlabel">D · Zone bands</span>
+  <button id="vnext" type="button" aria-label="Next variant">▶</button>
+  <span class="hint">← →</span>
+</div>
+
+<script>
+/* ============================================================
+   THE EVENT STREAM — rebuilt around triggers.
+
+   An event is something that MOVES THE DATA FORWARD:
+     · a person doing something  (by: "user")
+     · a function returning      (by: "code", with fn + ret)
+
+   zone   : browser | wire | django | db   — where the work happens
+   obs    : does the real Trace see this? false = Phase 4, drawn dashed
+   sets   : the values this event changes  → the grid
+   note   : plain language, one idea
+   ============================================================ */
+const ZONES = [
+  { id:"browser", name:"Browser",  what:"your page + JS", unobs:true },
+  { id:"wire",    name:"The wire", what:"HTTP",           unobs:true },
+  { id:"django",  name:"Django",   what:"your views"                 },
+  { id:"db",      name:"Database", what:"sqlite"                     },
+];
+
+const EVENTS = [
+  { by:"user", zone:"browser", obs:false,
+    what:"You open the dish page",
+    ret:"the page renders",
+    sets:{ page:{t:"url", v:"/menuitem/經典原味鍋/"} },
+    note:"An ordinary page load. Nothing about the order exists yet — the form is empty and the server has been told nothing." },
+
+  { by:"user", zone:"browser", obs:false,
+    what:"You set the quantity to 2",
+    ret:"the input holds \"2\"",
+    sets:{ quantity:{t:"str", v:'"2"'} },
+    note:"The DOM has no numbers. Whatever you type into a form control is a string until some JavaScript changes that." },
+
+  { by:"user", zone:"browser", obs:false,
+    what:"You pick 牛肉 from the meat list",
+    ret:"the select holds \"牛肉\"",
+    sets:{ meattype:{t:"str", v:'"牛肉"'} },
+    note:"Also a string, and note what it is: a name a human reads, not a database id." },
+
+  { by:"user", zone:"browser", obs:false,
+    what:"You press 加入訂單",
+    ret:"the click handler runs",
+    note:"This is the moment the whole journey starts. Everything after this is code reacting to one press." },
+
+  { by:"code", zone:"browser", obs:false, hop:true,
+    fn:"buildPayload()", ret:"→ an object",
+    what:"the handler assembles what to send",
+    sets:{ quantity:{t:"int", v:"2", was:"str"} },
+    note:"Number(\"2\") runs here. First type change of the journey — and Django will never know it happened, because it only ever receives the 2." },
+
+  { by:"code", zone:"browser", obs:false, hop:true,
+    fn:"JSON.stringify(payload)", ret:"→ a string",
+    what:"the object is flattened to text",
+    sets:{ body:{t:"str", v:'{"product":"經典原味鍋","quantity":2,…}', was:"object"} },
+    note:"Three typed fields collapse into one string, because the network moves bytes and nothing else." },
+
+  { by:"code", zone:"wire", obs:false,
+    fn:"fetch('/api/cart/item/', …)", ret:"→ a Promise",
+    what:"the request leaves the browser",
+    sets:{ request:{t:"POST", v:"/api/cart/item/ · 412 bytes"} },
+    note:"The network boundary. Everything before this line is invisible to Django, which is exactly why the browser has to report its own half separately." },
+
+  { by:"code", zone:"django", obs:true, hop:true,
+    fn:"request.body.decode('utf-8')", ret:"→ a str",
+    what:"middleware reads the incoming body",
+    sets:{ body:{t:"str", v:'{"product":"經典原味鍋","quantity":2,…}', was:"bytes"} },
+    note:"receive_input. The bytes that came off the wire become text. This is the first line of your own middleware, and the first place it can crash on a real request." },
+
+  { by:"code", zone:"django", obs:true,
+    fn:"resolver.resolve(path)", ret:"→ a ResolverMatch",
+    what:"Django decides which view handles this",
+    sets:{ route:{t:"str", v:"api/cart/item/"}, view:{t:"str", v:"cartitemList"} },
+    note:"route. Until this returns, the URL is just a string — nothing has decided what it means. This is why resolver_match does not exist on the way in." },
+
+  { by:"code", zone:"django", obs:true,
+    fn:"SessionMiddleware", ret:"→ sets request.session",
+    what:"the sessionid cookie is looked up",
+    sets:{ session:{t:"dict", v:'{"table_number": 4}'} },
+    note:"attach_context. The cookie carried only a number. The dictionary it points at has been sitting on the server the whole time." },
+
+  { by:"code", zone:"django", obs:true,
+    fn:"AuthenticationMiddleware", ret:"→ sets request.user",
+    what:"the session is turned into a user",
+    sets:{ user:{t:"AnonymousUser", v:"is_authenticated=False"} },
+    note:"Nobody logged in, so this is AnonymousUser — an object, not None. The order is tied to the table, not to a person." },
+
+  { by:"code", zone:"django", obs:true,
+    fn:"cartitemList.post(request)", ret:"→ (running)",
+    what:"your view is finally called",
+    note:"Everything so far was Django getting the request ready. Your own code starts here." },
+
+  { by:"code", zone:"db", obs:true,
+    fn:"SELECT … WHERE product='經典原味鍋'", ret:"→ 1 row",
+    what:"the database is asked who that name is",
+    sets:{ row:{t:"row", v:"id=1, price=250.00"} },
+    note:"You never wrote this query. The serializer field wrote it, because you told it to look products up by name." },
+
+  { by:"code", zone:"django", obs:true, hop:true,
+    fn:"SlugRelatedField.to_internal_value()", ret:"→ a menuitem instance",
+    what:"the name becomes a real database object",
+    sets:{ product:{t:"menuitem instance", v:"pk=1", was:"str"} },
+    note:"The single most valuable moment the tool shows. The string you picked in a dropdown is now a row object with methods and a price, and nothing in your source code says this happened." },
+
+  { by:"code", zone:"django", obs:true,
+    fn:"serializer.is_valid()", ret:"→ True",
+    what:"the input is accepted",
+    sets:{ validated:{t:"dict", v:"3 typed fields"} },
+    note:"validate_input. Untrusted text in, typed objects out. If this had returned False, nothing below would have happened at all." },
+
+  { by:"code", zone:"django", obs:true, hop:true,
+    fn:"cartitemSerializer.create()", ret:"→ a cartitem",
+    what:"your code computes the price",
+    sets:{ price:{t:"Decimal", v:'Decimal("250.00")', was:"—"} },
+    note:"price was never sent by the browser. It is born here, from the product row, which is why editing a cart item later leaves it stale — the bug the prototype found." },
+
+  { by:"code", zone:"db", obs:true,
+    fn:"INSERT INTO cartitem", ret:"→ pk=7",
+    what:"the order line is saved",
+    sets:{ cart_id:{t:"int", v:"7"} },
+    note:"The first moment anything about your order survives. Until now it only existed in memory." },
+
+  { by:"code", zone:"django", obs:true, hop:true,
+    fn:"serializer.data", ret:"→ a dict",
+    what:"the objects are turned back into plain values",
+    sets:{ price:{t:"str", v:'"250.00"', was:"Decimal"} },
+    note:"Second type change on the same value. A Decimal computed in Python leaves as a string, because JSON has no decimal type." },
+
+  { by:"code", zone:"wire", obs:true,
+    fn:"HttpResponse", ret:"→ 201 Created",
+    what:"the response goes back out",
+    sets:{ status:{t:"int", v:"201"}, response:{t:"str", v:'{"id":7,"price":"250.00",…}'} },
+    note:"send_response. The last moment Django sees. Whatever the browser does next happens without it." },
+
+  { by:"code", zone:"browser", obs:false, hop:true,
+    fn:"res.json()", ret:"→ an object",
+    what:"the browser parses the reply",
+    sets:{ response:{t:"object", v:'{id:7, price:"250.00", …}', was:"str"} },
+    note:"After the response was sent, so no server probe can ever witness this. It is one of the three reasons the browser probe exists." },
+
+  { by:"code", zone:"browser", obs:false,
+    fn:"renderCart()", ret:"→ updates the DOM",
+    what:"the cart total is written to the page",
+    sets:{ total:{t:"str", v:'"NT$ 500"'} },
+    note:"price is still a string here. It was a string in the browser, a Decimal in Python, and a string again on the way back — and it never once became a number in the browser." },
+
+  { by:"user", zone:"browser", obs:false,
+    what:"You see the total change",
+    ret:"NT$ 500",
+    note:"One press, twenty-one steps, two database queries and four type changes later. That is the journey this tool exists to make visible." },
+];
+
+const ALL_KEYS = (() => { const s=[]; EVENTS.forEach(e=>e.sets&&Object.keys(e.sets).forEach(k=>s.includes(k)||s.push(k))); return s; })();
+/* which zone first introduced each value — variant F groups by this */
+const KEY_ZONE = (() => {
+  const m={}; EVENTS.forEach(e=>e.sets&&Object.keys(e.sets).forEach(k=>{ if(!(k in m)) m[k]=e.zone; })); return m;
+})();
+function stateAt(i){ const s={}; for(let n=0;n<=i;n++){const e=EVENTS[n]; if(e.sets) for(const[k,v]of Object.entries(e.sets)) s[k]={...v,at:n};} return s; }
+const zone = id => ZONES.find(z=>z.id===id);
+
+/* cell state for value `key` at event `n`, given the running value `cur` */
+function cellClass(e, set, cur, n, i) {
+  const c = [];
+  if (n === i) c.push('nowcol');
+  if (n > i) c.push('after');
+  c.push('zt-' + e.zone);
+  if (!cur) c.push('void');
+  else if (set && set.was) c.push('change');
+  else if (set) c.push('born');
+  else c.push('hold');
+  return c;
+}
+
+/* ============================================================
+   VARIANT D · ZONE BANDS
+   Round 1's grid, with a zone header band over the columns so you can
+   see the journey's shape — how much of it is browser, where the wire
+   is, how long Django holds on — without reading a single value.
+   ============================================================ */
+function renderD(stage, i) {
+  let h = '<div class="grid"><table class="banded"><thead><tr class="zonerow"><th class="name">zone</th>';
+  let run = null, span = 0;
+  EVENTS.forEach((e, n) => {
+    if (e.zone !== run) {
+      if (run) h += `<th class="zh-${run}" colspan="${span}">${zone(run).name}</th>`;
+      run = e.zone; span = 0;
+    }
+    span++;
+    if (n === EVENTS.length - 1) h += `<th class="zh-${run}" colspan="${span}">${zone(run).name}</th>`;
+  });
+  h += '</tr><tr class="numrow"><th class="name">value</th>';
+  EVENTS.forEach((e, n) => {
+    h += `<th class="${n===i?'nowcol':''}" title="${(e.fn||e.what).replace(/"/g,'&quot;')}">` +
+         `${e.by==='user'?'<span class="userflag">●</span>':n+1}</th>`;
+  });
+  h += '</tr></thead><tbody>';
+
+  ALL_KEYS.forEach(key => {
+    h += `<tr><th class="name">${key}</th>`;
+    let cur = null;
+    EVENTS.forEach((e, n) => {
+      const set = e.sets && e.sets[key];
+      if (set) cur = set;
+      const cls = cellClass(e, set, cur, n, i);
+      h += `<td class="${cls.join(' ')}">${set ? `<span class="cv">${set.t}</span>` : cur ? '<span class="cv">·</span>' : ''}</td>`;
+    });
+    h += '</tr>';
+  });
+  h += '</tbody></table></div>' + currentValues(i);
+  stage.innerHTML = h;
+  centreColumn(stage);
+}
+
+/* ============================================================
+   VARIANT E · STORY LEDGER
+   Transposed. Each event is a row you read down the page like a script:
+   who caused it, what happened, what it returned, what changed. The
+   narration is the spine; the values ride alongside it.
+   ============================================================ */
+function renderE(stage, i) {
+  let h = '<div class="ledger"><table><thead><tr>' +
+    '<th style="width:2rem"></th><th class="zc">where</th><th class="what">what happened</th>' +
+    '<th>returned</th><th>values it moved</th></tr></thead><tbody>';
+  EVENTS.forEach((e, n) => {
+    const cls = ['ev', e.by === 'user' ? 'userrow' : '', n > i ? 'after' : '', n === i ? 'now' : ''].join(' ');
+    const chips = e.sets ? Object.entries(e.sets).map(([k, s]) =>
+      `<span class="chip"><span class="lit">${k}</span>` +
+      (s.was ? `<span class="ty was">${s.was}</span><span class="arr">→</span>` : '') +
+      `<span class="ty">${s.t}</span><span class="lit">${s.v}</span></span>`).join('') : '<span class="arr">—</span>';
+    h += `<tr class="${cls}" data-n="${n}">` +
+      `<td>${n===i?'<span class="nowdot">▶</span>':''}</td>` +
+      `<td class="zc" data-z="${e.zone}">${zone(e.zone).name}${e.obs?'':' ·'}</td>` +
+      `<td class="what"><span class="by ${e.by}">${e.by==='user'?'you':'code'}</span> ${e.what}` +
+        (e.fn?`<span class="fn">${e.fn}</span>`:'') + `</td>` +
+      `<td><span class="ret lit">${e.ret||''}</span>${e.hop?' <span class="badge hop">type</span>':''}</td>` +
+      `<td class="vals">${chips}</td></tr>`;
+  });
+  h += '</tbody></table></div>';
+  stage.innerHTML = h;
+  const r = stage.querySelector('tr.now'); if (r) r.scrollIntoView({block:'center'});
+}
+
+/* ============================================================
+   VARIANT F · ZONE HOMES
+   The same grid, but the value rows are grouped by the zone that first
+   produced them. Answers a question the flat grid cannot: where does
+   each piece of data live, and which ones cross the boundary?
+   ============================================================ */
+function renderF(stage, i) {
+  let h = '<div class="grid"><table><thead><tr class="numrow"><th class="name">value</th>';
+  EVENTS.forEach((e, n) => {
+    h += `<th class="${n===i?'nowcol':''} zh-${e.zone}" title="${(e.fn||e.what).replace(/"/g,'&quot;')}">` +
+         `${e.by==='user'?'<span class="userflag">●</span>':n+1}</th>`;
+  });
+  h += '</tr></thead><tbody>';
+
+  ZONES.forEach(z => {
+    const keys = ALL_KEYS.filter(k => KEY_ZONE[k] === z.id);
+    if (!keys.length) return;
+    h += `<tr class="zonegroup"><th colspan="${EVENTS.length + 1}">born in ${z.name}</th></tr>`;
+    keys.forEach(key => {
+      h += `<tr><th class="name">${key}</th>`;
+      let cur = null;
+      EVENTS.forEach((e, n) => {
+        const set = e.sets && e.sets[key];
+        if (set) cur = set;
+        const cls = cellClass(e, set, cur, n, i);
+        h += `<td class="${cls.join(' ')}">${set ? `<span class="cv">${set.t}</span>` : cur ? '<span class="cv">·</span>' : ''}</td>`;
+      });
+      h += '</tr>';
+    });
+  });
+  h += '</tbody></table></div>' + currentValues(i);
+  stage.innerHTML = h;
+  centreColumn(stage);
+}
+
+
+/* Bring the current column into view WITHOUT touching vertical scroll —
+   scrollIntoView moves both axes and hides the first row under the sticky
+   header. */
+function centreColumn(stage) {
+  const box = stage.querySelector('.grid');
+  const col = stage.querySelector('th.nowcol');
+  if (!box || !col) return;
+  const nameW = stage.querySelector('th.name') ? stage.querySelector('th.name').offsetWidth : 0;
+  box.scrollLeft = col.offsetLeft - nameW - (box.clientWidth - nameW) / 2 + col.offsetWidth / 2;
+}
+
+/* the current column spelled out — D and F both want it under the grid */
+function currentValues(i) {
+  const s = stateAt(i);
+  let h = '<div style="margin-top:.9rem;border:1px solid var(--rule);border-radius:4px;padding:.6rem .7rem;background:var(--bg)">';
+  if (!Object.keys(s).length) h += '<span class="arr">nothing exists yet</span>';
+  ALL_KEYS.forEach(k => {
+    if (!s[k]) return;
+    const now = s[k].at === i;
+    h += `<div style="padding:.12rem 0;${now?'background:var(--hop-bg);margin:0 -.4rem;padding-left:.4rem;padding-right:.4rem;border-radius:2px':''}">` +
+      `<span class="lit" style="color:var(--muted)">${k}</span> ` +
+      (s[k].was ? `<span class="ty was">${s[k].was}</span> <span class="arr">→</span> ` : '') +
+      `<span class="ty">${s[k].t}</span> <span class="lit">${s[k].v}</span></div>`;
+  });
+  return h + '</div>';
+}
+
+/* ---------------- wiring ---------------- */
+const VARIANTS = {
+  D:{ name:"Zone bands",   render:renderD },
+  E:{ name:"Story ledger", render:renderE },
+  F:{ name:"Zone homes",   render:renderF },
+};
+const KEYS = Object.keys(VARIANTS);
+const stage=document.getElementById('stage'), slider=document.getElementById('slider'),
+      readout=document.getElementById('readout'), noteEl=document.getElementById('note'),
+      zonesEl=document.getElementById('zones'), trigEl=document.getElementById('trigger');
+slider.max = String(EVENTS.length - 1);
+let i = 0;
+let v = (new URLSearchParams(location.search).get('variant') || 'D').toUpperCase();
+if (!VARIANTS[v]) v = 'D';
+
+function drawZones(e) {
+  zonesEl.innerHTML = ZONES.map(z =>
+    `<div class="zone${z.id===e.zone?' on':''}${z.unobs?' unobs':''}" data-z="${z.id}">` +
+    `<div class="zn">${z.name}</div><div class="zw">${z.what}</div></div>`).join('');
+}
+function drawTrigger(e) {
+  trigEl.innerHTML =
+    `<span class="by ${e.by}">${e.by==='user'?'you did this':'code ran'}</span>` +
+    `<span class="what">${e.what}</span>` +
+    (e.fn?`<span class="fn">${e.fn}</span>`:'') +
+    (e.ret?`<span class="ret">${e.ret}</span>`:'') +
+    (e.obs?'':'<span class="badge fut">not captured yet</span>') +
+    (e.hop?'<span class="badge hop">type change</span>':'');
+}
+function draw() {
+  const e = EVENTS[i];
+  drawZones(e); drawTrigger(e);
+  VARIANTS[v].render(stage, i);
+  slider.value = String(i);
+  readout.textContent = `event ${i+1} of ${EVENTS.length}`;
+  noteEl.textContent = e.note || '';
+  document.getElementById('prev').disabled = i === 0;
+  document.getElementById('next').disabled = i === EVENTS.length - 1;
+  document.getElementById('vname').textContent = v;
+  document.getElementById('vlabel').textContent = `${v} · ${VARIANTS[v].name}`;
+}
+function go(n){ i = Math.max(0, Math.min(EVENTS.length-1, n)); draw(); }
+function setVariant(nv){ v=nv; const u=new URL(location); u.searchParams.set('variant',v); history.replaceState(null,'',u); draw(); }
+function cycle(d){ setVariant(KEYS[(KEYS.indexOf(v)+d+KEYS.length)%KEYS.length]); }
+
+slider.addEventListener('input', () => go(Number(slider.value)));
+document.getElementById('prev').addEventListener('click', () => go(i-1));
+document.getElementById('next').addEventListener('click', () => go(i+1));
+document.getElementById('vprev').addEventListener('click', () => cycle(-1));
+document.getElementById('vnext').addEventListener('click', () => cycle(1));
+addEventListener('keydown', ev => {
+  const t = ev.target;
+  if (t && (t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.isContentEditable)) return;
+  if (ev.key==='ArrowLeft'){ cycle(-1); ev.preventDefault(); }
+  if (ev.key==='ArrowRight'){ cycle(1); ev.preventDefault(); }
+  if (ev.key==='ArrowDown'){ go(i+1); ev.preventDefault(); }
+  if (ev.key==='ArrowUp'){ go(i-1); ev.preventDefault(); }
+});
+draw();
+</script>
+</body>
+</html>
