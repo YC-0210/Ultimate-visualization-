@@ -6,7 +6,7 @@ I can write Django code. What I cannot see is the path a single request takes th
 
 So this is the tool I want to learn with, built to learn by building it.
 
-**→ [`MISSION.md`](MISSION.md)** — the reason, the two principles, what success looks like, and what is deliberately out of scope. **[`MAP.html`](MAP.html)** is the whole project on one page. Every decision here should trace back to it. **[`NOTES.md`](NOTES.md)** carries the standing teaching preferences; the current task is the Status block in [`supervisualizer/ROADMAP.md`](supervisualizer/ROADMAP.md).
+**→ [`MISSION.md`](MISSION.md)** — the reason, the two principles, what success looks like, and what is deliberately out of scope. **[`MAP.html`](MAP.html)** is the whole project on one page. Every decision here should trace back to it. **[`NOTES.md`](NOTES.md)** carries the standing teaching preferences; the current task is the Status block in [`ROADMAP.md`](ROADMAP.md).
 
 ---
 
@@ -15,7 +15,7 @@ So this is the tool I want to learn with, built to learn by building it.
 | | |
 |---|---|
 | **[`prototype/`](prototype/)** | ✅ **Done, and finished.** An AI-built proof that the idea was worth pursuing. Records real Django runs from [`restautant-order-system`](https://github.com/YC-0210/restautant-order-system) and replays them in a published page. Throwaway — but everything it shows is real. |
-| **[`supervisualizer/`](supervisualizer/)** | 🚧 **To build, by hand.** The real tool: installs into your own Django project, watches your **live** backend, never goes stale. Django first, other frameworks after. Start at [`supervisualizer/ROADMAP.md`](supervisualizer/ROADMAP.md). |
+| **[`supervisualizer/`](supervisualizer/)** | 🚧 **To build, by hand.** The real tool: installs into your own Django project, watches your **live** backend, never goes stale. Django first, other frameworks after. Start at [`ROADMAP.md`](ROADMAP.md). |
 
 They solve the same problem under opposite constraints. The prototype recorded ahead of time only because a cloud machine cannot reach a laptop. supervisualizer has no such constraint, so it captures live — **the recorder does not carry over, the renderer does.**
 
@@ -50,5 +50,5 @@ Its core move: it does not guess and it does not re-implement. It **runs the rea
 | [`RESOURCES.md`](RESOURCES.md) | Trusted sources for the current topic, annotated with when to reach for them |
 | [`lessons/`](lessons/) · [`reference/`](reference/) | Completed lessons and their compressed reference sheets |
 | [`prototype/HOW-IT-WORKS.md`](prototype/HOW-IT-WORKS.md) | How the prototype was built, its honesty ledger, and which seams generalise |
-| [`supervisualizer/ROADMAP.md`](supervisualizer/ROADMAP.md) | The phased checklist for the real tool, with a live status block |
-| [`supervisualizer/DECISIONS.md`](supervisualizer/DECISIONS.md) | Every architectural decision: what was considered, why it won, what it costs |
+| [`ROADMAP.md`](ROADMAP.md) | The phased checklist for the real tool, with a live status block |
+| [`DECISIONS.md`](DECISIONS.md) | Every architectural decision: what was considered, why it won, what it costs |

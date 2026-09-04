@@ -4,6 +4,10 @@
 
 - [Django: URL dispatcher — How Django processes a request](https://docs.djangoproject.com/en/5.2/topics/http/urls/#how-django-processes-a-request)
   The walk: load `urlpatterns`, try each pattern in order, stop at the first match, call that view. Use for: what “URL resolving” actually is. Primary source for lesson 0001’s lookup section.
+- [Django: Including other URLconfs](https://docs.djangoproject.com/en/5.2/topics/http/urls/#including-other-urlconfs)
+  “Whenever Django encounters `include()`, it chops off whatever part of the URL matched up to that point and sends the remaining string to the included URLconf.” Use for: P2.1 — why `supervisualizer/urls.py` matches `""`, not the full prefix. Primary source for lesson 0021. They already `include('restaurantAPI.urls')` under `api/`.
+- [Django: `DEBUG`](https://docs.djangoproject.com/en/5.2/ref/settings/#debug)
+  “A boolean that turns on/off debug mode.” “Never deploy a site into production with `DEBUG` turned on.” Use for: P2.1 — wrap the panel include so the prefix is absent when `DEBUG` is False. Traces carry `Cookie`.
 - [Django: `HttpRequest`](https://docs.djangoproject.com/en/5.2/ref/request-response/#httprequest-objects)
   One object per visit: method, path, COOKIES, body, GET/POST, META, plus later `resolver_match`, `session`, `user`. Use for: lesson 0005 — what is inside `request`. “When a page is requested, Django creates an HttpRequest object… passing the HttpRequest as the first argument to the view.”
 - [Django: `HttpResponse`](https://docs.djangoproject.com/en/5.2/ref/request-response/#httpresponse-objects)
@@ -24,6 +28,8 @@
   Hints: AuthenticationMiddleware after SessionMiddleware (uses session storage). Use for: why the restaurant `MIDDLEWARE` list is not arbitrary.
 - [Django: `View.as_view()`](https://docs.djangoproject.com/en/5.2/ref/class-based-views/base/#django.views.generic.base.View.as_view)
   The returned callable has `view_class` and `view_initkwargs`. Use for: getting the class name from `match.func` on a CBV.
+- [Django Debug Toolbar — Installation, step 4 “Add the URLs”](https://django-debug-toolbar.readthedocs.io/en/latest/installation.html)
+  The toolbar is extra paths on the same URLconf. Default prefix `__debug__`. `debug_toolbar_urls()` returns `[]` when `DEBUG` is False. Use for: Phase 2 — the panel is a view on this app, not a second process. Primary source for lesson 0020.
 - [Django Debug Toolbar — `RequestPanel`](https://github.com/django-commons/django-debug-toolbar/blob/main/debug_toolbar/panels/request.py)
   Prior art for capturing view name, args, kwargs, url_name after a request. Uses `resolve()` + `get_name_from_obj` (`view_class` if present). Also dumps session (sanitized). Use for: how a shipped tool names a view; P1.3 captures *keys* only, not DDT’s full session values.
 - [Django: Authentication in web requests](https://docs.djangoproject.com/en/5.2/topics/auth/default/#authentication-in-web-requests)
@@ -72,7 +78,7 @@
   Sent when the *test system* renders a template. “This signal is not emitted during normal operation of a Django server – it is only available during testing.” Use for: why P1.8 does not connect a signal — same class of trap as `connection.queries` needing `DEBUG`.
 - [Django Debug Toolbar — `TemplatesPanel`](https://github.com/django-commons/django-debug-toolbar/blob/main/debug_toolbar/panels/templates/panel.py)
   Prior art: monkeypatches `Template._render` so the test-only `template_rendered` signal fires in development, then listens. Use for: a shipped tool also wraps render rather than reading the response HTML; P1.8 wraps the common-API `render` instead, so the copied dict is the one the view passed.
-- [D7 — `kind` and `label`](../DECISIONS.md)
+- [D7 — `kind` and `label`](DECISIONS.md)
   First-party: the panel reads only `kind`; adapters write `label`. Closed, agreed, stable, nearest-fit. Use for: P1.9 reshape. Primary source for lesson 0016.
 - [FastAPI](https://fastapi.tiangolo.com/)
   Official: “a modern, fast (high-performance), web framework for building APIs with Python.” Use for: what the name in D7 / P6.4 / lesson 0016 refers to. Not a Phase 1 install. Not the restaurant app.
@@ -82,7 +88,7 @@
   “A trace is made of one or more spans. The first span represents the root span.” Use for: the plainest statement of trace-vs-span before the spec.
 - [OpenTelemetry: Trace API — `Span` and `SpanKind`](https://opentelemetry.io/docs/specs/otel/trace/api/#spankind)
   Span name “SHOULD be the most general string that identifies a (statistically) interesting class of Spans” — `get_user` good, `get_user/314159` bad (cardinality). `SpanKind` is five values describing call direction and communication style; `INTERNAL` is “operations which do not cross a process boundary.” Use for: why neither the name nor `SpanKind` can replace our `kind` (D7).
-- [Roadmap — stage vocabulary, v0](../ROADMAP.md)
+- [Roadmap — stage vocabulary, v0](ROADMAP.md)
   The fourteen `kind` strings. Server half used in P1.9; client kinds wait for Phase 4. Use for: which string to write on each stage.
 - [Python tutorial: Saving structured data with json](https://docs.python.org/3/tutorial/inputoutput.html#saving-structured-data-with-json)
   `dumps` → a string; `dump` → a text file. “This process is called serializing.” JSON files must be UTF-8. Use for: P1.9 file write (next lesson). They already know `dumps` (LR-0012).
@@ -146,3 +152,5 @@ Why the tool is shaped the way it is. The Knowledge section above is rigorous ab
 - Django's “Dealing with streaming responses” shows the `response.streaming` branch for middleware that wants to **alter** the body. It does not describe the case where middleware only wants to *read* the body and should skip it entirely — nor what to record in place of a byte count it declined to take. That mapping is in lesson 0019: `None`, not `0`, because `0` asserts a measurement we did not make.
 - Django's middleware docs say a guard around `get_response` is unnecessary, and its exception-handling paragraph says a middleware's own exception becomes an HTTP response. Neither page says anything about guarding a middleware's *own* capture code, which is the entire subject of P1.10. The rule (call the original outside the guard, guard only the bookkeeping) is first-party, argued in lesson 0019 from those two facts plus the Sentry SDK's implementation.
 - Nothing in Django or Python says what to write when a probe fails. That a swallowed failure needs a mark is first-party and follows from D7 + lesson 0016: an absent stage already means “did not happen”, so a silent failure would make the panel state a fact nothing observed (D2). Hence `capture_errors` on the Trace. Sentry's logger is the prior art for the shape, not for the schema.
+- CONTEXT defines Panel as the page at `/__supervisualizer__/` and also says it “Receives finished Traces over SSE.” SSE is Phase 3. Phase 2’s reader is an ordinary GET that opens a file. That split is in lesson 0020; D3 is the decision that the page is a view on this app.
+- Django’s `include()` page states the chop. It does not say that a 404 on an unmounted prefix is unrelated to whether a Trace file exists. That mapping is in lesson 0021. It also does not warn that toggling `DEBUG` to False with empty `ALLOWED_HOSTS` rejects the host before URL resolving — that trap is a sidenote in the same lesson.

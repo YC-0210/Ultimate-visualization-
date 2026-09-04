@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The 404 is a missing pattern</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Lesson 0021 · P2.1 · supervisualizer</p>
+      <h1>The 404 is a missing pattern</h1>
+      <p class="lede">
+        You already know the Trace is a file.
+        You do not yet have a pattern that answers
+        <code>/__supervisualizer__/</code>.
+      </p>
+    </header>
+
+    <p class="fits">
+      <strong>Where this fits</strong>
+      Roadmap: Phase 2, P2.1 — serve the panel at
+      <code>/__supervisualizer__/</code>, only when
+      <code>DEBUG</code> is on.
+      <a href="0020-the-panel-is-a-second-request.html">Lesson 0020</a>
+      was the shape: a later
+      <code>GET</code>
+      on this app.
+      Today that
+      <code>GET</code>
+      stops 404ing.
+      It still does not draw the Trace (P2.5).
+      <a class="fits-map" href="../MAP.html">See where this sits on the map →</a>
+    </p>
+
+    <h2>The problem</h2>
+    <p>
+      Your last Trace is
+      <code>GET /</code>
+      — view
+      <code>index</code>,
+      five kinds, file on disk.
+      The same server answers
+      <code>/__supervisualizer__/</code>
+      with Django’s 404.
+      A 404 means the walk through
+      <code>urlpatterns</code>
+      found no match.
+      It does not mean the file is missing.
+    </p>
+
+    <div class="facts">
+      <div class="fact have">
+        <p class="tag">Already on the list</p>
+        <h3><code>api/</code> uses include</h3>
+        <p>You already wrote this in <code>restaurant/urls.py</code>.</p>
+        <p class="example">path('api/', include('restaurantAPI.urls'))</p>
+      </div>
+      <div class="fact need">
+        <p class="tag">Missing · P2.1</p>
+        <h3>The same line for the panel</h3>
+        <p>A prefix, then the package’s own list. The package has no <code>urls.py</code> yet.</p>
+        <p class="example">path('__supervisualizer__/', include('supervisualizer.urls'))</p>
+      </div>
+    </div>
+
+    <h2>What include already does for you</h2>
+    <p>
+      Django’s docs: your
+      <code>urlpatterns</code>
+      can
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">include</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> a function —
+            <a href="https://docs.djangoproject.com/en/5.2/topics/http/urls/#including-other-urlconfs"><code>django.urls.include</code></a>.
+            Framework word. Official docs.
+          </span>
+          <span class="gloss-line">
+            Django’s docs: your list can “include other URLconf
+            modules. This essentially ‘roots’ a set of URLs below
+            other ones.”
+            Then: “Whenever Django encounters
+            <code>include()</code>, it chops off whatever part of
+            the URL matched up to that point and sends the
+            remaining string to the included URLconf for further
+            processing.”
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://docs.djangoproject.com/en/5.2/topics/http/urls/#including-other-urlconfs">Including other URLconfs</a>
+          </span>
+        </span>
+      </span>
+      other URL lists.
+      You already do this for
+      <code>/api/</code>.
+      Incoming
+      <code>/api/cart/item/</code>:
+      the prefix
+      <code>api/</code>
+      matches, the leftover
+      <code>cart/item/</code>
+      is looked up in
+      <code>restaurantAPI/urls.py</code>.
+    </p>
+
+    <figure class="urlwalk">
+      <p class="urlwalk-in">
+        Incoming path:
+        <code>/__supervisualizer__/</code>
+        (today)
+      </p>
+      <p class="urlwalk-label">restaurant/urls.py (the root list)</p>
+      <ol>
+        <li class="miss">
+          <code>admin/</code>
+          <span class="why">No.</span>
+        </li>
+        <li class="miss">
+          <code>api/</code>
+          <span class="why">No — this path does not start with <code>api/</code>.</span>
+        </li>
+        <li class="miss">
+          <code>''</code> (index)
+          <span class="why">That pattern is only the empty path. This one is not empty.</span>
+        </li>
+        <li class="miss">
+          <code>menuitem/&lt;str:slug&gt;/</code>
+          <span class="why">No.</span>
+        </li>
+      </ol>
+      <p class="urlwalk-label">End of the list</p>
+      <ol>
+        <li class="hit">
+          nothing matched
+          <span class="why">Django returns 404. Your Trace file was never asked for.</span>
+        </li>
+      </ol>
+    </figure>
+
+    <p>
+      After P2.1 the walk hits a new prefix, chops it, and looks
+      up the leftover
+      <code>""</code>
+      in the package’s list — one pattern that calls a view.
+      That view returns a stub page.
+      It does not open the Trace yet.
+    </p>
+
+    <h2>Three files</h2>
+    <p>
+      The view and the package’s URL list live in
+      <code>supervisualizer/</code>,
+      not in
+      <code>restaurantAPI/</code>.
+      <a href="../DECISIONS.md">D3</a>:
+      the panel ships inside the package.
+      The restaurant project only adds the prefix.
+      You already import
+      <code>include</code>,
+      <code>path</code>,
+      and
+      <code>settings</code>
+      in
+      <code>restaurant/urls.py</code>.
+    </p>
+
+    <p class="snippet-label">1 · src/supervisualizer/views.py — copy this</p>
+    <pre><code>from django.http import HttpResponse
+
+def panel(request):
+    return HttpResponse("supervisualizer")
+</code></pre>
+    <p class="snippet-label">the same lines, what each does</p>
+    <pre><code>from django.http import HttpResponse
+# HttpResponse is the object a view must return. Lesson 0009.
+
+def panel(request):
+    # One new GET. request is the same object middleware already sees.
+    return HttpResponse("supervisualizer")
+    # Stub body. Enough to prove the URL works. Not the pipeline yet.
+</code></pre>
+
+    <p class="snippet-label">2 · src/supervisualizer/urls.py — copy this</p>
+    <pre><code>from django.urls import path
+from . import views
+
+urlpatterns = [
+    path("", views.panel, name="panel"),
+]
+</code></pre>
+    <p class="snippet-label">the same lines, what each does</p>
+    <pre><code>from django.urls import path
+from . import views
+# The view in this package, not restaurantAPI.views.
+
+urlpatterns = [
+    path("", views.panel, name="panel"),
+    # Leftover after the prefix is chopped is empty.
+    # So this pattern is "". Not "__supervisualizer__/".
+]
+</code></pre>
+
+    <p class="snippet-label">3 · restaurant/urls.py — add at the bottom</p>
+    <pre><code>if settings.DEBUG:
+    urlpatterns += [
+        path("__supervisualizer__/", include("supervisualizer.urls")),
+    ]
+</code></pre>
+    <p class="snippet-label">the same lines, what each does</p>
+    <pre><code>if settings.DEBUG:
+    # Your settings.py already has DEBUG = True.
+    # When it is False, this block does not run, so the prefix
+    # is never on the list — same 404 you have today.
+    urlpatterns += [
+        path("__supervisualizer__/", include("supervisualizer.urls")),
+        # Prefix with trailing slash, like api/.
+        # Leftover "" is looked up in the package’s urlpatterns.
+    ]
+</code></pre>
+
+    <h2>Why DEBUG wraps the include</h2>
+    <p>
+      Django’s docs:
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">DEBUG</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> a bool setting —
+            <a href="https://docs.djangoproject.com/en/5.2/ref/settings/#debug"><code>DEBUG</code></a>.
+            Framework word. Official docs.
+          </span>
+          <span class="gloss-line">
+            Django’s docs: “A boolean that turns on/off debug
+            mode.”
+            Next sentence: “Never deploy a site into production
+            with
+            <code>DEBUG</code>
+            turned on.”
+            Your restaurant
+            <code>settings.py</code>
+            already has
+            <code>DEBUG = True</code>
+            and the matching warning comment.
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="https://docs.djangoproject.com/en/5.2/ref/settings/#debug">DEBUG</a>
+          </span>
+        </span>
+      </span>
+      must be off in production.
+      The Trace you pasted includes the
+      <code>Cookie</code>
+      header.
+      If this path exists when
+      <code>DEBUG</code>
+      is off, that page can show it.
+      So the prefix is not added unless
+      <code>DEBUG</code>
+      is on.
+    </p>
+    <p>
+      You already have one DEBUG-only extra path:
+      <code>urlpatterns += static(...)</code>
+      on the next line.
+      Django’s
+      <code>static()</code>
+      helper returns no patterns when
+      <code>DEBUG</code>
+      is False.
+      The
+      <code>if</code>
+      around the panel include is the same rule, written out.
+    </p>
+    <p class="sidenote">
+      Do not set
+      <code>DEBUG = False</code>
+      just to test this.
+      With an empty
+      <code>ALLOWED_HOSTS</code>,
+      Django rejects the host before it walks
+      <code>urlpatterns</code>.
+      The
+      <code>if</code>
+      is the proof.
+    </p>
+
+    <h2>Check</h2>
+
+    <div class="quiz" data-quiz
+         data-explain-right="A 404 is the walk finishing with no match. The Trace file is unrelated to whether that path is on the list."
+         data-explain-wrong="The file is already on disk. The 404 is Django’s URL walk, the same walk as lesson 0001.">
+      <p class="quiz-q"><code>/__supervisualizer__/</code> 404s because…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">no matching pattern</button>
+        <button type="button" data-answer data-correct="0">a missing Trace file</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <div class="quiz" data-quiz
+         data-explain-right="Django’s docs: include chops off the matched prefix and sends the remaining string. After __supervisualizer__/, the leftover is empty, so the package’s pattern is “”."
+         data-explain-wrong="If the included list still saw the full path, every pattern would have to repeat the prefix. That is what include is for.">
+      <p class="quiz-q"><code>include()</code> sends the included list…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">the leftover path</button>
+        <button type="button" data-answer data-correct="0">the original path</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <h2>Do this</h2>
+    <ol class="steps">
+      <li>
+        Add
+        <code>src/supervisualizer/views.py</code>
+        and
+        <code>src/supervisualizer/urls.py</code>
+        from the copyable blocks.
+        Do not put the view in
+        <code>restaurantAPI/</code>.
+      </li>
+      <li>
+        Add the
+        <code>if settings.DEBUG</code>
+        block at the bottom of
+        <code>restaurant/urls.py</code>,
+        after the existing
+        <code>urlpatterns</code>
+        list.
+      </li>
+      <li>
+        Load
+        <code>http://127.0.0.1:8000/__supervisualizer__/</code>.
+        You should get 200 and the word
+        <code>supervisualizer</code>.
+        The restaurant
+        <code>GET /</code>
+        should still be 200.
+      </li>
+      <li>
+        Paste the status and the response body.
+        That is P2.1’s evidence.
+      </li>
+    </ol>
+
+    <h2>Read this one</h2>
+    <p>
+      <a href="https://docs.djangoproject.com/en/5.2/topics/http/urls/#including-other-urlconfs">Django
+      — Including other URLconfs</a>,
+      the paragraph that starts “Whenever Django encounters
+      <code>include()</code>.”
+      That chop is why the package’s pattern is
+      <code>""</code>,
+      not the full prefix.
+    </p>
+
+    <h2>Deliberately not today</h2>
+    <table>
+      <thead><tr><th>Not yet</th><th>Why / when</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Opening the Trace file and drawing stages.</td>
+          <td>P2.2–P2.5. A stub 200 is P2.1.</td>
+        </tr>
+        <tr>
+          <td>Templates and static files inside the package.</td>
+          <td>Needed when the page has a layout (P2.3–P2.4).
+            <code>MANIFEST.in</code> already names those folders.</td>
+        </tr>
+        <tr>
+          <td>The panel updating with no refresh.</td>
+          <td>Phase 3.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Ask me</h2>
+    <p>
+      If why the package’s pattern is
+      <code>""</code>
+      is muddy, ask before editing.
+    </p>
+
+    <footer class="foot">
+      <a href="0020-the-panel-is-a-second-request.html">Lesson 0020</a>
+      <a href="0001-when-resolver-match-appears.html">Lesson 0001</a>
+      <a href="0009-read-the-response-object.html">Lesson 0009</a>
+      <a href="../reference/panel-reader.html">Panel reader card</a>
+      <a href="../reference/include-prefix.html">include prefix card</a>
+      <a href="../DECISIONS.md">D3</a>
+      <a href="../ROADMAP.md">P2.1</a>
+      <a href="https://docs.djangoproject.com/en/5.2/topics/http/urls/#including-other-urlconfs">Including other URLconfs</a>
+    </footer>
+  </article>
+  <script src="../assets/quiz.js"></script>
+  <script src="../assets/gloss.js"></script>
+</body>
+</html>

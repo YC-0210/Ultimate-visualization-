@@ -107,22 +107,25 @@
 
   <p style="margin-top:1rem"><strong>If I can't see it all at once, I don't understand it yet.</strong></p>
   <p class="why">A part understood in isolation is a part you will lose. Anything that can
-  only be read one moment at a time — a step debugger, a directory of nineteen lessons —
+  only be read one moment at a time — a step debugger, a directory of twenty-one lessons —
   moves the assembly work into your head, which is where the understanding was supposed
   to end up. This page exists because of this principle, and is the first test of it.</p>
 </div>
 
 <div class="sot">
   <strong>This page is a mirror, not a source.</strong>
-  <a href="supervisualizer/ROADMAP.md">ROADMAP.md</a> is the single source of truth for
-  phase and task status; <a href="supervisualizer/DECISIONS.md">DECISIONS.md</a> for why
+  <a href="ROADMAP.md">ROADMAP.md</a> is the single source of truth for
+  phase and task status; <a href="DECISIONS.md">DECISIONS.md</a> for why
   anything is shaped the way it is; <a href="MISSION.md">MISSION.md</a> for why any of it
   exists. When they disagree with this page, they are right and this page is stale —
   fix it here after fixing it there.
   <br><br>
   The tenses below are derived from what
   <code>supervisualizer/src/supervisualizer/middleware.py</code> actually emits today,
-  read against the roadmap's task list.
+  read against the roadmap's task list. As of the roadmap's Status block
+  (2026-09-02): <strong>Phase 1 is complete</strong> — capture is safe — and
+  <strong>P2.1 is the open task</strong>, serving the panel at
+  <code>/__supervisualizer__/</code>.
 </div>
 
 <h2>1 · The journey</h2>
@@ -150,7 +153,7 @@ scrubbing and see the whole journey open at the same time.</p>
       "tense": "future",
       "when": "P4.4",
       "note": "This is where quantity is still the string \"2\", because the DOM has no numbers. Django never learns this stage existed — by the time the request arrives, Number() has already run.",
-      "links": [{ "href": "supervisualizer/ROADMAP.md", "text": "Phase 4" }]
+      "links": [{ "href": "ROADMAP.md", "text": "Phase 4" }]
     },
     {
       "id": "build_payload",
@@ -307,7 +310,7 @@ scrubbing and see the whole journey open at the same time.</p>
         { "key": "price", "type": "str", "value": "\"250.00\" — never posted, computed server-side" },
         { "key": "size", "type": "int", "value": "len(response.content)" }
       ],
-      "note": "The response is a different object from the request, not a modified one. price is the second type hop the mission names: a Decimal computed in create(), serialised out as a string.",
+      "note": "The response is a different object from the request, not a modified one. price is the second type hop the mission names: a Decimal computed in create(), serialised out as a string. Since P1.10 the body read branches on response.streaming first — a FileResponse has no .content, and reading it turned a working image into a 500.",
       "links": [
         { "href": "lessons/0009-read-the-response-object.html", "text": "Lesson 0009 — the response object" },
         { "href": "reference/http-response.html", "text": "ref · http-response" }
@@ -377,7 +380,7 @@ ends in something visible — that is the test of whether it was scoped right.</
       ],
       "note": "Done when: runserver printed a line from your own middleware on every request. The P0.4a spike is the reason D6 survived — it also killed two claims D6 made before it ran.",
       "links": [
-        { "href": "supervisualizer/DECISIONS.md", "text": "DECISIONS.md · D1–D8" },
+        { "href": "DECISIONS.md", "text": "DECISIONS.md · D1–D8" },
         { "href": "supervisualizer/spikes/P0.4a-otel-nested-values.md", "text": "spike P0.4a" },
         { "href": "lessons/0017-otel-trace-and-why-stage-is-not-span.html", "text": "Lesson 0017 — why Stage is not span" }
       ]
@@ -386,13 +389,13 @@ ends in something visible — that is the test of whether it was scoped right.</
       "id": "p1",
       "label": "1 · Capture the server half",
       "sub": "Pure Python. No UI. Output is a JSON file you read in a terminal.",
-      "tense": "present",
-      "when": "P1.1 – P1.9 ✓ · P1.10 open 🔴",
+      "tense": "past",
+      "when": "P1.1 – P1.10 ✓ complete",
       "data": [
         { "key": "P1.1 – P1.9", "type": "done", "value": "request, route, session/user, view facts, SQL, response, serializer, template, Trace file" },
-        { "key": "P1.10", "type": "open", "value": "make capture safe — never let a probe crash a real request" }
+        { "key": "P1.10", "type": "done", "value": "capture is safe — streaming branch, guards, capture_errors" }
       ],
-      "note": "Done when: POST /api/cart/item/ produces a Trace containing validated_data with real model instances and the SQL Django emitted. That bar was met at P1.9. What is left is the guard: every read the middleware makes runs on someone's real request, and a probe that takes the app down is a bug, not a probe.",
+      "note": "Done when: POST /api/cart/item/ produces a Trace containing validated_data with real model instances and the SQL Django emitted. Met at P1.9; P1.10 then made the reads that build it unable to take the app down. Proof: /media/menu/images.jpeg is 200 (it is a FileResponse, so the body read now branches on response.streaming), and a forced ValueError inside encode leaves the page at 200 and writes capture_errors instead of a 500. Two threads left open on purpose — Cookie is unredacted, and nothing emits mutate_data even on a writing request.",
       "links": [
         { "href": "lessons/0018-the-print-is-gone-the-file-stays.html", "text": "Lesson 0018 — the file stays" },
         { "href": "lessons/0019-a-probe-must-fail-alone.html", "text": "Lesson 0019 — a probe must fail alone" },
@@ -404,10 +407,19 @@ ends in something visible — that is the test of whether it was scoped right.</
       "id": "p2",
       "label": "2 · Panel renders one trace",
       "sub": "First visual payoff. Static — you refresh manually.",
-      "tense": "future",
-      "when": "P2.1 – P2.6",
-      "note": "Port stages_for() and the renderers from the prototype: derive stages from Trace facts, never hardcode them. LR-0078 added a requirement here — LSP makes graceful handling of unknown kinds a client guarantee, so the panel must render an unrecognised kind in a default way or a future vocabulary bump breaks every older panel.",
+      "tense": "present",
+      "when": "P2.1 open · P2.2 – P2.6 after",
+      "data": [
+        { "key": "P2.1", "type": "open", "value": "serve the panel at /__supervisualizer__/, DEBUG-only" },
+        { "key": "the Trace", "type": "exists", "value": "written to disk on every request" },
+        { "key": "the page", "type": "404", "value": "no URL is wired yet" }
+      ],
+      "note": "The file exists; the page does not. P2.1 is one include() in the project's root urls.py, guarded on DEBUG — the panel is extra paths on the same URLconf, not a second process, exactly as Debug Toolbar does it. After that: port stages_for() and the renderers from the prototype, deriving stages from Trace facts rather than hardcoding them. LR-0078 added a requirement here — LSP makes graceful handling of unknown kinds a client guarantee, so the panel must render an unrecognised kind in a default way or a future vocabulary bump breaks every older panel.",
       "links": [
+        { "href": "lessons/0020-the-panel-is-a-second-request.html", "text": "Lesson 0020 — the panel is a second request" },
+        { "href": "lessons/0021-the-404-is-a-missing-pattern.html", "text": "Lesson 0021 — the 404 is a missing pattern" },
+        { "href": "reference/include-prefix.html", "text": "ref · include-prefix" },
+        { "href": "reference/panel-reader.html", "text": "ref · panel-reader" },
         { "href": "prototype/HOW-IT-WORKS.md", "text": "prototype · what carries over" }
       ]
     },
@@ -558,9 +570,16 @@ past the point where a directory listing is a map.</p>
           <a href="reference/otel-span.html">otel-span</a></td>
     </tr>
     <tr>
-      <td>Capture safety<br><span style="color:var(--muted);font-size:0.72rem">P1.10 — the open task</span></td>
+      <td>Capture safety<br><span style="color:var(--muted);font-size:0.72rem">P1.10 — done</span></td>
       <td><a href="lessons/0019-a-probe-must-fail-alone.html">0019 a probe must fail alone</a></td>
       <td><a href="reference/capture-guards.html">capture-guards</a></td>
+    </tr>
+    <tr>
+      <td>The Panel<br><span style="color:var(--muted);font-size:0.72rem">P2.1 — the open task</span></td>
+      <td><a href="lessons/0020-the-panel-is-a-second-request.html">0020 the panel is a second request</a><br>
+          <a href="lessons/0021-the-404-is-a-missing-pattern.html">0021 the 404 is a missing pattern</a></td>
+      <td><a href="reference/include-prefix.html">include-prefix</a><br>
+          <a href="reference/panel-reader.html">panel-reader</a></td>
     </tr>
   </tbody>
 </table>
@@ -597,7 +616,7 @@ docs and searching for docs that do not exist.</p>
 
 <div class="foot">
   <strong>Keeping this page true.</strong> It is a mirror. When a roadmap task lands, update
-  <a href="supervisualizer/ROADMAP.md">ROADMAP.md</a> first — its Status block and its
+  <a href="ROADMAP.md">ROADMAP.md</a> first — its Status block and its
   checkbox — then move the moment's <code>tense</code> here from
   <code>future</code> → <code>present</code> → <code>past</code> and hang the new lesson off
   the stage it explains. A stage moves to <code>past</code> only when a real Trace carries
@@ -608,8 +627,8 @@ docs and searching for docs that do not exist.</p>
   <a href="NOTES.md">NOTES.md</a> ·
   <a href="CONTEXT.md">CONTEXT.md</a> ·
   <a href="RESOURCES.md">RESOURCES.md</a> ·
-  <a href="supervisualizer/ROADMAP.md">ROADMAP.md</a> ·
-  <a href="supervisualizer/DECISIONS.md">DECISIONS.md</a>
+  <a href="ROADMAP.md">ROADMAP.md</a> ·
+  <a href="DECISIONS.md">DECISIONS.md</a>
   <br><br>
   Something here unclear or wrong? Ask — that is what the agent is for, and a wrong map is
   worse than no map.

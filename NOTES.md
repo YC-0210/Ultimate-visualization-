@@ -2,7 +2,7 @@
 
 ## The two principles
 
-1. **Capture is deterministic. The LLM explains; it never observes.** (`supervisualizer/ROADMAP.md`)
+1. **Capture is deterministic. The LLM explains; it never observes.** ([`ROADMAP.md`](ROADMAP.md))
 2. **If I can't see it all at once, I don't understand it yet.**
 
 The second is why [`MAP.html`](MAP.html) exists. A part learned in isolation is a part that gets lost, so every lesson links back to the map and updates it, and no lesson is finished until it does. When a run of sessions has produced only small, local understandings, that is the signal to stop and teach the whole — see the `Altitude:` field on the learning records.
@@ -12,13 +12,21 @@ The second is why [`MAP.html`](MAP.html) exists. A part learned in isolation is 
 - **Logic over syntax.** Why the system behaves this way. Punctuation and style only when they change the observed behaviour.
 - **Widgets that compute, not widgets that reveal.** A widget whose every state is a string written into the asset is a slideshow with buttons — it repeats the lesson in a second font. Prefer components that scrub, compute, or respond to a changed value. `assets/timeline.js` is the reusable one: a broad-granularity scrubber (stages, phases, events — never line-by-line) with three tenses, where **future shows no data** because nothing has observed it yet.
 - **Copyable shape in the lesson, not in their file.** If they must type something and the shape is not obvious, put **two** code blocks: (1) a clean copyable snippet, (2) the same snippet with a comment on each line in concrete language (what that line does). Do not paste either into `middleware.py` until they have done the practice.
-- **What lives where.** NOTES: preferences, lesson style, workspace facts, target-app examples. `learning-records/`: understandings and corrections, each tagged `Altitude: structural | mechanical`. [`MAP.html`](MAP.html): the whole topic at once — a mirror of the roadmap, never a second record of progress. Progress: [`supervisualizer/ROADMAP.md`](supervisualizer/ROADMAP.md) Status block — never “P1.x is done” here.
-- **Teaching replies: as concise as possible.** No recap. Answer, then stop (or one short check).
+- **What lives where.** NOTES: preferences, lesson style, workspace facts, target-app examples. `learning-records/`: understandings and corrections, each tagged `Altitude: structural | mechanical`. [`MAP.html`](MAP.html): the whole topic at once — a mirror of the roadmap, never a second record of progress. Progress: [`ROADMAP.md`](ROADMAP.md) Status block — never “P1.x is done” here.
+- **Plain first, one idea.** Confirmed 2026-09-02 after a P1.10 explanation was too dense and they asked for the rewrite. Same bar for chat replies **and** lesson/reference HTML.
+  - Lead with the answer (yes / no / the one sentence they can repeat).
+  - Short sentences. Everyday words first; one technical name after the plain sentence, not instead of it.
+  - One idea per reply or per lesson section. Do not stack a second rule, a schema name, or a decision-id to “be complete.”
+  - Concrete consequence on the restaurant app (“the page still loads; we lose that trace”), not an abstract claim.
+  - Bold only the few words that matter.
+  - If they don’t get it: rewrite the **same** idea shorter and plainer. Do not add a new concept to help.
+  - No recap. Answer, then stop (or one short check).
+  - This does **not** mean one moment at a time. Plain is about the *language* in a reply; principle 2 is about the *whole* staying visible. A short answer with the map one click away satisfies both — a short answer with no route back to the whole does not.
 - **When they say they have the concept, move on** (LR-0072). Drop the restatement drill and check the *code output* instead. Do not ask them to read a long print line back to you — pull the facts out of it yourself and hand back only what changes the code.
 
 ## Lesson HTML style
 
-Follow this every time a lesson is generated.
+Follow this every time a lesson is generated. **Plain first, one idea** (Preferences) is the prose bar: a lesson section that needs a second rule to be “complete” is two sections.
 
 - **Problem first.** One sentence they could repeat, before any Django API name. Example: “You already know the URL the browser sent. You do not yet know which of your routes Django picked.” Then two concrete facts on one real restaurant-app request, as have/need cards (`.facts` / `.fact.have` / `.fact.need`).
 - **No analogies; simulate instead** (LR-0047, sharpened). The ban stands: no restaurant-floor stories (waiter, diner, ticket, menu, cook, plate, recipe, door, kitchen) in lessons, reference cards, captions, widgets, or teaching replies. Introduce a new word by quoting the official docs and pointing at one fact on a real restaurant-app request, then use that word. If the docs themselves use a metaphor (e.g. “onion”), quote it as their word and link the page — do not extend it.

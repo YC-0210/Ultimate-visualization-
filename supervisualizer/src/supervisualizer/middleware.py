@@ -9,22 +9,39 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from django.conf import settings
+import logging
 
+
+logger = logging.getLogger("supervisualizer")
 
 class SupervisualizerMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
+        capture_errors = []
+
+        def capture_error(where,exc):
+            capture_errors.append(
+                {
+                    "where": where,
+                    "error":type(exc).__name__ + ": " + str(exc)[:200],
+                }
+            )
+            logger.warning("[supervisualizer] capture failed at %s", where, exc_info=True)
+
         started = datetime.now(timezone.utc)
         # capture the request
         try : 
             # request.body is always bytes, so we need to decode it as text.
             # decode(utf-8) means reat these bytes as text.
             body = request.body.decode('utf-8')
-        except UnicodeDecodeError : 
-            # if the body is not a string, just say it's binary, preventing the crashing.
-            body =  f"<binary {len(request.body)} bytes>"
+
+        except Exception as exc:
+            capture_error("request.body", exc)
+            body = '<body not captured>'
+        
+        
         captured ={
             'method' : request.method,
             'path' : request.path,
@@ -40,12 +57,15 @@ class SupervisualizerMiddleware:
         def capture_sql(execute, sql, params, many, context):
             start = time.monotonic()
             result = execute(sql, params, many, context)
-            queries.append({
-                "sql": sql,
-                "params": list(params) if params else [],
-                "duration_ms": round((time.monotonic() - start) * 1000, 2),
-            })
-            captured["sql"] = queries   
+            try: 
+                queries.append({
+                    "sql": sql,
+                    "params": list(params) if params else [],
+                    "duration_ms": round((time.monotonic() - start) * 1000, 2),
+                })
+                captured["sql"] = queries   
+            except Exception as exc:
+                capture_error("queries.append", exc)
             return result
 
         def encode(value):
@@ -57,7 +77,6 @@ class SupervisualizerMiddleware:
                 return {"type": "dict", "value": {str(key): encode(item) for key, item in value.items()}}
             if hasattr(value, "pk") and hasattr(value, "_meta"):
                 return {"type": type(value).__name__ + " instance", "value": "pk=" + str(value.pk)}
-
             return {"type": type(value).__name__, "value": str(value)[:200]}
 
         validations = []
@@ -66,11 +85,14 @@ class SupervisualizerMiddleware:
 
         def probed_is_valid(self, *args, **kwargs):
             result = original_is_valid(self, *args, **kwargs)
-            if result:
-                validations.append({
-                    "serializer": type(self).__module__ + "." + type(self).__qualname__,
-                    "data": encode(dict(self.validated_data)),
-                })
+            try: 
+                if result:
+                    validations.append({
+                        "serializer": type(self).__module__ + "." + type(self).__qualname__,
+                        "data": encode(dict(self.validated_data)),
+                    })
+            except Exception as exc:
+                capture_error("validations.append", exc)
             return result
 
         Serializer.is_valid = probed_is_valid
@@ -85,12 +107,15 @@ class SupervisualizerMiddleware:
             result = original_render(self, *args, **kwargs)
             # The view called t.render(context, request). args[0] is that dict.
             context = args[0] if args else kwargs.get("context")
-            renders.append({
-                # Inner compiled template. The filename the view asked for.
-                "template": self.template.name,
-                # The dict the view passed, not csrf_token / user. 
-                "context": encode(dict(context) if context else {}),
-            })
+            try: 
+                renders.append({
+                    # Inner compiled template. The filename the view asked for.
+                    "template": self.template.name,
+                    # The dict the view passed, not csrf_token / user. 
+                    "context": encode(dict(context) if context else {}),
+                })
+            except Exception as exc:
+                capture_error("renders.append", exc)
             return result
 
         Template.render = probed_render
@@ -118,11 +143,21 @@ class SupervisualizerMiddleware:
 
         # Decode the body the same way you already decode request.body.
         # content is bytes. decode turns those bytes into text.
-        try:
-            response_body = response.content.decode("utf-8")
-        except UnicodeDecodeError:
-        # Not text (an image, etc.). Record the byte length instead of crashing.
-            response_body = f"<binary {len(response.content)} bytes>"
+
+
+        # seperate HTTPresponse and streaming response, which streaming reponse don't have a content attribute.
+        if response.streaming:
+            response_body = "<streaming response; body not read>"
+            response_size = None
+        else: 
+            try:
+                response_body = response.content.decode("utf-8")
+            except UnicodeDecodeError:
+                # Not text (an image, etc.). Record the byte length instead of crashing.
+                response_body = f"<binary {len(response.content)} bytes>"
+            response_size = len(response.content)
+
+
         captured["response"] = {
             # The HTTP status. An int, JSON-safe as a number.
             "status": response.status_code,
@@ -131,7 +166,7 @@ class SupervisualizerMiddleware:
             # The body, now a string (or the binary placeholder above).
             "body": response_body,
             # Byte length of content. Count the bytes, not the decoded string.
-            "size": len(response.content),
+            "size": response_size,
         }
 
         def class_name(value):
@@ -291,11 +326,13 @@ class SupervisualizerMiddleware:
             "stages": stages,
             "sql": captured["sql"],
             "notes": [],
+            'capture_errors': capture_errors,
         }
-
-        TRACE_DIR.mkdir(parents=True, exist_ok=True)
-        name = started.strftime("%Y%m%dT%H%M%S%f") + "-" + trace_id[:8] + ".json"
-        with (TRACE_DIR / name).open("w", encoding="utf-8") as f:
-            json.dump(trace, f, ensure_ascii=False, indent=2, default=str)
-
+        try:
+            TRACE_DIR.mkdir(parents=True, exist_ok=True)
+            name = started.strftime("%Y%m%dT%H%M%S%f") + "-" + trace_id[:8] + ".json"
+            with (TRACE_DIR / name).open("w", encoding="utf-8") as f:
+                json.dump(trace, f, ensure_ascii=False, indent=2, default=str)
+        except Exception as exc:
+            capture_error("json.dump", exc)
         return response
