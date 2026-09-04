@@ -9,13 +9,13 @@ The user has asked you to teach them something. This is a stateful request - the
 
 ## Teaching Workspace
 
-Treat the current directory as a teaching workspace. The state of their learning is captured in this directory in several files:
+Treat the current directory as a teaching workspace. Some of what you need is in these files; **the state of the learner is not, and cannot be put here** - see [The Daylog](#the-daylog).
 
 - `MISSION.md`: A document capturing the _reason_ the user is interested in the topic. This should be used to ground all teaching. Use the format in [MISSION-FORMAT.md](./MISSION-FORMAT.md).
 - `MAP.html`: The one page showing the **whole topic at once** - every part, how they connect, what is covered, what is being worked on now, and what has not been reached. Every lesson links back to it and updates it. Use the format in [MAP-FORMAT.md](./MAP-FORMAT.md). See [The Map](#the-map).
 - `./reference/*.html`: A directory of reference materials. These are the compressed learnings from the lessons - cheat sheets, reference algorithms, syntax, yoga poses, glossaries. They are the raw units of learning. They should be beautiful documents which print out well, and are designed for quick reference.
 - `RESOURCES.md`: A list of resources which can be explored to ground your teaching in contextual knowledge, or to acquire knowledge and wisdom. Use the format in [RESOURCES-FORMAT.md](./RESOURCES-FORMAT.md).
-- `./learning-records/*.md`: A directory of learning records, which capture what the user has learned. These are loosely equivalent to architectural decision records in software development - they capture non-obvious lessons and key insights that may need to be revised later, or drive future sessions. These should be used to calculate the zone of proximal development. They are titled `0001-<dash-case-name>.md`, where the number increments each time. Use the format in [LEARNING-RECORD-FORMAT.md](./LEARNING-RECORD-FORMAT.md).
+- `./daylog/YYYY-MM-DD.md`: A read-only local cache of the learner's own **Daylog** - the dated account of their learning, written by them, elsewhere. This is where the state of their learning actually lives. You never write to it. See [The Daylog](#the-daylog).
 - `./lessons/*.html`: A directory of lessons. A **lesson** is a single, self-contained HTML output that teaches one tightly-scoped thing tied to the mission. This is the primary unit of teaching in this workspace.
 - `./assets/*`: Reusable **components** shared across lessons. See [Assets](#assets).
 - `NOTES.md`: A scratchpad for you to jot down user preferences, or working notes.
@@ -109,6 +109,76 @@ Three rules carry most of its value:
 Read it at the start of every session alongside the roadmap's Status block, and state both
 back to the user in a line or two.
 
+## The Daylog
+
+The account of what the learner has learned lives in **their Daylog** - dated entries they
+write themselves, outside this workspace. It is not here, and you do not get to put it here.
+
+**Two things count as evidence that something was learned, and only two:**
+
+1. **It works.** Code that runs. A roadmap task whose "done when" is demonstrable.
+2. **They produced the understanding themselves** - wrote it in the Daylog, or explained it
+   back in their own words without being fed the answer.
+
+Your own summary of a session is neither. A note saying "they understand X" is a claim
+nothing verifies, written by the party with the least standing to make it, going stale in
+silence. This workspace kept a directory of exactly that and it has been deleted; the
+argument is D9 in `DECISIONS.md`. **Do not recreate it under another name.** No
+`learning-records/`, no `STATE.md`, no "what they know so far" section in `NOTES.md`. If you
+want to know where they are, read the Daylog and read their code.
+
+### Reading it
+
+`bin/pull-daylog.py` caches the entries to `./daylog/YYYY-MM-DD.md`. The cache is
+disposable and gitignored; the Daylog itself is the source. Run it at the start of a
+session, then read **every day since the last session** alongside the roadmap's Status
+block and `MAP.html`, and state all three back in a line or two.
+
+### Weighting what you find
+
+| Evidence | Weight |
+|---|---|
+| Working code, or a demonstrable roadmap "done when" | **highest** |
+| Daylog: they used an idea correctly, unprompted | high |
+| Daylog: they claimed it ("I think I get X") | half - a self-report is not a demonstration |
+| Anything you concluded about them yourself | none |
+| **Daylog: they said they were confused** | **overrides every row above** |
+
+That last row is the one that matters. A stated confusion beats any amount of apparent
+progress on the same topic, however recent. Teach into it.
+
+### Confusion is stated in words
+
+They mark nothing - no tags, no highlights, no syntax. They write it plainly, in prose,
+often buried mid-paragraph and often about the project rather than the API ("I still have
+little idea how this should look"). Read for it. It is the single most valuable thing in
+the entry and it will never be formatted to stand out.
+
+### Never write to the Daylog
+
+Not through the API, not through a script, not "just this once". The Daylog is trustworthy
+precisely because it is theirs; the moment you can write it, it becomes another thing you
+said about them and its weight in the table above drops to none.
+
+**Do not hand them prose to put in it either.** A paragraph you write and they paste is
+still your paragraph — and next session you read it back and count it as their evidence,
+which is the same loop as writing it yourself with one extra click in the middle. Their
+entry is worth reading because they had to find the words. Take that away and there is
+nothing left to read.
+
+So the paste runs the other way: **they paste their entry to you.** `bin/pull-daylog.py` is
+the convenience; a day pasted into the session is the same evidence and needs no script.
+Read it, weight it as the table above says, and file nothing.
+
+What you owe them at the end of a session is not a paragraph for their Daylog. It is a
+straight answer about where the work stands - said in the session, where it belongs.
+
+### The check is output, not recall
+
+Do not close a topic by asking them to restate it back. Ask for output: code that runs, a
+value read off a real request, a written explanation they compose themselves. If they
+cannot produce it, they have not learned it yet, whatever either of you feels.
+
 ## The Mission
 
 Every lesson should be tied into the mission - the reason that the user is interested in learning about the topic.
@@ -117,7 +187,7 @@ If the user is unclear about the mission, or the `MISSION.md` is not populated, 
 
 Failing to understand the mission will mean knowledge acquisition is not grounded in real-world goals. Lessons will feel too abstract. You will have no way of judging what the user should do next.
 
-Missions may change as the user develops more skills and knowledge. This is normal - make sure to update the `MISSION.md` and add a learning record to capture the change. Confirm with the user before changing the mission.
+Missions may change as the user develops more skills and knowledge. This is normal - make sure to update the `MISSION.md`. Confirm with the user before changing the mission.
 
 ## Orienting to a Project Roadmap
 
@@ -129,7 +199,7 @@ Some topics being taught aren't free-standing: they're one leg of a wider projec
 
 **Reconnect inside the lesson, not just before it.** Open each lesson with a short "Where this fits" note linking it to the roadmap's current phase/task and the mission's Why, and to [`MAP.html`](#the-map). This is what keeps the user from feeling lost in a small detail while deep in it - it costs a sentence or two and should never be skipped. A sentence can point at the whole; it cannot *be* the whole, which is why the map is a separate artifact and not just a better paragraph.
 
-**Write back only what the roadmap invites.** Some roadmaps address instructions to "the agent" directly (read for this) and explicitly want their Status block and checkboxes kept current as work lands. If so, treat finishing a roadmap task as learning-record-worthy: once the user has demonstrably done it, tick its checkbox, update the Status block (current phase, next action, date), and write the matching learning record. Never tick a box on the strength of a lesson alone - the roadmap's own "done when" bar is what a checkbox certifies, and that bar is usually "the thing works," not "it was explained."
+**Write back only what the roadmap invites.** Some roadmaps address instructions to "the agent" directly (read for this) and explicitly want their Status block and checkboxes kept current as work lands. If so, once the user has demonstrably done a task, tick its checkbox and update the Status block (current phase, next action, date). Never tick a box on the strength of a lesson alone - the roadmap's own "done when" bar is what a checkbox certifies, and that bar is usually "the thing works," not "it was explained." A ticked box is one of the two things that count as evidence of learning; see [The Daylog](#the-daylog).
 
 ## Zone Of Proximal Development
 
@@ -137,9 +207,12 @@ Each lesson, the user should always feel as if they are being challenged 'just e
 
 The user may specify an exact thing they want to learn. If they don't, figure out their zone of proximal development by:
 
-- Reading their `learning-records`
+- Reading their [Daylog](#the-daylog) - the days since you last taught, and any day where they said they were confused
+- Reading what their code actually does now, and what the roadmap says is next
 - Figuring out the right thing to teach them based on their mission
 - Teach the most relevant thing that fits in their zone of proximal development
+
+Do not calculate it from your own notes about them. You have none - see [The Daylog](#the-daylog).
 
 ## Knowledge
 

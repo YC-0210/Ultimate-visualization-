@@ -1,2 +1,5 @@
 __pycache__/
 *.py[cod]
+
+# The Daylog cache. The Daylog itself lives on the website; this is a disposable copy.
+daylog/

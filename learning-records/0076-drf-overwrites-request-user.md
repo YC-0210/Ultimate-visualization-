@@ -1,5 +1,0 @@
-Altitude: structural
-
-# DRF overwrites `request.user`, so attach_context can misreport it
-
-Their POST trace contradicts itself: `is_authenticated` is `false` and `username` is `""`, yet `session_keys` still holds `_auth_user_id`. Cause found in the app and in DRF's source, not guessed. `cartitemList` sets `authentication_classes = []` (`restaurantAPI/views.py:137`), so DRF authenticates nobody and assigns `AnonymousUser`; DRF's `Request.user` setter then writes through — its docstring says "we also set the user on Django's underlying `HttpRequest` instance, ensuring that it is available to any middleware in the stack." Since P1.3 reads `request.user` *after* `get_response`, it sees DRF's overwrite rather than what `AuthenticationMiddleware` attached. The same session on the plain Django HTML view reported `kenny` (LR-0064 era), which is why the two traces disagree. Open question for P1.10 or Phase 2: `attach_context` currently means "who the request ended up as", not "who middleware said it was".

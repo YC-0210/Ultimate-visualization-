@@ -133,3 +133,30 @@ Read after the fact from the official spec — [Document Symbols Request](https:
 **Why:** the nine covered only the server's half. Phase 4 adds stages captured by the injected browser probe — reading the DOM, building the payload, `fetch`, parsing the response, updating the page — and none of them fit `receive_input` or `route`. Freezing at nine would have forced Phase 4 to abuse a verb or extend the vocabulary, which is exactly what D7's nearest-fit rule forbids.
 
 **Status: provisional.** The Django column is grounded; the FastAPI and Express columns are reasoned, not verified. A vocabulary that only fits Django is worthless, so this is not frozen as v1 until P6.4 tests it against a framework we did not design it around.
+
+---
+
+## D9 — The learner's state is read from the Daylog, never stored here
+
+**Decided:** the account of what has been learned lives in the **Daylog** — dated entries written by hand on the personal website, one per day of a Project, stored in Supabase. This workspace reads it and stores nothing of its own about the learner. `learning-records/` is deleted, and `LEARNING-RECORD-FORMAT.md` with it. Two things count as evidence that something was learned: **it works** (code that runs, a roadmap "done when" that is demonstrable), or **the learner produced the understanding themselves** — wrote it in the Daylog, or explained it back in their own words unprompted. An agent's summary of a session is neither.
+
+**Considered:** keeping the 81 learning records and fixing their format — adding a date, a source, an evidence field, a supersession discipline, and a generated one-page digest for the agent to read at the start of a session.
+
+**Why:** the records were the wrong shape, not badly filled in. They are the third appearance of a pattern already rejected twice on the personal website. `atoms.hours_spent` was removed there as "a number the Owner types into a form and nothing else in the site ever checks — unfalsifiable, stale the moment it is entered"; the Learning State followed it in ADR-0010 as "the same kind of value: a claim the Owner sets by hand, that nothing verifies, that goes stale silently." A learning record is that value again, and worse in two ways. Hours at least only grew, and hours were at least the learner's own claim; a learning record is the *teacher's* claim about the learner, which is the party with the least standing to make it. The evidence: 81 records, 79 with no date at all, and two supersessions in the whole set — so nothing could be located in time and almost nothing was ever retracted. Meanwhile the Daylog held a live blocker, written plainly, that no record mentioned.
+
+The same argument settles what replaces them: nothing. ADR-0011 derives a Project's visibility and its last-logged date rather than storing them, on the grounds that a stored second answer drifts from the first. A `STATE.md` digest would be exactly that second answer. The Daylog is dated, the code either runs or does not, and both are read at the start of a session — so there is nothing left for a derived file to add that it would not eventually get wrong.
+
+This is D2 pointed at the teaching rather than the tool. Capture is deterministic; the LLM explains and never observes. The Daylog and the working code are the capture. A lesson is prose over facts already captured — and so, it turns out, was every learning record, except that nothing marked it as prose.
+
+**How it works:**
+
+- `bin/pull-daylog.py` caches entries to `./daylog/YYYY-MM-DD.md`. Read-only, stdlib-only, gitignored. The Daylog is the source; the cache is disposable.
+- Weighting, in order: working code · an idea used correctly in the Daylog · a claim made in the Daylog ("I think I get X"), which is a self-report and not a demonstration · nothing, for anything the agent concluded by itself. **A stated confusion overrides all of them** on that topic, however recent the apparent progress.
+- Confusion is stated **in words**, in prose, unmarked. No tags, no highlight, no syntax. A marker was considered and rejected by the learner: the writing should not bend to make the agent's job easier, and a convention that has to be remembered mid-sentence is one more thing to go stale.
+- **The agent never writes to the Daylog, and never drafts anything for it.** Not through the API, not through a script, and not as a paragraph handed over to be pasted in. A pasted draft is still the agent's words: next session it reads them back and counts them as the learner's evidence, which is the loop an API write would have created, with one click inserted in the middle. The entry is worth reading because the learner had to find the words. **The paste runs the other way** — they paste an entry into the session when that is easier than running `bin/pull-daylog.py`, and it is the same evidence either way.
+
+**Cost:**
+
+- **81 records are gone, and some held real corrections** — the analogy ban, the attribute-versus-method confusion, the `kind`-is-not-a-span question. What survived was re-stated in `NOTES.md` as a standing preference, which is where a rule belongs; the rest is accepted as lost. It was the teacher's memory, not the learner's, and keeping a directory "just for the good ones" reintroduces the file that goes stale.
+- **A session now costs a network read**, and the workspace depends on a second system. Offline, the agent has the roadmap, the map and the code, and must say plainly that it cannot see the Daylog rather than guess from the repo.
+- **Nothing survives a session that the learner did not write or build.** That is the point, and it means a session that produced neither produced nothing. The teaching has to end in output — code that runs, or something the learner writes — or it does not count.

@@ -91,7 +91,7 @@
 - [Roadmap — stage vocabulary, v0](ROADMAP.md)
   The fourteen `kind` strings. Server half used in P1.9; client kinds wait for Phase 4. Use for: which string to write on each stage.
 - [Python tutorial: Saving structured data with json](https://docs.python.org/3/tutorial/inputoutput.html#saving-structured-data-with-json)
-  `dumps` → a string; `dump` → a text file. “This process is called serializing.” JSON files must be UTF-8. Use for: P1.9 file write (next lesson). They already know `dumps` (LR-0012).
+  `dumps` → a string; `dump` → a text file. “This process is called serializing.” JSON files must be UTF-8. Use for: P1.9 file write (next lesson).
 - [Python: `json.dump`](https://docs.python.org/3/library/json.html#json.dump)
   “Serialize obj as a JSON formatted stream to fp.” Same flags as `dumps` (`ensure_ascii=False`, `default`). Use for: the call that replaces `print(json.dumps(...))`.
 
@@ -116,18 +116,18 @@
 
 ## Design
 
-Why the tool is shaped the way it is. The Knowledge section above is rigorous about what Django does; this section is the equivalent for what the tool should *be*. Several `DECISIONS.md` entries were argued first-party when prior art existed — D7's `kind`/`label` split is LSP's `DocumentSymbol`, and only LR-0078 caught it. Reach here before inventing.
+Why the tool is shaped the way it is. The Knowledge section above is rigorous about what Django does; this section is the equivalent for what the tool should *be*. Several `DECISIONS.md` entries were argued first-party when prior art existed — D7's `kind`/`label` split is LSP's `DocumentSymbol`, and that was caught long after the decision. Reach here before inventing.
 
 - [Bret Victor — *Learnable Programming* (2012)](https://worrydream.com/LearnableProgramming/)
   The source of this project's whole premise, stated in one line: “People understand what they can see. If a programmer cannot see what a program is doing, she can't understand it.” Its five environment demands are a direct checklist for the panel: **read the vocabulary** (what do these words mean — the gloss treatment), **follow the flow** (what happens when — the Pipeline), **see the state** (what is the computer thinking — the Data Panel), **create by reacting**, **create by abstracting**. Use for: any Phase 2 panel decision, and to test whether a lesson is showing a mechanism or describing one.
 - [Bret Victor — *Inventing on Principle* (CUSEC, 2012)](https://worrydream.com/InventingOnPrinciple/)
   “Creators need an immediate connection to what they're creating.” The half that matters most here is the argument against step-at-a-time debuggers: showing one moment forces the learner to hold every other moment in their head. Lay the whole execution out at once instead. Use for: the design of any timeline or scrubber (`assets/timeline.js`), and for the second principle in `MISSION.md`. The talk's other half — pick a principle and let it decide things — is where both of this project's principles come from.
 - [Seymour Papert — *Mindstorms: Children, Computers, and Powerful Ideas* (1980)](https://en.wikipedia.org/wiki/Mindstorms_(book))
-  The source of **body syntonicity**, the idea Victor builds on: the Logo turtle teaches because the learner can put themselves in its place, not because it resembles something else. Use for: resolving the tension in the no-analogies rule (LR-0047). The rule correctly bans decorative resemblance; Papert's point is that the replacement is *identification with a concrete simulated object*, not more prose. Book, no canonical free source — the concept is what to reach for.
+  The source of **body syntonicity**, the idea Victor builds on: the Logo turtle teaches because the learner can put themselves in its place, not because it resembles something else. Use for: resolving the tension in the no-analogies rule (`NOTES.md`). The rule correctly bans decorative resemblance; Papert's point is that the replacement is *identification with a concrete simulated object*, not more prose. Book, no canonical free source — the concept is what to reach for.
 - [Django Debug Toolbar (source)](https://github.com/django-commons/django-debug-toolbar)
   The closest existing thing, and prior art for three separate problems this project has already solved from scratch: middleware capture, injecting a script into outgoing HTML (P4.1), and re-enabling the test-only `template_rendered` signal by patching `_render` (the alternative lesson 0013 rejected). “A configurable set of panels that display various debug information about the current request/response.” Use for: before writing any new capture hook, check how they did it.
 - [Language Server Protocol 3.17 — specification](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/)
-  The actual prior art for D7's `kind`/`label` split: `DocumentSymbol` carries both a display `name` and a `kind: SymbolKind`. Also the source of the P2.2 requirement in LR-0078 — on enumerations the spec says “the using side of an enumeration shouldn't fail on an enumeration value it doesn't know. It should simply ignore it… and try to do its best to preserve the value on round trips.” Use for: the panel's unknown-`kind` behaviour, and any future change to the vocabulary.
+  The actual prior art for D7's `kind`/`label` split: `DocumentSymbol` carries both a display `name` and a `kind: SymbolKind`. Also the source of a P2.2 requirement — on enumerations the spec says “the using side of an enumeration shouldn't fail on an enumeration value it doesn't know. It should simply ignore it… and try to do its best to preserve the value on round trips.” Use for: the panel's unknown-`kind` behaviour, and any future change to the vocabulary.
 
 ## Wisdom (Communities)
 
