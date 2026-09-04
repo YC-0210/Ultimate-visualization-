@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Panel — a reader</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Reference · P2.0</p>
+      <h1>Panel — a reader</h1>
+      <p class="lede">
+        Phase 1 writes a Trace file.
+        Phase 2 is a later
+        <code>GET</code>
+        that opens it.
+        Source:
+        <a href="../CONTEXT.md">CONTEXT — Panel</a>,
+        <a href="../../DECISIONS.md">D3</a>.
+      </p>
+    </header>
+
+    <h2>Two requests, one Django app</h2>
+    <table>
+      <thead><tr><th></th><th>Write</th><th>Read</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>URL</td>
+          <td><code>GET /menuitem/經典原味鍋/</code></td>
+          <td><code>GET /__supervisualizer__/</code></td>
+        </tr>
+        <tr>
+          <td>Who</td>
+          <td>Your middleware</td>
+          <td>A view (the Panel)</td>
+        </tr>
+        <tr>
+          <td>Does</td>
+          <td>Writes one JSON file</td>
+          <td>Opens the newest file</td>
+        </tr>
+        <tr>
+          <td>You see</td>
+          <td>The restaurant page</td>
+          <td>The pipeline</td>
+        </tr>
+        <tr>
+          <td>When</td>
+          <td>Phase 1, already</td>
+          <td>Phase 2. Today: 404</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>What this is not</h2>
+    <table>
+      <thead><tr><th>Not</th><th>That is</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>A second server</td>
+          <td>Rejected in D3</td>
+        </tr>
+        <tr>
+          <td>The middleware returning HTML</td>
+          <td>The file write stays</td>
+        </tr>
+        <tr>
+          <td>A push with no refresh</td>
+          <td>Phase 3 (SSE)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Phase 2 done when</h2>
+    <p>
+      Hit an endpoint, refresh
+      <code>/__supervisualizer__/</code>,
+      see that request’s stages with the data already in the file.
+    </p>
+
+    <footer class="foot">
+      <a href="../lessons/0020-the-panel-is-a-second-request.html">Lesson 0020</a>
+      <a href="../lessons/0018-the-print-is-gone-the-file-stays.html">Lesson 0018</a>
+      <a href="trace-schema.html">Trace schema card</a>
+      <a href="../../DECISIONS.md">D3</a>
+      <a href="../../ROADMAP.md">Phase 2</a>
+    </footer>
+  </article>
+</body>
+</html>

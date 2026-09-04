@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>include chops the prefix</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Reference · P2.1</p>
+      <h1>include chops the prefix</h1>
+      <p class="lede">
+        Source:
+        <a href="https://docs.djangoproject.com/en/5.2/topics/http/urls/#including-other-urlconfs">Including other URLconfs</a>.
+      </p>
+    </header>
+
+    <p>
+      Django’s docs: “Whenever Django encounters
+      <code>include()</code>, it chops off whatever part of the URL
+      matched up to that point and sends the remaining string to
+      the included URLconf for further processing.”
+    </p>
+
+    <h2>On this project</h2>
+    <table>
+      <thead><tr><th>Incoming</th><th>Prefix (chopped)</th><th>Leftover (looked up inside)</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>/api/cart/item/</code></td>
+          <td><code>api/</code></td>
+          <td><code>cart/item/</code> in <code>restaurantAPI.urls</code></td>
+        </tr>
+        <tr>
+          <td><code>/__supervisualizer__/</code></td>
+          <td><code>__supervisualizer__/</code></td>
+          <td><code>""</code> in <code>supervisualizer.urls</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>The three files</h2>
+    <table>
+      <thead><tr><th>File</th><th>Holds</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>supervisualizer/views.py</code></td>
+          <td>The view. Stub <code>HttpResponse</code> for P2.1.</td>
+        </tr>
+        <tr>
+          <td><code>supervisualizer/urls.py</code></td>
+          <td><code>path("", …)</code> — the leftover, not the prefix.</td>
+        </tr>
+        <tr>
+          <td><code>restaurant/urls.py</code></td>
+          <td>The prefix, inside <code>if settings.DEBUG</code>.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>DEBUG</h2>
+    <p>
+      Django: “Never deploy a site into production with
+      <code>DEBUG</code> turned on.”
+      Traces carry
+      <code>Cookie</code>.
+      If
+      <code>DEBUG</code>
+      is False, do not add the prefix.
+      Do not flip
+      <code>DEBUG</code>
+      to test while
+      <code>ALLOWED_HOSTS</code>
+      is empty.
+    </p>
+
+    <footer class="foot">
+      <a href="../lessons/0021-the-404-is-a-missing-pattern.html">Lesson 0021</a>
+      <a href="../lessons/0001-when-resolver-match-appears.html">Lesson 0001</a>
+      <a href="panel-reader.html">Panel reader card</a>
+      <a href="https://docs.djangoproject.com/en/5.2/topics/http/urls/#including-other-urlconfs">include()</a>
+      <a href="https://docs.djangoproject.com/en/5.2/ref/settings/#debug">DEBUG</a>
+    </footer>
+  </article>
+</body>
+</html>

@@ -33,7 +33,7 @@ So I am building the tool I want to learn with — and building it myself, in Cu
 
 ## Out of scope
 
-- Later phases, until their turn: the panel UI (Phase 2), live SSE (Phase 3), the browser probe (Phase 4), LLM explanations (Phase 5), a second framework (Phase 6).
+- Later phases, until their turn: live SSE (Phase 3), the browser probe (Phase 4), LLM explanations (Phase 5), a second framework (Phase 6).
 - Production monitoring and APM. This is a dev-time learning tool; the moment it needs auth, sampling and PII handling it has become a different product.
 - Shareable recordings — the `prototype/` path, where a trace is captured and sent to someone else. Real, but a different product; parked deliberately (see `supervisualizer/DECISIONS.md` D1).
 - Making the prototype nicer. It has done its job.

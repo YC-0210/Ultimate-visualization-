@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The panel is a second request</title>
+  <link rel="stylesheet" href="../assets/lesson.css" />
+</head>
+<body>
+  <article class="page">
+    <header class="mast">
+      <p class="kicker">Lesson 0020 · P2.0 · supervisualizer</p>
+      <h1>The panel is a second request</h1>
+      <p class="lede">
+        You already write a Trace file on every request.
+        You do not yet have a page that opens one.
+      </p>
+    </header>
+
+    <p class="fits">
+      <strong>Where this fits</strong>
+      Roadmap: Phase 2 — panel renders one trace.
+      Phase 1 ended when a probe could fail without taking the
+      restaurant page down.
+      Today is the shape of the phase, not P2.1’s URL wiring.
+      The page you will build is this repo’s word
+      <a href="../CONTEXT.md">Panel</a>.
+    </p>
+
+    <h2>The problem</h2>
+    <p>
+      You already know the Trace is on disk.
+      You do not yet know how a browser tab gets it.
+      Real request:
+      <code>GET /menuitem/經典原味鍋/</code>
+      — the HTML page, view
+      <code>menuitem_detail</code>,
+      <code>url_name</code>
+      <code>menuitem_page</code>.
+      One file from that path:
+      <code>20260902T070610494615-9041a015.json</code>.
+      Five stages already in it:
+      <code>receive_input</code>,
+      <code>route</code>,
+      <code>attach_context</code>,
+      <code>render_output</code>,
+      <code>send_response</code>.
+    </p>
+
+    <div class="facts">
+      <div class="fact have">
+        <p class="tag">Already have · Phase 1</p>
+        <h3>A Trace file</h3>
+        <p>Written after the restaurant request. You open it in an editor.</p>
+        <p class="example">supervisualizer-traces/…-9041a015.json</p>
+      </div>
+      <div class="fact need">
+        <p class="tag">Missing · Phase 2</p>
+        <h3>A page that reads it</h3>
+        <p>Same Django app. A different URL. You refresh it by hand.</p>
+        <p class="example">GET /__supervisualizer__/</p>
+      </div>
+    </div>
+
+    <h2>Two requests, one app</h2>
+    <p>
+      The middleware does not start returning HTML instead of a
+      file. It still writes the file.
+      The
+      <span class="gloss" data-gloss>
+        <button type="button" class="gloss-term" title="Show the type">Panel</button>
+        <span class="gloss-pop" hidden role="note">
+          <span class="gloss-line gloss-type">
+            <strong>Type:</strong> this repo’s word —
+            not Django’s, not OTel’s.
+            <a href="../CONTEXT.md">CONTEXT.md</a>.
+          </span>
+          <span class="gloss-line">
+            CONTEXT: “The page supervisualizer serves at
+            <code>/__supervisualizer__/</code>, in a tab of its
+            own.”
+            And: “Reads only the Trace schema — it knows nothing
+            about Django.”
+            CONTEXT also says it receives traces over SSE.
+            That sentence is Phase 3. Today the page will open a
+            file.
+          </span>
+          <span class="gloss-line gloss-cite">
+            <a href="../CONTEXT.md">CONTEXT — Panel</a>
+            ·
+            <a href="../../DECISIONS.md">D3</a>
+          </span>
+        </span>
+      </span>
+      is a later
+      <code>GET</code>
+      that opens the newest file and draws
+      <code>stages</code>.
+      <a href="../../DECISIONS.md">D3</a>:
+      the panel is a view this app serves. Not a second process.
+    </p>
+
+    <figure class="typehop" data-typehop data-start="write">
+      <div class="typehop-moments">
+        <button type="button" data-moment="write"
+          data-caption="You already have this. The restaurant request runs. Middleware writes a Trace file. The page you see is still the menu.">1 · write</button>
+        <button type="button" data-moment="read"
+          data-caption="Phase 2. A different GET, same Django app. A view opens the newest file and returns HTML. You refresh this tab by hand.">2 · read</button>
+      </div>
+      <table>
+        <thead>
+          <tr><th>question</th><th>answer</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th>URL</th>
+            <td>
+              <span data-when="write"><code>GET /menuitem/經典原味鍋/</code><span class="type-badge">restaurant</span></span>
+              <span data-when="read" hidden><code>GET /__supervisualizer__/</code><span class="type-badge">panel</span></span>
+            </td>
+          </tr>
+          <tr>
+            <th>this request does</th>
+            <td>
+              <span data-when="write">middleware writes a JSON file<span class="type-badge">Phase 1</span></span>
+              <span data-when="read" hidden>a view opens the newest file<span class="type-badge">Phase 2</span></span>
+            </td>
+          </tr>
+          <tr>
+            <th>you see</th>
+            <td>
+              <span data-when="write">the menu page, status 200<span class="type-badge">already</span></span>
+              <span data-when="read" hidden>the pipeline, after this phase<span class="type-badge">today: 404</span></span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="typehop-caption" data-typehop-caption></p>
+    </figure>
+
+    <p>
+      Django Debug Toolbar is built the same way.
+      Its install docs, step 4: add the toolbar’s URLs to
+      <em>your</em> URLconf.
+      Default prefix:
+      <code>__debug__</code>.
+      Extra paths on the app you already run. That is P2.1’s shape.
+      Do not wire it today.
+    </p>
+
+    <h2>Done when, for the phase</h2>
+    <p>
+      You hit an endpoint in the restaurant app, refresh
+      <code>/__supervisualizer__/</code>,
+      and see that request’s pipeline with the data already in the
+      file.
+      Static: you refresh. Live push is Phase 3.
+    </p>
+
+    <h2>Later in this phase</h2>
+    <table>
+      <thead><tr><th>Task</th><th>One job</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>P2.1</td>
+          <td>Serve the page at that URL. Only when <code>DEBUG</code>.</td>
+        </tr>
+        <tr>
+          <td>P2.2</td>
+          <td>Draw stages from the Trace, by <code>kind</code>.</td>
+        </tr>
+        <tr>
+          <td>P2.3</td>
+          <td>Port the value renderers from the prototype.</td>
+        </tr>
+        <tr>
+          <td>P2.4</td>
+          <td>Three columns. Type badges.</td>
+        </tr>
+        <tr>
+          <td>P2.5</td>
+          <td>Open the newest file.</td>
+        </tr>
+        <tr>
+          <td>P2.6</td>
+          <td>Step the stages. Move the packet.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Check</h2>
+
+    <div class="quiz" data-quiz
+         data-explain-right="Lesson 0018 put it on disk. Nothing in Phase 2 has to send it. The panel opens the file on a later GET."
+         data-explain-wrong="That mix-up showed up at P1.9 (LR-0067). A file with nothing sent is already a Trace. Sending is Phase 3.">
+      <p class="quiz-q">After the menu page loads, the Trace is…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">already on disk</button>
+        <button type="button" data-answer data-correct="0">waiting to send</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <div class="quiz" data-quiz
+         data-explain-right="D3: pip install, add to INSTALLED_APPS and MIDDLEWARE, the panel is a view. Same process as the restaurant."
+         data-explain-wrong="A second server was considered and rejected. No CORS, no extra process. The prefix is just another path.">
+      <p class="quiz-q"><code>/__supervisualizer__/</code> is served by…</p>
+      <div class="quiz-choices">
+        <button type="button" data-answer data-correct="1">this Django app</button>
+        <button type="button" data-answer data-correct="0">a second server</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+    </div>
+
+    <h2>Do this</h2>
+    <ol class="steps">
+      <li>Click both moments on the table.</li>
+      <li>
+        Load
+        <code>GET /menuitem/經典原味鍋/</code>
+        on the restaurant app.
+        Open the newest
+        <code>.json</code>
+        under
+        <code>supervisualizer-traces/</code>.
+        Count the
+        <code>kind</code>
+        strings in
+        <code>stages</code>.
+      </li>
+      <li>
+        In the same browser, open
+        <code>http://127.0.0.1:8000/__supervisualizer__/</code>.
+        Django’s 404 is the correct result today.
+        That path is not in
+        <code>restaurant/urls.py</code>.
+      </li>
+      <li>
+        Paste the stage count, and confirm the 404.
+        Do not edit
+        <code>urls.py</code>
+        or
+        <code>middleware.py</code>
+        yet.
+      </li>
+    </ol>
+
+    <h2>Read this one</h2>
+    <p>
+      <a href="https://django-debug-toolbar.readthedocs.io/en/latest/installation.html">Django
+      Debug Toolbar — Installation</a>,
+      step 4, “Add the URLs.”
+      One paragraph: extra paths on the project’s URLconf,
+      default prefix
+      <code>__debug__</code>.
+      That is the closest shipped version of what Phase 2 builds.
+    </p>
+
+    <h2>Deliberately not today</h2>
+    <table>
+      <thead><tr><th>Not yet</th><th>Why / when</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Putting the path in <code>urls.py</code>, and
+            guarding it with <code>DEBUG</code>.</td>
+          <td>P2.1. Next lesson, after this shape is solid.</td>
+        </tr>
+        <tr>
+          <td>Drawing stages, type badges, the packet.</td>
+          <td>P2.2–P2.6. The file already has the facts.</td>
+        </tr>
+        <tr>
+          <td>The panel updating with no refresh.</td>
+          <td>Phase 3 (SSE). CONTEXT names it; this phase does not
+            build it.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Ask me</h2>
+    <p>
+      If “the file is already the Trace” or why the panel is a
+      later
+      <code>GET</code>
+      is muddy, ask before we wire the URL.
+    </p>
+
+    <footer class="foot">
+      <a href="0018-the-print-is-gone-the-file-stays.html">Lesson 0018</a>
+      <a href="0019-a-probe-must-fail-alone.html">Lesson 0019</a>
+      <a href="../reference/panel-reader.html">Panel reader card</a>
+      <a href="../reference/trace-schema.html">Trace schema card</a>
+      <a href="../CONTEXT.md">CONTEXT — Panel</a>
+      <a href="../../DECISIONS.md">D3</a>
+      <a href="../../ROADMAP.md">Phase 2</a>
+      <a href="https://django-debug-toolbar.readthedocs.io/en/latest/installation.html">DDT installation</a>
+    </footer>
+  </article>
+  <script src="../assets/quiz.js"></script>
+  <script src="../assets/gloss.js"></script>
+  <script src="../assets/type-hop.js"></script>
+</body>
+</html>
