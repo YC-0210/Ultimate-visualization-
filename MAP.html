@@ -6,6 +6,7 @@
 <title>Map — Ultimate Visualization</title>
 <link rel="stylesheet" href="assets/lesson.css">
 <link rel="stylesheet" href="assets/timeline.css">
+<link rel="stylesheet" href="assets/flow.css">
 <style>
   .page { max-width: 52rem; }
 
@@ -467,7 +468,171 @@ ends in something visible — that is the test of whether it was scoped right.</
 
 <h2>3 · The spine</h2>
 
-<p>Where the pieces sit, and the one seam that decides whether Phase 6 is easy or a rewrite.</p>
+<p>One interaction, end to end. Rows are the values; columns are the events that move them;
+the band across the top says which zone the work is in. An <strong>event is a trigger</strong> —
+a person doing something, or a function returning a value — never a keystroke, which is why
+every column names what it returned.</p>
+
+<p style="font-size:0.8rem;color:var(--muted)">Step it with the slider, the arrows, or
+<strong>← →</strong> once the grid has focus. Hatched means the value does not exist yet;
+green is where it is born; amber is where it changes type. Columns marked
+<span style="color:#047857;font-weight:700">●</span> are you, not code.</p>
+
+<div data-flow>
+<script type="application/json" data-flow-config>
+{
+  "scenario": "On `/menuitem/經典原味鍋/` — you set the quantity to 2, pick 牛肉, and press 加入訂單 (add to order).",
+  "zones": [
+    { "id": "browser", "name": "Browser" },
+    { "id": "wire",    "name": "The wire" },
+    { "id": "django",  "name": "Django" },
+    { "id": "db",      "name": "Database" }
+  ],
+  "events": [
+    { "by":"user", "zone":"browser", "obs":false,
+      "what":"You open the dish page", "ret":"the page renders",
+      "sets":{ "page":{"t":"url","v":"/menuitem/經典原味鍋/"} },
+      "note":"An ordinary page load. Nothing about the order exists yet — the form is empty and the server has been told nothing." },
+
+    { "by":"user", "zone":"browser", "obs":false,
+      "what":"You set the quantity to 2", "ret":"the input holds \"2\"",
+      "sets":{ "quantity":{"t":"str","v":"\"2\""} },
+      "note":"The DOM has no numbers. Whatever you type into a form control is a string until some JavaScript changes that." },
+
+    { "by":"user", "zone":"browser", "obs":false,
+      "what":"You pick 牛肉 from the meat list", "ret":"the select holds \"牛肉\"",
+      "sets":{ "meattype":{"t":"str","v":"\"牛肉\""} },
+      "note":"Also a string, and note what it is: a name a human reads, not a database id." },
+
+    { "by":"user", "zone":"browser", "obs":false,
+      "what":"You press 加入訂單", "ret":"the click handler runs",
+      "note":"This is the moment the whole journey starts. Everything after this is code reacting to one press." },
+
+    { "by":"code", "zone":"browser", "obs":false, "hop":true,
+      "fn":"buildPayload()", "ret":"→ an object",
+      "what":"the handler assembles what to send",
+      "sets":{ "quantity":{"t":"int","v":"2","was":"str"} },
+      "note":"Number(\"2\") runs here. First type change of the journey — and Django will never know it happened, because it only ever receives the 2." },
+
+    { "by":"code", "zone":"browser", "obs":false, "hop":true,
+      "fn":"JSON.stringify(payload)", "ret":"→ a string",
+      "what":"the object is flattened to text",
+      "sets":{ "body":{"t":"str","v":"{\"product\":\"經典原味鍋\",\"quantity\":2,…}","was":"object"} },
+      "note":"Three typed fields collapse into one string, because the network moves bytes and nothing else." },
+
+    { "by":"code", "zone":"wire", "obs":false,
+      "fn":"fetch('/api/cart/item/', …)", "ret":"→ a Promise",
+      "what":"the request leaves the browser",
+      "sets":{ "request":{"t":"POST","v":"/api/cart/item/ · 412 bytes"} },
+      "note":"The network boundary. Everything before this line is invisible to Django, which is exactly why the browser has to report its own half separately (P4.5)." },
+
+    { "by":"code", "zone":"django", "obs":true, "hop":true,
+      "fn":"request.body.decode('utf-8')", "ret":"→ a str",
+      "what":"middleware reads the incoming body",
+      "sets":{ "body":{"t":"str","v":"{\"product\":\"經典原味鍋\",\"quantity\":2,…}","was":"bytes"} },
+      "note":"receive_input. The bytes that came off the wire become text. This is the first line of your own middleware, and the first place it can crash on a real request — which is what P1.10 guarded." },
+
+    { "by":"code", "zone":"django", "obs":true,
+      "fn":"resolver.resolve(path)", "ret":"→ a ResolverMatch",
+      "what":"Django decides which view handles this",
+      "sets":{ "route":{"t":"str","v":"api/cart/item/"}, "view":{"t":"str","v":"cartitemList"} },
+      "note":"route. Until this returns, the URL is just a string — nothing has decided what it means. This is why resolver_match does not exist on the way in." },
+
+    { "by":"code", "zone":"django", "obs":true,
+      "fn":"SessionMiddleware", "ret":"→ sets request.session",
+      "what":"the sessionid cookie is looked up",
+      "sets":{ "session":{"t":"dict","v":"{\"table_number\": 4}"} },
+      "note":"attach_context. The cookie carried only a number. The dictionary it points at has been sitting on the server the whole time." },
+
+    { "by":"code", "zone":"django", "obs":true,
+      "fn":"AuthenticationMiddleware", "ret":"→ sets request.user",
+      "what":"the session is turned into a user",
+      "sets":{ "user":{"t":"AnonymousUser","v":"is_authenticated=False"} },
+      "note":"Nobody logged in, so this is AnonymousUser — an object, not None. The order is tied to the table, not to a person." },
+
+    { "by":"code", "zone":"django", "obs":true,
+      "fn":"cartitemList.post(request)", "ret":"→ (running)",
+      "what":"your view is finally called",
+      "note":"Everything so far was Django getting the request ready. Your own code starts here." },
+
+    { "by":"code", "zone":"db", "obs":true,
+      "fn":"SELECT … WHERE product='經典原味鍋'", "ret":"→ 1 row",
+      "what":"the database is asked who that name is",
+      "sets":{ "row":{"t":"row","v":"id=1, price=250.00"} },
+      "note":"You never wrote this query. The serializer field wrote it, because you told it to look products up by name. Today this lands in the Trace's flat sql list, not as a query_data stage." },
+
+    { "by":"code", "zone":"django", "obs":true, "hop":true,
+      "fn":"SlugRelatedField.to_internal_value()", "ret":"→ a menuitem instance",
+      "what":"the name becomes a real database object",
+      "sets":{ "product":{"t":"menuitem instance","v":"pk=1","was":"str"} },
+      "note":"The single most valuable moment the tool shows. The string you picked in a dropdown is now a row object with methods and a price, and nothing in your source code says this happened." },
+
+    { "by":"code", "zone":"django", "obs":true,
+      "fn":"serializer.is_valid()", "ret":"→ True",
+      "what":"the input is accepted",
+      "sets":{ "validated":{"t":"dict","v":"3 typed fields"} },
+      "note":"validate_input. Untrusted text in, typed objects out. If this had returned False, nothing below would have happened at all." },
+
+    { "by":"code", "zone":"django", "obs":true, "hop":true,
+      "fn":"cartitemSerializer.create()", "ret":"→ a cartitem",
+      "what":"your code computes the price",
+      "sets":{ "price":{"t":"Decimal","v":"Decimal(\"250.00\")","was":"—"} },
+      "note":"price was never sent by the browser. It is born here, from the product row — which is why editing a cart item later leaves it stale, the bug the prototype found." },
+
+    { "by":"code", "zone":"db", "obs":true,
+      "fn":"INSERT INTO cartitem", "ret":"→ pk=7",
+      "what":"the order line is saved",
+      "sets":{ "cart_id":{"t":"int","v":"7"} },
+      "note":"The first moment anything about your order survives. Until now it only existed in memory. Nothing emits mutate_data for this yet — one of the two threads P1.9 left open." },
+
+    { "by":"code", "zone":"django", "obs":true, "hop":true,
+      "fn":"serializer.data", "ret":"→ a dict",
+      "what":"the objects are turned back into plain values",
+      "sets":{ "price":{"t":"str","v":"\"250.00\"","was":"Decimal"} },
+      "note":"Second type change on the same value. A Decimal computed in Python leaves as a string, because JSON has no decimal type." },
+
+    { "by":"code", "zone":"wire", "obs":true,
+      "fn":"HttpResponse", "ret":"→ 201 Created",
+      "what":"the response goes back out",
+      "sets":{ "status":{"t":"int","v":"201"}, "response":{"t":"str","v":"{\"id\":7,\"price\":\"250.00\",…}"} },
+      "note":"send_response. The last moment Django sees. Whatever the browser does next happens without it." },
+
+    { "by":"code", "zone":"browser", "obs":false, "hop":true,
+      "fn":"res.json()", "ret":"→ an object",
+      "what":"the browser parses the reply",
+      "sets":{ "response":{"t":"object","v":"{id:7, price:\"250.00\", …}","was":"str"} },
+      "note":"After the response was sent, so no server probe can ever witness this. It is one of the three reasons the browser probe exists." },
+
+    { "by":"code", "zone":"browser", "obs":false,
+      "fn":"renderCart()", "ret":"→ updates the DOM",
+      "what":"the cart total is written to the page",
+      "sets":{ "total":{"t":"str","v":"\"NT$ 500\""} },
+      "note":"price is still a string here. It was a string in the browser, a Decimal in Python, and a string again on the way back — and it never once became a number in the browser." },
+
+    { "by":"user", "zone":"browser", "obs":false,
+      "what":"You see the total change", "ret":"NT$ 500",
+      "note":"One press, twenty-one steps, two database queries and four type changes later. That is the journey this tool exists to make visible." }
+  ]
+}
+</script>
+</div>
+
+<div class="gap">
+  <h3>What the spine shows that the stage list does not</h3>
+  <ul>
+    <li><strong>Django holds the data for more than half the journey, and never sees the ends.</strong>
+      The band reads Browser · wire · Django · Database · Django · Database · Django · wire ·
+      Browser. Two of the four type changes happen in the browser columns, where no probe
+      runs yet.</li>
+    <li><strong><code>price</code> is hatched for sixteen events, then appears twice.</strong>
+      It is never sent, born as a <code>Decimal</code> in <code>create()</code>, and leaves as
+      a <code>str</code>. Nothing in the source code says either.</li>
+    <li><strong>Five of twenty-two events are a person.</strong> Everything else is code
+      reacting to one button press.</li>
+  </ul>
+</div>
+
+<h3 style="text-transform:none;font-family:var(--mono);font-size:1rem;color:var(--ink);letter-spacing:0">Where the pieces sit</h3>
 
 <pre class="spine">  YOUR BROWSER                            YOUR DJANGO APP
 ┌──────────────────────────┐            ┌──────────────────────────┐
@@ -495,10 +660,11 @@ Framework #2 is a new adapter, not a new tool. Get the schema right in Phase 1 a
 is easy; get it wrong and Phase 6 is a rewrite.</p>
 
 <p style="font-size:0.82rem"><strong>Why the browser reports separately:</strong> Django only
-ever sees the middle of the story. The <code>"2"</code> → <code>2</code> hop happened before
-the request left; <code>res.json()</code> happens after the response was sent; a client-only
-interaction produces no request at all. None of those can ride on the response, so the probe
-posts its own half and the server joins the two by trace id.</p>
+ever sees the middle of the story — the Django and Database columns above. The
+<code>"2"</code> → <code>2</code> hop happened before the request left;
+<code>res.json()</code> happens after the response was sent; a client-only interaction
+produces no request at all. None of those can ride on the response, so the probe posts its
+own half and the server joins the two by trace id.</p>
 
 <h2>4 · Where everything hangs</h2>
 
@@ -641,5 +807,6 @@ docs and searching for docs that do not exist.</p>
 
 </div>
 <script src="assets/timeline.js"></script>
+<script src="assets/flow.js"></script>
 </body>
 </html>

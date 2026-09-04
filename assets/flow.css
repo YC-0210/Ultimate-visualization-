@@ -1,0 +1,161 @@
+/* Flow grid. Pairs with assets/flow.js.
+   Link alongside lesson.css; fallbacks are restated so it also works on a
+   page that links it alone. */
+
+.fl {
+  --fl-user: #047857;      --fl-user-bg: #d1fae5;
+  --fl-hop: #b45309;       --fl-hop-bg: #fef3c7;
+  --fl-browser: #0369a1;   --fl-browser-bg: #e0f2fe;
+  --fl-wire: #57534e;      --fl-wire-bg: #eae7df;
+  --fl-django: #9f1239;    --fl-django-bg: #fff1f2;
+  --fl-db: #6d28d9;        --fl-db-bg: #ede9fe;
+  font-family: var(--sans, "Avenir Next", "Segoe UI", Helvetica, sans-serif);
+  margin: 1.2rem 0 1.6rem;
+  outline: none;
+}
+.fl:focus-visible { box-shadow: 0 0 0 2px var(--accent, #9f1239); border-radius: 4px; }
+
+/* the person — which page, which button. Never leaves the screen. */
+.fl-scenario {
+  display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap;
+  background: var(--fl-user-bg); border: 1px solid #a7f3d0; border-radius: 4px;
+  padding: .5rem .75rem; margin-bottom: .8rem; font-size: .78rem;
+}
+.fl-tag {
+  font-size: .55rem; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--fl-user); font-weight: 700; white-space: nowrap;
+}
+.fl-scenario code {
+  font-family: var(--code, ui-monospace, Menlo, monospace);
+  font-size: .74rem; background: #fff; padding: .06rem .3rem; border-radius: 2px;
+}
+
+.fl-scrub { display: flex; align-items: center; gap: .6rem; margin-bottom: .55rem; }
+.fl-step {
+  border: 1px solid var(--rule, #d6d3cd); background: var(--paper, #fbf9f4);
+  color: var(--ink, #1c1917); border-radius: 4px; padding: .15rem .5rem;
+  cursor: pointer; font-size: .78rem; line-height: 1.4;
+}
+.fl-step:disabled { opacity: .3; cursor: default; }
+.fl-slider { flex: 1; accent-color: var(--accent, #9f1239); }
+.fl-readout {
+  font-size: .64rem; color: var(--muted, #57534e);
+  white-space: nowrap; text-align: right; min-width: 9.5rem;
+}
+
+/* what just happened, and who caused it */
+.fl-trigger {
+  display: flex; align-items: baseline; gap: .55rem; flex-wrap: wrap;
+  margin-bottom: .7rem; font-size: .82rem; min-height: 1.5rem;
+}
+.fl-by {
+  font-size: .55rem; letter-spacing: .1em; text-transform: uppercase;
+  padding: .1rem .38rem; border-radius: 2px; font-weight: 700; white-space: nowrap;
+}
+.fl-by.user { background: var(--fl-user-bg); color: var(--fl-user); }
+.fl-by.code { background: #eae7df; color: var(--muted, #57534e); }
+.fl-what { font-weight: 600; }
+.fl-fn { font-family: var(--code, ui-monospace, Menlo, monospace); font-size: .74rem; color: var(--accent, #9f1239); }
+.fl-ret { font-family: var(--code, ui-monospace, Menlo, monospace); font-size: .7rem; color: var(--muted, #57534e); }
+
+.fl-badge { font-size: .54rem; letter-spacing: .09em; text-transform: uppercase; padding: .1rem .34rem; border-radius: 2px; }
+.fl-badge.fut { background: transparent; color: var(--muted, #57534e); border: 1px dashed var(--rule, #d6d3cd); }
+.fl-badge.hop { background: var(--fl-hop-bg); color: var(--fl-hop); }
+
+/* ---- the grid ---- */
+
+/* A host stylesheet styles bare `table`, `th` and `td` — lesson.css makes
+   every th an uppercase sans label and every table full-width. This grid is
+   a component, not prose, so it restates everything a host might set rather
+   than discovering each bleed one screenshot at a time. */
+.fl-grid table {
+  width: auto; margin: 0;
+  border-collapse: separate; border-spacing: 0;
+  font-size: .64rem;
+}
+.fl-grid th, .fl-grid td {
+  font-family: var(--sans, "Avenir Next", "Segoe UI", Helvetica, sans-serif);
+  font-size: .64rem; font-weight: 400;
+  text-transform: none; letter-spacing: 0;
+  text-align: center; vertical-align: middle;
+  color: var(--ink, #1c1917);
+  border: 0;
+  border-right: 1px solid var(--rule, #d6d3cd);
+  border-bottom: 1px solid var(--rule, #d6d3cd);
+  padding: .15rem .28rem; white-space: nowrap;
+}
+
+.fl-grid { overflow: auto; max-height: 60vh; border: 1px solid var(--rule, #d6d3cd); border-radius: 3px; }
+.fl-grid th.fl-name {
+  text-align: left; font-family: var(--code, ui-monospace, Menlo, monospace);
+  font-size: .62rem; font-weight: 400; text-transform: none;
+  position: sticky; left: 0; z-index: 3;
+  background: var(--paper, #fbf9f4); min-width: 7.2rem; color: var(--ink, #1c1917);
+}
+.fl-grid thead th {
+  position: sticky; z-index: 5; background: var(--paper, #fbf9f4);
+  font-weight: 500; font-size: .53rem; color: var(--muted, #57534e);
+}
+.fl-grid thead th.fl-name { z-index: 6; }
+/* the zone band opts back in to the small-caps label treatment on purpose */
+.fl-grid thead tr.fl-zonerow th { top: 0; font-size: .53rem; letter-spacing: .08em; text-transform: uppercase; }
+.fl-grid thead tr.fl-numrow th { top: 1.4rem; }
+
+/* The zone band. Muted until the current event falls inside a segment —
+   this is the only place the current zone is named, so a second zone strip
+   elsewhere on the page would say it twice and imply a fixed left-to-right
+   ordering the journey does not follow. */
+.fl-zb {
+  background: #f0ede6 !important; color: #a8a29e !important;
+  border-bottom: 2px solid transparent !important;
+}
+.fl-zb.on { font-weight: 700; }
+.fl-zb.on[data-z="browser"] { background: var(--fl-browser-bg) !important; color: var(--fl-browser) !important; border-bottom-color: var(--fl-browser) !important; }
+.fl-zb.on[data-z="wire"]    { background: var(--fl-wire-bg) !important;    color: var(--fl-wire) !important;    border-bottom-color: var(--fl-wire) !important; }
+.fl-zb.on[data-z="django"]  { background: var(--fl-django-bg) !important;  color: var(--fl-django) !important;  border-bottom-color: var(--fl-django) !important; }
+.fl-zb.on[data-z="db"]      { background: var(--fl-db-bg) !important;      color: var(--fl-db) !important;      border-bottom-color: var(--fl-db) !important; }
+
+.fl-grid td.fl-z-browser { background: rgba(224,242,254,.35); }
+.fl-grid td.fl-z-wire    { background: rgba(234,231,223,.40); }
+.fl-grid td.fl-z-django  { background: rgba(255,241,242,.45); }
+.fl-grid td.fl-z-db      { background: rgba(237,233,254,.40); }
+
+.fl-grid td.fl-after { opacity: .18; }
+/* hatched = this value does not exist yet */
+.fl-grid td.fl-void { background: repeating-linear-gradient(45deg, transparent, transparent 3px, #e8e5de 3px, #e8e5de 4px); }
+.fl-grid td.fl-hold { color: #b9b4ab; }
+.fl-grid td.fl-born   { background: var(--ok-bg, #dcfce7) !important; color: var(--ok, #166534); font-weight: 700; }
+.fl-grid td.fl-change { background: var(--fl-hop-bg) !important; color: var(--fl-hop); font-weight: 700; }
+.fl-grid td.fl-now, .fl-grid th.fl-now {
+  box-shadow: inset 2px 0 0 var(--accent, #9f1239), inset -2px 0 0 var(--accent, #9f1239);
+}
+.fl-cv { font-family: var(--code, ui-monospace, Menlo, monospace); font-size: .6rem; }
+.fl-userflag { color: var(--fl-user); font-weight: 700; }
+
+/* ---- the current column, spelled out ---- */
+.fl-values {
+  margin-top: .8rem; border: 1px solid var(--rule, #d6d3cd); border-radius: 3px;
+  padding: .55rem .7rem; background: var(--bg, #f4f1ea);
+}
+.fl-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: .4rem; padding: .12rem 0; }
+.fl-row.now { background: var(--fl-hop-bg); margin: 0 -.4rem; padding: .12rem .4rem; border-radius: 2px; }
+.fl-k { font-family: var(--code, ui-monospace, Menlo, monospace); font-size: .7rem; color: var(--muted, #57534e); min-width: 6.5rem; }
+.fl-ty {
+  font-family: var(--code, ui-monospace, Menlo, monospace); font-size: .6rem;
+  padding: .04rem .3rem; border-radius: 2px;
+  background: var(--accent-soft, #fff1f2); color: var(--accent, #9f1239); white-space: nowrap;
+}
+.fl-ty.was { background: transparent; color: var(--muted, #57534e); border: 1px solid var(--rule, #d6d3cd); }
+.fl-arr { color: var(--muted, #57534e); }
+.fl-lit { font-family: var(--code, ui-monospace, Menlo, monospace); font-size: .7rem; word-break: break-word; }
+.fl-dim { color: var(--muted, #57534e); font-style: italic; font-size: .74rem; }
+
+.fl-note { font-size: .76rem; line-height: 1.6; color: var(--muted, #57534e); margin: .8rem 0 0; min-height: 3.2rem; }
+.fl-error { color: var(--bad, #9f1239); font-size: .8rem; }
+
+@media print {
+  /* Paper has no slider. Show the last state and drop the controls. */
+  .fl-scrub { display: none; }
+  .fl-grid { max-height: none; overflow: visible; }
+  .fl-grid td.fl-after { opacity: 1; }
+}
