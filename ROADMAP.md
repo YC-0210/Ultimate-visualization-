@@ -10,7 +10,7 @@
 ```
 Current phase:  Phase 1 done — capture is safe (streaming body, guards, capture_errors)
 Next action:    P2.1 (serve the panel at /__supervisualizer__/, DEBUG-only)
-Last updated:   2026-09-02
+Last updated:   2026-09-04
 ```
 
 <!-- AGENT: keep the three lines above accurate. Update them at the end of every
@@ -20,7 +20,7 @@ Last updated:   2026-09-02
 
 ### How to use this file
 
-**For the Cursor agent.** At the start of a session, read the Status block, find the first unchecked task, and tell me where we are and what is next. Do not skip ahead — phases build on each other. When I finish something, update the checkbox *and* the Status block. If I ask for something that belongs to a later phase, say so and ask whether to reorder deliberately.
+**For the Cursor agent.** At the start of a session, read the Status block, find the first unchecked task, and tell me where we are and what is next. Read the Daylog too — `python3 bin/pull-daylog.py`, then the days since we last worked. It is where I say what I am stuck on, and it is the only record of that; this repo keeps none (D9 in [`DECISIONS.md`](DECISIONS.md)). Do not skip ahead — phases build on each other. When I finish something, update the checkbox *and* the Status block. If I ask for something that belongs to a later phase, say so and ask whether to reorder deliberately.
 
 **For me.** Every phase ends in something I can *see* working. If a phase is dragging, the phase is too big — split it. Tasks marked 🔴 are the risky ones; do them early in their phase so failure is cheap.
 
@@ -125,7 +125,7 @@ Nothing is built yet. Close the questions that change everything downstream.
     - **Why this is worth the effort at all:** LSP turned editor support from M×N into M+N — 10 editors × 20 languages went from 200 hand-built integrations to 30. Same arithmetic here. Without the schema, every panel feature must be built per framework; with it, the panel is written once and each framework costs one adapter. That is what makes "works for all backends" achievable by one person.
 - [x] **P0.5** Scaffold an installable Python package (`pyproject.toml`, `pip install -e .`).
 - [x] **P0.6** Add the middleware to `restautant-order-system`'s settings and have it print one line per request.
-- [x] **P0.7** ~~Write `DECISIONS.md`~~ → [`DECISIONS.md`](DECISIONS.md), D1–D8. Keep adding an entry whenever a ❓ closes.
+- [x] **P0.7** ~~Write `DECISIONS.md`~~ → [`DECISIONS.md`](DECISIONS.md), D1–D9. Keep adding an entry whenever a ❓ closes — and whenever something expensive to reverse is decided outside the task list, as D9 was.
 
 **Done when:** `python manage.py runserver` on your restaurant project prints a line from your own middleware on every request.
 
