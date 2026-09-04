@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PROTOTYPE — spine flow, three variants</title>
+<!--
+  THROWAWAY PROTOTYPE. Not part of the tool, not part of the finished
+  prototype/ Lab. Delete once a variant wins.
+
+  Question it answers:
+    How should the spine show state flowing — one event at a time, with the
+    data visible and the sender/receiver visible — under a slider?
+
+  Three variants of the same event stream, switchable via ?variant=A|B|C,
+  the floating bar at the bottom, or the ← → arrow keys.
+
+    A · Sequence lanes   — who hands what to whom. Actors are lanes, time
+                           runs down, each event is an arrow carrying data.
+    B · Value tracks     — every named value's whole life, all at once.
+                           Rows are values, columns are events.
+    C · Packet in place  — one moving object you follow. A spatial map with
+                           a single Packet, its full contents beside it.
+
+  One event = one thing happening at one moment. That is the granularity
+  under the slider in all three.
+
+  Honesty rule carried over from D2: events the real Trace has never
+  observed (the whole browser half, Phase 4) are drawn dashed and marked
+  "not captured". They are shown because the flow is the subject; they are
+  never drawn as though something measured them.
+
+  Data: the real POST /api/cart/item/ trace recorded at P1.9, plus the
+  browser events Phase 4 will capture.
+-->
+<style>
+  :root {
+    --bg: #f4f1ea; --paper: #fbf9f4; --ink: #1c1917; --muted: #57534e;
+    --rule: #d6d3cd; --accent: #9f1239; --accent-soft: #fff1f2;
+    --ok: #166534; --ok-bg: #dcfce7; --ghost: #a8a29e;
+    --hop: #b45309; --hop-bg: #fef3c7;
+    --mono: "Iowan Old Style", Palatino, Georgia, serif;
+    --sans: "Avenir Next", "Segoe UI", Helvetica, sans-serif;
+    --code: "IBM Plex Mono", "Source Code Pro", ui-monospace, Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--sans); font-size: 14px; line-height: 1.5;
+    padding-bottom: 5.5rem;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 1.6rem 1.4rem 0; }
+
+  .head { border-bottom: 1px solid var(--rule); padding-bottom: .9rem; margin-bottom: 1.1rem; }
+  .kicker { font-size: .62rem; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); margin: 0 0 .3rem; }
+  h1 { font-family: var(--mono); font-size: 1.5rem; font-weight: 600; margin: 0 0 .25rem; letter-spacing: -.01em; }
+  .sub { color: var(--muted); font-size: .82rem; margin: 0; max-width: 62ch; }
+  .vname { color: var(--accent); font-weight: 600; }
+
+  /* shared scrubber */
+  .scrub { display: flex; align-items: center; gap: .7rem; margin: 1rem 0 .5rem; }
+  .scrub button {
+    border: 1px solid var(--rule); background: var(--paper); color: var(--ink);
+    border-radius: 4px; padding: .2rem .55rem; cursor: pointer; font-size: .8rem;
+  }
+  .scrub button:disabled { opacity: .3; cursor: default; }
+  .scrub input[type=range] { flex: 1; accent-color: var(--accent); }
+  .readout { font-size: .68rem; letter-spacing: .03em; color: var(--muted); white-space: nowrap; min-width: 15rem; text-align: right; }
+  .legend { display: flex; gap: 1.1rem; font-size: .64rem; color: var(--muted); margin-bottom: 1rem; flex-wrap: wrap; }
+  .legend i { display: inline-block; width: .6rem; height: .6rem; border-radius: 50%; margin-right: .3rem; vertical-align: -1px; }
+  .lg-obs { background: var(--ok); }
+  .lg-fut { background: transparent; border: 1.5px dashed var(--ghost); }
+  .lg-hop { background: var(--hop); }
+
+  /* type chips, shared */
+  .ty { font-family: var(--code); font-size: .62rem; padding: .04rem .3rem; border-radius: 2px;
+        background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
+  .ty.was { background: transparent; color: var(--muted); border: 1px solid var(--rule); }
+  .lit { font-family: var(--code); font-size: .72rem; }
+  .arrow { color: var(--muted); }
+
+  .stage { background: var(--paper); border: 1px solid var(--rule); border-radius: 4px; padding: 1rem; }
+
+  /* ---------- A · sequence lanes ---------- */
+  /* Scrolls itself, so the sticky lane heads stay put when the now-row is
+     brought into view. Scrolling the window instead loses the actor names,
+     which are the whole reason this variant exists. */
+  .lanes { position: relative; overflow: auto; max-height: 62vh; }
+  .lane-heads { display: grid; position: sticky; top: 0; background: var(--paper); z-index: 2; padding-bottom: .35rem; border-bottom: 1px solid var(--rule); }
+  .lane-head { font-size: .6rem; letter-spacing: .04em; text-align: center; color: var(--muted); padding: 0 .2rem; }
+  .lane-head.side-client { color: #0369a1; }
+  .lane-head.side-server { color: var(--accent); }
+  .lane-head.side-db { color: #6d28d9; }
+  .seq { position: relative; }
+  .seq-row { position: relative; height: 46px; }
+  .seq-row.dim { opacity: .22; }
+  .seq-row.now { background: var(--accent-soft); border-radius: 3px; }
+  .seq-arrow { position: absolute; top: 30px; height: 2px; background: var(--ok); }
+  .seq-arrow.fut { background: transparent; border-top: 2px dashed var(--ghost); }
+  .seq-arrow.hop { background: var(--hop); }
+  .seq-arrow::after {
+    content: ""; position: absolute; right: -1px; top: -4px;
+    border: 5px solid transparent; border-left-color: currentColor;
+  }
+  .seq-arrow.rtl::after { right: auto; left: -1px; border-left-color: transparent; border-right-color: currentColor; }
+  /* Label sits on its own line above the arrow so it never crosses one, and
+     carries the payload — "what is being sent" is the point of the arrow. */
+  .seq-label {
+    position: absolute; top: 4px; font-size: .62rem; white-space: nowrap;
+    color: var(--ink); display: flex; align-items: baseline; gap: .35rem;
+  }
+  .seq-row.dim .seq-label { color: var(--muted); }
+  .seq-self { position: absolute; top: 23px; width: 30px; height: 14px; border: 2px solid var(--ok); border-left: 0; border-radius: 0 8px 8px 0; }
+  .seq-self.fut { border-color: var(--ghost); border-style: dashed; border-left: 0; }
+  .seq-self.hop { border-color: var(--hop); }
+  .nowline { position: absolute; left: 0; right: 0; height: 0; border-top: 1px solid var(--accent); z-index: 1; }
+  .nowline::before { content: "now"; position: absolute; left: -2px; top: -1.05rem; font-size: .55rem; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+
+  /* ---------- B · value tracks ---------- */
+  .tracks { overflow-x: auto; }
+  .tracks table { border-collapse: collapse; font-size: .68rem; }
+  .tracks th, .tracks td { border: 1px solid var(--rule); padding: .18rem .3rem; text-align: center; white-space: nowrap; }
+  .tracks th.name { text-align: left; font-family: var(--code); font-size: .66rem; position: sticky; left: 0; background: var(--paper); z-index: 1; min-width: 8.5rem; }
+  .tracks thead th { font-size: .55rem; font-weight: 500; color: var(--muted); padding: .3rem .2rem; }
+  .tracks thead th.nowcol { background: var(--accent-soft); color: var(--accent); }
+  .tracks td.nowcol { background: var(--accent-soft); }
+  .tracks td.after { opacity: .2; }
+  .tracks td.void { background: repeating-linear-gradient(45deg, transparent, transparent 3px, #ece9e2 3px, #ece9e2 4px); }
+  .tracks td.hold { color: var(--muted); }
+  .tracks td.change { background: var(--hop-bg); color: var(--hop); font-weight: 600; }
+  .tracks td.born { background: var(--ok-bg); color: var(--ok); font-weight: 600; }
+  .tracks td.unobs { border-style: dashed; }
+  .tracks .cellval { font-family: var(--code); font-size: .64rem; }
+
+  /* ---------- C · packet in place ---------- */
+  .cmap { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: .7rem; margin-bottom: 1rem; }
+  .zone { border: 1px solid var(--rule); border-radius: 4px; padding: .6rem; background: var(--bg); min-height: 8.5rem; position: relative; }
+  .zone.unobs { border-style: dashed; }
+  .zone-name { font-size: .58rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: .5rem; }
+  .slot { font-family: var(--code); font-size: .6rem; color: var(--muted); padding: .18rem .3rem; border-radius: 3px; margin-bottom: .18rem; }
+  .slot.visited { color: var(--ink); background: #eae7df; }
+  .slot.here { background: var(--accent); color: #fff; font-weight: 600; }
+  .packet-line { display: flex; align-items: center; gap: .5rem; font-size: .74rem; margin-bottom: .7rem; flex-wrap: wrap; }
+  .who { font-family: var(--code); font-size: .68rem; padding: .1rem .4rem; border-radius: 3px; background: #eae7df; }
+  .who.to { background: var(--accent); color: #fff; }
+  .obj { border: 1px solid var(--rule); border-radius: 4px; background: var(--bg); padding: .6rem .7rem; font-family: var(--code); font-size: .7rem; }
+  .obj .k { color: var(--muted); }
+  .obj .row { padding: .12rem 0; display: flex; gap: .5rem; flex-wrap: wrap; }
+  .obj .row.changed { background: var(--hop-bg); margin: 0 -.4rem; padding: .12rem .4rem; border-radius: 2px; }
+  .obj .row.gone { opacity: .35; text-decoration: line-through; }
+
+  .note { font-size: .74rem; color: var(--muted); margin-top: .8rem; line-height: 1.6; }
+  .badge { font-size: .55rem; letter-spacing: .09em; text-transform: uppercase; padding: .1rem .35rem; border-radius: 2px; }
+  .badge.obs { background: var(--ok-bg); color: var(--ok); }
+  .badge.fut { background: transparent; color: var(--muted); border: 1px dashed var(--rule); }
+  .badge.hop { background: var(--hop-bg); color: var(--hop); }
+
+  /* floating switcher — deliberately not part of the design under test */
+  .switcher {
+    position: fixed; bottom: 1.1rem; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: .4rem; z-index: 50;
+    background: #1c1917; color: #fafaf9; border-radius: 999px;
+    padding: .35rem .5rem; box-shadow: 0 6px 24px rgba(0,0,0,.28);
+    font-size: .74rem;
+  }
+  .switcher button {
+    background: #44403c; color: #fafaf9; border: 0; border-radius: 999px;
+    width: 1.7rem; height: 1.7rem; cursor: pointer; font-size: .8rem; line-height: 1;
+  }
+  .switcher .label { padding: 0 .6rem; white-space: nowrap; }
+  .switcher .hint { opacity: .5; font-size: .62rem; padding-right: .4rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <p class="kicker">Throwaway prototype · pick one, or steal parts</p>
+    <h1>The spine, as a flow of state</h1>
+    <p class="sub">One real <code>POST /api/cart/item/</code>, broken into single events. Variant
+      <span class="vname" id="vname">A</span>. Flip with the bar at the bottom or the
+      <strong>← →</strong> arrow keys; scrub with the slider.</p>
+  </div>
+
+  <div class="scrub">
+    <button id="prev" type="button">◀</button>
+    <input id="slider" type="range" min="0" step="1" aria-label="Scrub events">
+    <button id="next" type="button">▶</button>
+    <span class="readout" id="readout"></span>
+  </div>
+  <div class="legend">
+    <span><i class="lg-obs"></i>captured by the real Trace today</span>
+    <span><i class="lg-fut"></i>not captured yet — Phase 4, the browser half</span>
+    <span><i class="lg-hop"></i>the data changes type here</span>
+  </div>
+
+  <div id="stage" class="stage"></div>
+  <p class="note" id="note"></p>
+</div>
+
+<div class="switcher">
+  <button id="vprev" type="button" aria-label="Previous variant">◀</button>
+  <span class="label" id="vlabel">A · Sequence lanes</span>
+  <button id="vnext" type="button" aria-label="Next variant">▶</button>
+  <span class="hint">← →</span>
+</div>
+
+<script>
+/* ============================================================
+   THE EVENT STREAM — shared by all three variants.
+   One event = one thing happening at one moment.
+
+   from / to  : who acts, who receives  (the thing the current spine hides)
+   obs        : did the real Trace observe this? false = Phase 4, drawn dashed
+   hop        : did the data change type here?
+   sets/drops : how this event changes the packet, for variant C and the
+                value tracks in variant B
+   ============================================================ */
+const ACTORS = [
+  { id: "dom",   name: "DOM",         side: "client" },
+  { id: "js",    name: "JavaScript",  side: "client" },
+  { id: "net",   name: "Network",     side: "client" },
+  { id: "mw",    name: "Middleware",  side: "server" },
+  { id: "route", name: "URL router",  side: "server" },
+  { id: "view",  name: "View",        side: "server" },
+  { id: "ser",   name: "Serializer",  side: "server" },
+  { id: "orm",   name: "ORM",         side: "server" },
+  { id: "db",    name: "Database",    side: "db" },
+];
+
+const EVENTS = [
+  { from:"dom", to:"js",   obs:false, label:"read the quantity input",
+    sets:{ quantity:{t:"str", v:'"2"'} },
+    note:"The DOM has no numbers. Every value read out of a form control is a string." },
+  { from:"dom", to:"js",   obs:false, label:"read the selected product",
+    sets:{ product:{t:"str", v:'"經典原味鍋"'} } },
+  { from:"dom", to:"js",   obs:false, label:"read the selected meat",
+    sets:{ meattype:{t:"str", v:'"牛肉"'} } },
+  { from:"js",  to:"js",   obs:false, hop:true, label:"Number(quantity)",
+    sets:{ quantity:{t:"int", v:"2", was:"str"} },
+    note:"First type hop of the journey. Django receives 2 and can never know it was once \"2\" — which is exactly why the browser has to report separately." },
+  { from:"js",  to:"js",   obs:false, hop:true, label:"JSON.stringify(payload)",
+    sets:{ body:{t:"str", v:'{"product":"經典原味鍋",…}', was:"object"} },
+    note:"Three typed fields collapse into one string. Everything the wire carries is bytes." },
+  { from:"js",  to:"net",  obs:false, label:"fetch() hands it to the network" },
+  { from:"net", to:"mw",   obs:true,  label:"POST arrives · 412 bytes",
+    note:"The network boundary. Everything to the left of here is invisible to Django." },
+  { from:"mw",  to:"mw",   obs:true,  hop:true, label:"request.body.decode('utf-8')",
+    sets:{ body:{t:"str", v:'{"product":"經典原味鍋",…}', was:"bytes"} },
+    note:"receive_input. request.body is bytes; the decode is the first thing the middleware does, and the first place it can crash on a real request." },
+  { from:"mw",  to:"route",obs:true,  label:"resolver.resolve(path)" },
+  { from:"route",to:"mw",  obs:true,  label:"ResolverMatch",
+    sets:{ route:{t:"str", v:"api/cart/item/"}, view:{t:"str", v:"cartitemList"} },
+    note:"route. This is the moment resolver_match exists — not before. Reading it after get_response returns is the smallest change to the middleware." },
+  { from:"mw",  to:"mw",   obs:true,  label:"sessionid cookie → session dict",
+    sets:{ session:{t:"dict", v:'{"table_number": …}'} },
+    note:"attach_context. The cookie carries only a lookup number; the dictionary lives on the server." },
+  { from:"mw",  to:"mw",   obs:true,  label:"session → request.user",
+    sets:{ user:{t:"AnonymousUser", v:"is_authenticated=False"} } },
+  { from:"mw",  to:"view", obs:true,  label:"call the view" },
+  { from:"view",to:"ser",  obs:true,  label:"cartitemSerializer(data=…)" },
+  { from:"ser", to:"orm",  obs:true,  label:"SlugRelatedField lookup" },
+  { from:"orm", to:"db",   obs:true,  label:"SELECT … WHERE product='經典原味鍋'" },
+  { from:"db",  to:"orm",  obs:true,  label:"1 row" },
+  { from:"orm", to:"ser",  obs:true,  hop:true, label:"row → menuitem instance",
+    sets:{ product:{t:"menuitem instance", v:"pk=1", was:"str"} },
+    note:"The single most valuable moment the tool shows. A string the browser typed is now a database row, and nothing in the source says so." },
+  { from:"orm", to:"ser",  obs:true,  hop:true, label:"row → meattype instance",
+    sets:{ meattype:{t:"meattype instance", v:"pk=2", was:"str"} } },
+  { from:"ser", to:"view", obs:true,  label:"validated_data",
+    note:"validate_input. Untrusted input is now typed objects — the serializer's whole job, in one handoff." },
+  { from:"view",to:"view", obs:true,  hop:true, label:"create() computes price",
+    sets:{ price:{t:"Decimal", v:'Decimal("250.00")', was:"—"} },
+    note:"price was never posted. It is born here, server-side, and the browser has no idea it exists yet." },
+  { from:"view",to:"db",   obs:true,  label:"INSERT INTO cartitem" },
+  { from:"view",to:"ser",  obs:true,  hop:true, label:"serialize out",
+    sets:{ price:{t:"str", v:'"250.00"', was:"Decimal"} },
+    note:"Second type hop on the same value. A Decimal computed in Python leaves as a string, because JSON has no decimal." },
+  { from:"ser", to:"mw",   obs:true,  label:"HttpResponse 201",
+    sets:{ status:{t:"int", v:"201"} } },
+  { from:"mw",  to:"net",  obs:true,  label:"response bytes leave",
+    note:"send_response. The last moment Django sees. Everything after this happens without it." },
+  { from:"net", to:"js",   obs:false, hop:true, label:"res.json()",
+    sets:{ body:{t:"object", v:"{id:7, price:\"250.00\", …}", was:"str"} },
+    note:"After the response was sent, so no server probe can ever witness it." },
+  { from:"js",  to:"dom",  obs:false, label:"write the cart total",
+    sets:{ total:{t:"str", v:'"NT$ 500"'} },
+    note:"End of the journey. price is still a string here — it never became a number again." },
+];
+
+/* Replay the packet up to and including event i. */
+function stateAt(i) {
+  const s = {};
+  for (let n = 0; n <= i; n++) {
+    const e = EVENTS[n];
+    if (e.sets) for (const [k, v] of Object.entries(e.sets)) s[k] = { ...v, at: n };
+  }
+  return s;
+}
+const ALL_KEYS = (() => {
+  const seen = [];
+  EVENTS.forEach(e => e.sets && Object.keys(e.sets).forEach(k => seen.includes(k) || seen.push(k)));
+  return seen;
+})();
+const actor = id => ACTORS.find(a => a.id === id);
+const idx = id => ACTORS.findIndex(a => a.id === id);
+
+/* ============================================================
+   VARIANT A · SEQUENCE LANES
+   Actors are vertical lanes; time runs downward; every event is an
+   arrow from one lane to another. The slider drags a "now" rule down
+   the page. Answers "who is receiving" first and loudest.
+   ============================================================ */
+function renderA(stage, i) {
+  const W = 100 / ACTORS.length;
+  stage.innerHTML =
+    '<div class="lanes">' +
+      '<div class="lane-heads" style="grid-template-columns:repeat(' + ACTORS.length + ',1fr)">' +
+        ACTORS.map(a => `<div class="lane-head side-${a.side}">${a.name}</div>`).join('') +
+      '</div><div class="seq" id="seq"></div></div>';
+  const seq = stage.querySelector('#seq');
+
+  /* The payload chip. An arrow with no data on it only says that something
+     moved, which is what the old spine already did. */
+  function payload(e) {
+    if (!e.sets) return '';
+    return Object.entries(e.sets).map(([k, s]) =>
+      `<span class="ty${s.was ? ' was' : ''}">${s.was || s.t}</span>` +
+      (s.was ? `<span class="arrow">→</span><span class="ty">${s.t}</span>` : '') +
+      `<span class="lit">${k}=${s.v}</span>`).join(' ');
+  }
+
+  let nowRow = null;
+  EVENTS.forEach((e, n) => {
+    const row = document.createElement('div');
+    row.className = 'seq-row' + (n > i ? ' dim' : '') + (n === i ? ' now' : '');
+    if (n === i) nowRow = row;
+    const a = idx(e.from), b = idx(e.to);
+    const cls = (!e.obs ? ' fut' : '') + (e.hop ? ' hop' : '');
+    const colour = !e.obs ? 'var(--ghost)' : e.hop ? 'var(--hop)' : 'var(--ok)';
+    const label = `<strong>${e.label}</strong>${payload(e)}`;
+
+    if (a === b) {
+      row.innerHTML =
+        `<div class="seq-self${cls}" style="left:${a*W + W/2}%;color:${colour}"></div>` +
+        `<div class="seq-label" style="left:${a*W + W/2}%">${label}</div>`;
+    } else {
+      const lo = Math.min(a, b), hi = Math.max(a, b);
+      const left = lo * W + W / 2, width = (hi - lo) * W;
+      row.innerHTML =
+        `<div class="seq-arrow${cls}${b < a ? ' rtl' : ''}" ` +
+          `style="left:${left}%;width:${width}%;color:${colour}"></div>` +
+        `<div class="seq-label" style="left:${left}%">${label}</div>`;
+    }
+    seq.appendChild(row);
+  });
+
+  const now = document.createElement('div');
+  now.className = 'nowline';
+  now.style.top = ((i + 1) * 46) + 'px';
+  seq.appendChild(now);
+  if (nowRow) nowRow.scrollIntoView({ block: 'center', inline: 'nearest' });
+}
+
+/* ============================================================
+   VARIANT B · VALUE TRACKS
+   Rows are named values, columns are events. Every value's entire life
+   is on screen at once; the slider only dims what has not happened.
+   This is the "see the state" reading — nothing is behind a click.
+   ============================================================ */
+function renderB(stage, i) {
+  let html = '<div class="tracks"><table><thead><tr><th class="name">value</th>';
+  EVENTS.forEach((e, n) => {
+    html += `<th class="${n === i ? 'nowcol' : ''}" title="${e.label.replace(/"/g,'&quot;')}">${n + 1}</th>`;
+  });
+  html += '</tr></thead><tbody>';
+
+  ALL_KEYS.forEach(key => {
+    html += `<tr><th class="name">${key}</th>`;
+    let cur = null;
+    EVENTS.forEach((e, n) => {
+      const set = e.sets && e.sets[key];
+      if (set) cur = set;
+      const cls = [];
+      if (n === i) cls.push('nowcol');
+      if (n > i) cls.push('after');
+      if (!e.obs) cls.push('unobs');
+      let inner = '';
+      if (!cur) { cls.push('void'); }
+      else if (set && set.was) { cls.push('change'); inner = `<span class="cellval">${set.t}</span>`; }
+      else if (set) { cls.push('born'); inner = `<span class="cellval">${set.t}</span>`; }
+      else { cls.push('hold'); inner = '<span class="cellval">·</span>'; }
+      html += `<td class="${cls.join(' ')}">${inner}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+
+  // the current column, spelled out
+  const s = stateAt(i);
+  html += '<div class="obj" style="margin-top:1rem">';
+  if (!Object.keys(s).length) html += '<span class="k">nothing exists yet</span>';
+  ALL_KEYS.forEach(k => {
+    if (!s[k]) return;
+    const born = s[k].at === i;
+    html += `<div class="row${born ? ' changed' : ''}"><span class="k">${k}</span>` +
+      (s[k].was ? `<span class="ty was">${s[k].was}</span><span class="arrow">→</span>` : '') +
+      `<span class="ty">${s[k].t}</span><span class="lit">${s[k].v}</span></div>`;
+  });
+  html += '</div>';
+  stage.innerHTML = html;
+
+  const col = stage.querySelector('th.nowcol');
+  if (col) col.scrollIntoView({ block: 'nearest', inline: 'center' });
+}
+
+/* ============================================================
+   VARIANT C · PACKET IN PLACE
+   One Packet you follow. A spatial map of where it can be, the trail of
+   where it has been, and its full contents beside it with the field that
+   just changed lit up. Identification with one moving object.
+   ============================================================ */
+function renderC(stage, i) {
+  const e = EVENTS[i];
+  const s = stateAt(i);
+  const visited = new Set(EVENTS.slice(0, i + 1).flatMap(x => [x.from, x.to]));
+  const zones = [
+    { name: "Browser", ids: ["dom", "js"], unobs: true },
+    { name: "The wire", ids: ["net"], unobs: true },
+    { name: "Django", ids: ["mw", "route", "view", "ser", "orm"] },
+    { name: "Database", ids: ["db"] },
+  ];
+
+  let html = '<div class="packet-line">' +
+    `<span class="who">${actor(e.from).name}</span>` +
+    `<span class="arrow">— ${e.label} →</span>` +
+    `<span class="who to">${actor(e.to).name}</span>` +
+    `<span class="badge ${!e.obs ? 'fut' : 'obs'}">${!e.obs ? 'not captured' : 'captured'}</span>` +
+    (e.hop ? '<span class="badge hop">type change</span>' : '') +
+    '</div><div class="cmap">';
+
+  zones.forEach(z => {
+    html += `<div class="zone${z.unobs ? ' unobs' : ''}"><div class="zone-name">${z.name}</div>`;
+    z.ids.forEach(id => {
+      const here = id === e.to || (e.from === e.to && id === e.from);
+      html += `<div class="slot${here ? ' here' : visited.has(id) ? ' visited' : ''}">${actor(id).name}</div>`;
+    });
+    html += '</div>';
+  });
+  html += '</div><div class="obj">';
+  if (!Object.keys(s).length) html += '<span class="k">the packet is empty — nothing has been read yet</span>';
+  ALL_KEYS.forEach(k => {
+    if (!s[k]) return;
+    const justChanged = s[k].at === i;
+    html += `<div class="row${justChanged ? ' changed' : ''}"><span class="k">${k}</span>` +
+      (s[k].was ? `<span class="ty was">${s[k].was}</span><span class="arrow">→</span>` : '') +
+      `<span class="ty">${s[k].t}</span><span class="lit">${s[k].v}</span></div>`;
+  });
+  html += '</div>';
+  stage.innerHTML = html;
+}
+
+/* ---------------- wiring ---------------- */
+const VARIANTS = {
+  A: { name: "Sequence lanes", render: renderA },
+  B: { name: "Value tracks",   render: renderB },
+  C: { name: "Packet in place",render: renderC },
+};
+const KEYS = Object.keys(VARIANTS);
+
+const stage = document.getElementById('stage');
+const slider = document.getElementById('slider');
+const readout = document.getElementById('readout');
+const noteEl = document.getElementById('note');
+
+slider.max = String(EVENTS.length - 1);
+let i = 0;
+let v = (new URLSearchParams(location.search).get('variant') || 'A').toUpperCase();
+if (!VARIANTS[v]) v = 'A';
+
+function draw() {
+  VARIANTS[v].render(stage, i);
+  const e = EVENTS[i];
+  slider.value = String(i);
+  readout.textContent = `event ${i + 1} of ${EVENTS.length} · ${actor(e.from).name} → ${actor(e.to).name}`;
+  noteEl.innerHTML = e.note ? `<strong>${e.label}.</strong> ${e.note}` : '';
+  document.getElementById('prev').disabled = i === 0;
+  document.getElementById('next').disabled = i === EVENTS.length - 1;
+  document.getElementById('vname').textContent = v;
+  document.getElementById('vlabel').textContent = `${v} · ${VARIANTS[v].name}`;
+}
+function go(n) { i = Math.max(0, Math.min(EVENTS.length - 1, n)); draw(); }
+function setVariant(nv) {
+  v = nv;
+  const u = new URL(location); u.searchParams.set('variant', v);
+  history.replaceState(null, '', u);
+  draw();
+}
+function cycle(d) { setVariant(KEYS[(KEYS.indexOf(v) + d + KEYS.length) % KEYS.length]); }
+
+slider.addEventListener('input', () => go(Number(slider.value)));
+document.getElementById('prev').addEventListener('click', () => go(i - 1));
+document.getElementById('next').addEventListener('click', () => go(i + 1));
+document.getElementById('vprev').addEventListener('click', () => cycle(-1));
+document.getElementById('vnext').addEventListener('click', () => cycle(1));
+
+/* ← → cycle variants; the slider owns stepping. Never steal the keys from a field. */
+addEventListener('keydown', ev => {
+  const t = ev.target;
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+  if (ev.key === 'ArrowLeft')  { cycle(-1); ev.preventDefault(); }
+  if (ev.key === 'ArrowRight') { cycle(1);  ev.preventDefault(); }
+  if (ev.key === 'ArrowDown')  { go(i + 1); ev.preventDefault(); }
+  if (ev.key === 'ArrowUp')    { go(i - 1); ev.preventDefault(); }
+});
+
+draw();
+</script>
+</body>
+</html>
