@@ -7,16 +7,40 @@ They are the teaching equivalent of ADRs: they capture non-obvious lessons, key 
 ## Template
 
 ```md
+Altitude: structural | mechanical
+
 # {Short title of what was learned or established}
 
 {1-3 sentences: what was learned (or what prior knowledge was established), and why it matters for future sessions.}
 ```
 
-That is the whole format. A learning record can be a single paragraph. The value is recording _that_ this is now known and _why_ it changes what to teach next, not in filling out sections.
+That is the whole format. A learning record can be a single paragraph plus its altitude. The value is recording _that_ this is now known, at _what altitude_, and _why_ it changes what to teach next - not in filling out sections.
+
+## Altitude
+
+Every record carries one of two altitudes. This is the single most useful field on the record, because the two kinds decay at completely different rates and should be weighted differently when calculating the zone of proximal development.
+
+**`structural`** - about how the parts of the topic relate. A mental model, a boundary, a "these two things I thought were one thing are two things," a corrected picture of the whole, a piece of prior art that reframes a decision. These are the records that predict what the learner can do next.
+
+> _"They named a weak map - queryset vs model vs serializer vs instance - and said that is why `SlugRelatedField` does not click."_
+
+**`mechanical`** - about a specific name, call, spelling, or keystroke. Real learning, but local. It closes one door and predicts little.
+
+> _"`getattr` is a safe lookup."_ · _"import `template`, not `templates`."_
+
+### Why the split matters
+
+Mechanical records accumulate far faster than structural ones - there are simply more of them, and each is easier to notice. Left unweighted, a workspace's memory of the learner drifts into a pile of syntax corrections, and the ZPD calculation starts reading like "they know some function names" rather than "they hold this model and not that one."
+
+**When calculating the zone of proximal development, read the structural records first and let them set the ceiling.** Use the mechanical ones only to avoid re-teaching a specific name.
+
+**Watch the ratio.** If a long run of records is all `mechanical`, the teaching has drifted down-altitude. That is a signal to stop and teach the whole - and usually a signal that [`MAP.html`](./MAP-FORMAT.md) is stale or missing.
+
+A structural record often deserves a place on the map. A mechanical one almost never does.
 
 ## Optional sections
 
-Only include these when they add genuine value. Most records won't need them.
+Only include these when they add genuine value. Most records won't need them. (`Altitude` is not optional - see above.)
 
 - **Status** frontmatter (`active | superseded by LR-NNNN`): useful when an earlier understanding turns out to be wrong and is replaced.
 - **Evidence**: how the user demonstrated the understanding (a question answered, an exercise completed, prior experience cited). Useful when the claim might be revisited.

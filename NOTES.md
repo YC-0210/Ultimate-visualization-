@@ -1,10 +1,18 @@
 # Teaching notes
 
+## The two principles
+
+1. **Capture is deterministic. The LLM explains; it never observes.** (`supervisualizer/ROADMAP.md`)
+2. **If I can't see it all at once, I don't understand it yet.**
+
+The second is why [`MAP.html`](MAP.html) exists. A part learned in isolation is a part that gets lost, so every lesson links back to the map and updates it, and no lesson is finished until it does. When a run of sessions has produced only small, local understandings, that is the signal to stop and teach the whole — see the `Altitude:` field on the learning records.
+
 ## Preferences
 
 - **Logic over syntax.** Why the system behaves this way. Punctuation and style only when they change the observed behaviour.
+- **Widgets that compute, not widgets that reveal.** A widget whose every state is a string written into the asset is a slideshow with buttons — it repeats the lesson in a second font. Prefer components that scrub, compute, or respond to a changed value. `assets/timeline.js` is the reusable one: a broad-granularity scrubber (stages, phases, events — never line-by-line) with three tenses, where **future shows no data** because nothing has observed it yet.
 - **Copyable shape in the lesson, not in their file.** If they must type something and the shape is not obvious, put **two** code blocks: (1) a clean copyable snippet, (2) the same snippet with a comment on each line in concrete language (what that line does). Do not paste either into `middleware.py` until they have done the practice.
-- **What lives where.** NOTES: preferences, lesson style, workspace facts, target-app examples. `learning-records/`: understandings and corrections. Progress: [`../ROADMAP.md`](../ROADMAP.md) Status block — never “P1.x is done” here.
+- **What lives where.** NOTES: preferences, lesson style, workspace facts, target-app examples. `learning-records/`: understandings and corrections, each tagged `Altitude: structural | mechanical`. [`MAP.html`](MAP.html): the whole topic at once — a mirror of the roadmap, never a second record of progress. Progress: [`supervisualizer/ROADMAP.md`](supervisualizer/ROADMAP.md) Status block — never “P1.x is done” here.
 - **Teaching replies: as concise as possible.** No recap. Answer, then stop (or one short check).
 - **When they say they have the concept, move on** (LR-0072). Drop the restatement drill and check the *code output* instead. Do not ask them to read a long print line back to you — pull the facts out of it yourself and hand back only what changes the code.
 
@@ -13,7 +21,9 @@
 Follow this every time a lesson is generated.
 
 - **Problem first.** One sentence they could repeat, before any Django API name. Example: “You already know the URL the browser sent. You do not yet know which of your routes Django picked.” Then two concrete facts on one real restaurant-app request, as have/need cards (`.facts` / `.fact.have` / `.fact.need`).
-- **No analogies.** Not in lessons, reference cards, captions, widgets, or teaching replies. No restaurant-floor stories (waiter, diner, ticket, menu, cook, plate, recipe, door, kitchen). Introduce a new word by quoting the official docs and pointing at one fact on a real restaurant-app request, then use that word. If the docs themselves use a metaphor (e.g. “onion”), quote it as their word and link the page — do not extend it.
+- **No analogies; simulate instead** (LR-0047, sharpened). The ban stands: no restaurant-floor stories (waiter, diner, ticket, menu, cook, plate, recipe, door, kitchen) in lessons, reference cards, captions, widgets, or teaching replies. Introduce a new word by quoting the official docs and pointing at one fact on a real restaurant-app request, then use that word. If the docs themselves use a metaphor (e.g. “onion”), quote it as their word and link the page — do not extend it.
+
+  **What the ban does not license is more prose.** Dropping the analogy left a gap, and the default fill has been another paragraph — the wrong direction for a heavy visual learner. The replacement for an analogy is a **thing that can be driven**: a scrubber, a widget that computes, a real value at a real hop. Papert's point (via Victor) is that the Logo turtle works through *identification with a concrete object you can put yourself inside*, not through resemblance to something else. Ban the resemblance; keep the concrete object. When the honest options are a paragraph or a widget, build the widget.
 - **Say which tier a word comes from** (LR-0068). Three tiers: framework words with official docs (`validated_data`, `execute_wrapper`), borrowed spec words (OTel span, LSP `SymbolKind`), and words coined in this repo (`Stage`, `Packet`, `Trace`, `Probe`, `Panel`, `Adapter`, `Kind`/`Label`). For tier 3 there are no official docs to quote — quote [`CONTEXT.md`](CONTEXT.md) and say it is this repo's word, so they do not go searching Django's docs for it.
 - **Technical names only.** In running text, captions, widgets, quizzes, and later lessons. Current set: `route`, `view class`, `request`, `request.body`, `cookie`, `get_response`, `session`, `request.user`, `permission_classes`, `serializer_class`, `queryset`, `sql`, `is_valid`, `validated_data`, `model`, `instance`, `serializer`, `self`, `*args`, `**kwargs`, `template`, `context`, `render`, `function object`, `method object`, `kind`, `label`, `Trace`.
 - **Visual of the mechanism** (have/need cards, type-hop) before a timing rule or a code edit.

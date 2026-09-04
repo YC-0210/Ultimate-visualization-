@@ -1,3 +1,5 @@
+Altitude: structural
+
 # LSP's `DocumentSymbol` is the kind/label split, not just its inspiration
 
 They recalled unprompted that the `kind`/`label` split came from a code-editor protocol — correct, LSP. Reading the 3.17 spec sharpened D7 in three ways, now recorded there: `DocumentSymbol` carries `name` ("displayed in the user interface") *and* `kind: SymbolKind`, so our pair is that structure rather than an analogy to its enum; `SymbolKind.Class = 5` is verified; and "closed" does not mean frozen, since LSP grew from 18 values to 26 centrally — what is banned is per-language extension and repurposing. New requirement surfaced for P2.2: LSP makes graceful handling of unknown kinds a *client guarantee*, so the panel must render an unrecognised `kind` in a default way or a future vocabulary bump breaks every older panel. Also noted LSP deprecated its flat `SymbolInformation[]` for the hierarchical `DocumentSymbol[]`, reaching D5 independently.

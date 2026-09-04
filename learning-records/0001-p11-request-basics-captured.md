@@ -1,3 +1,5 @@
+Altitude: mechanical
+
 # P1.1: request basics are already captured in middleware
 
 The user can read `request.method`, `request.path`, `request.headers`, and `request.body` in `SupervisualizerMiddleware.__call__` *before* `get_response`, JSON-encode them, and print one line per request. Binary bodies are replaced with a length placeholder instead of crashing.

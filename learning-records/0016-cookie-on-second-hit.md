@@ -1,3 +1,5 @@
+Altitude: mechanical
+
 # Cookie header appears on the second hit
 
 They hit the restaurant app twice in the same browser and saw a Cookie value (an id) on the second request. That is the 0004 round-trip: first visit no ticket, second visit the diner puts it on the table.

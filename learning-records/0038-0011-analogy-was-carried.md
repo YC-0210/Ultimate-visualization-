@@ -1,4 +1,5 @@
 Status: superseded by LR-0047
+Altitude: mechanical
 
 # Analogies stay in the one-use paragraph
 

@@ -12,6 +12,7 @@ The user has asked you to teach them something. This is a stateful request - the
 Treat the current directory as a teaching workspace. The state of their learning is captured in this directory in several files:
 
 - `MISSION.md`: A document capturing the _reason_ the user is interested in the topic. This should be used to ground all teaching. Use the format in [MISSION-FORMAT.md](./MISSION-FORMAT.md).
+- `MAP.html`: The one page showing the **whole topic at once** - every part, how they connect, what is covered, what is being worked on now, and what has not been reached. Every lesson links back to it and updates it. Use the format in [MAP-FORMAT.md](./MAP-FORMAT.md). See [The Map](#the-map).
 - `./reference/*.html`: A directory of reference materials. These are the compressed learnings from the lessons - cheat sheets, reference algorithms, syntax, yoga poses, glossaries. They are the raw units of learning. They should be beautiful documents which print out well, and are designed for quick reference.
 - `RESOURCES.md`: A list of resources which can be explored to ground your teaching in contextual knowledge, or to acquire knowledge and wisdom. Use the format in [RESOURCES-FORMAT.md](./RESOURCES-FORMAT.md).
 - `./learning-records/*.md`: A directory of learning records, which capture what the user has learned. These are loosely equivalent to architectural decision records in software development - they capture non-obvious lessons and key insights that may need to be revised later, or drive future sessions. These should be used to calculate the zone of proximal development. They are titled `0001-<dash-case-name>.md`, where the number increments each time. Use the format in [LEARNING-RECORD-FORMAT.md](./LEARNING-RECORD-FORMAT.md).
@@ -26,6 +27,16 @@ To learn at a deep level, the user needs three things:
 - **Knowledge**, captured from high-quality, high-trust resources
 - **Skills**, acquired through highly-relevant interactive lessons devised by you, based on the knowledge
 - **Wisdom**, which comes from interacting with other learners and practitioners
+
+And one standing principle that governs how all three are presented:
+
+> **If I can't see it all at once, I don't understand it yet.**
+
+Every lesson is a part. Parts learned in isolation are parts the learner loses. Anything
+that can only be read one moment at a time - a step-by-step walkthrough, a directory of
+thirty lessons - moves the assembly work into the learner's head, which is where the
+understanding was supposed to end up. Whenever you teach a part, make sure the whole is one
+click away and visibly current. See [The Map](#the-map).
 
 Before the `RESOURCES.md` is well-populated, your focus should be to find high-quality resources which will help the user acquire knowledge. Never trust your parametric knowledge.
 
@@ -56,6 +67,10 @@ If possible, open the lesson file for the user by running a CLI command.
 
 Each lesson should link via HTML anchors to other lessons and reference documents.
 
+Each lesson must also **link back to `MAP.html`** and, once written, **update it** - hang the
+lesson off the part it explains, and move that part's tense if the work it describes has
+landed. A lesson that leaves the map stale has not finished.
+
 Each lesson should recommend a primary source for the user to read or watch. This should be the most high-quality, high-trust resource you found on the topic.
 
 Each lesson should contain a reminder to ask followup questions to the agent. The agent is their teacher, and can assist with anything that's unclear.
@@ -67,6 +82,32 @@ Lessons are built from reusable **components**, stored in `./assets/`: styleshee
 Reuse is the default, not the exception. Before authoring a lesson, read `./assets/` and build from the components already there. When a lesson needs something new and reusable, write it as a component in `./assets/` and link to it; never inline code a future lesson would duplicate.
 
 A shared stylesheet is the first component every workspace earns: every lesson links it, so the lessons look like one consistent course rather than a pile of one-offs. As the workspace grows, so should the component library.
+
+**Prefer components the learner can drive over components that reveal prepared text.** A
+widget whose every state is a string you wrote is a slideshow with buttons: it shows the
+learner what you already told them, in a second font. The valuable ones compute something,
+or scrub across something, or respond to a value the learner changes. When a lesson's
+subject is data moving through a system, the component should move the data.
+
+## The Map
+
+`MAP.html` at the workspace root is the whole topic on one page. Build it as soon as the
+topic is a **system** (parts that pass work to each other) or the workspace passes roughly
+**eight lessons** - past that a directory listing has stopped being a map. Full spec in
+[MAP-FORMAT.md](./MAP-FORMAT.md).
+
+Three rules carry most of its value:
+
+- **It is a mirror, not a source.** Where a roadmap exists, the roadmap owns status. Update
+  the roadmap first, then the map. Never let the map become a second record of progress.
+- **Three tenses, visually distinct**: covered, being worked on now, not reached yet. A
+  part not reached yet shows **no data** - never plausible-looking example data, which
+  would assert something nothing observed. Promote a part only when the underlying thing
+  actually works, not when a lesson explained it.
+- **Every lesson links to it and updates it.** One click from any part to the whole.
+
+Read it at the start of every session alongside the roadmap's Status block, and state both
+back to the user in a line or two.
 
 ## The Mission
 
@@ -86,7 +127,7 @@ Some topics being taught aren't free-standing: they're one leg of a wider projec
 
 **Orient before teaching.** At the start of every session where a roadmap is known, read its current status (most keep a short "Status" or "Current phase" block near the top - read that, not the whole file) before deciding what to teach. State it back to the user in a line or two: which phase/task the roadmap says is next, and how today's lesson serves it. A lesson that doesn't trace to the current or an imminent phase is probably the wrong lesson to teach right now - check with the user before drifting.
 
-**Reconnect inside the lesson, not just before it.** Open each lesson with a short "Where this fits" note linking it to the roadmap's current phase/task and the mission's Why. This is what keeps the user from feeling lost in a small detail while deep in it - it costs a sentence or two and should never be skipped.
+**Reconnect inside the lesson, not just before it.** Open each lesson with a short "Where this fits" note linking it to the roadmap's current phase/task and the mission's Why, and to [`MAP.html`](#the-map). This is what keeps the user from feeling lost in a small detail while deep in it - it costs a sentence or two and should never be skipped. A sentence can point at the whole; it cannot *be* the whole, which is why the map is a separate artifact and not just a better paragraph.
 
 **Write back only what the roadmap invites.** Some roadmaps address instructions to "the agent" directly (read for this) and explicitly want their Status block and checkboxes kept current as work lands. If so, treat finishing a roadmap task as learning-record-worthy: once the user has demonstrably done it, tick its checkbox, update the Status block (current phase, next action, date), and write the matching learning record. Never tick a box on the strength of a lesson alone - the roadmap's own "done when" bar is what a checkbox certifies, and that bar is usually "the thing works," not "it was explained."
 
