@@ -160,10 +160,18 @@ Not through the API, not through a script, not "just this once". The Daylog is t
 precisely because it is theirs; the moment you can write it, it becomes another thing you
 said about them and its weight in the table above drops to none.
 
-The loop closes by **paste**. At the end of a session, hand them a short paragraph they can
-paste into that day's entry: what was worked through, what now works, what is still open.
-Plain sentences, their vocabulary, no headings. They paste it, edit it, or ignore it. That
-choice is what keeps the entry evidence.
+**Do not hand them prose to put in it either.** A paragraph you write and they paste is
+still your paragraph — and next session you read it back and count it as their evidence,
+which is the same loop as writing it yourself with one extra click in the middle. Their
+entry is worth reading because they had to find the words. Take that away and there is
+nothing left to read.
+
+So the paste runs the other way: **they paste their entry to you.** `bin/pull-daylog.py` is
+the convenience; a day pasted into the session is the same evidence and needs no script.
+Read it, weight it as the table above says, and file nothing.
+
+What you owe them at the end of a session is not a paragraph for their Daylog. It is a
+straight answer about where the work stands - said in the session, where it belongs.
 
 ### The check is output, not recall
 
